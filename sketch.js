@@ -17,10 +17,10 @@ function setup() {
 function draw() {
   switch (gameState) {
     case (INTRO):
-      어쩌고저쩌고;
+      console.log("Hello");
       break;
     case (CHOOSE_POT):
-      어쩌고저쩌고;
+      console.log("ㅁㄴㅇㄹ");
       break;
   }
 }
