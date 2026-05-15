@@ -25,6 +25,8 @@ function draw() {
       break;
   }
 
+
+  //실습 내용
   background(220);
 
   if (backgroundNum == 1) {

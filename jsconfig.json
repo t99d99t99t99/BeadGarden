@@ -1,14 +1,7 @@
 {
-  "compilerOptions": {
-    "target": "es6",
-    "checkJs": true,
-    "types": [
-      "p5/global",
-      "matter-js"
-    ]
-  },
   "include": [
     "*.js",
-    "**/*.js"
+    "libraries/*.js",
+    "/Users/choiminseo/.vscode/extensions/wmcicompsci.cs30-p5-1.9.3/p5types/global.d.ts"
   ]
 }
