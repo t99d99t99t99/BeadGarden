@@ -36,6 +36,7 @@ function draw() {
 
   if (backgroundNum == 2) {
     // 배경 2 그리기 손예원
+    background(100, 120, 200)
   }
 
   if (backgroundNum == 3) {
