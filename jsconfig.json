@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "checkJs": true,
+    "types": [
+      "p5/global",
+      "matter-js"
+    ]
+  },
+  "include": [
+    "*.js",
+    "**/*.js"
+  ]
+}
