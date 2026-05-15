@@ -46,19 +46,19 @@ background(220);
 }
 
 function keyPressed() {
-  if key == '1' {
+  if (key == '1') {
     backgroundNum = 1;
   }
 
-  if key == '2' {
+  if (key == '2') {
     backgroundNum = 2;
   }
   
-  if key == '3' {
+  if (key == '3') {
     backgroundNum = 3;
   }
   
-  if key == '4' {
+  if (key == '4') {
     backgroundNum = 4;
   }
 }
