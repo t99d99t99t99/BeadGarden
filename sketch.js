@@ -41,6 +41,7 @@ background(220);
 
   if backgroundNum == 4 {
     // 배경 4 그리기 신승주
+    background(180, 100, 200)
   }
 
 }
