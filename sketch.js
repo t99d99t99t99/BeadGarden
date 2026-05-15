@@ -27,44 +27,8 @@ function draw() {
 
   background(220);
 
-  if (backgroundNum == 1) {
-    // 배경 1 그리기 김다현
-    background(0);
-    fill(50, 200, 50);
-    rect(50, 50, 100, 100);
-  }
-
-  if (backgroundNum == 2) {
-    // 배경 2 그리기 손예원
-    background(100, 120, 200)
-  }
-
-  if (backgroundNum == 3) {
-    // 배경 3 그리기 이다은
-    background(142,211,100)
-  }
-
-  if (backgroundNum == 4) {
-    // 배경 4 그리기 신승주
-    background(180, 100, 200)
-  }
-
 }
 
 function keyPressed() {
-  if (key == '1') {
-    backgroundNum = 1;
-  }
 
-  if (key == '2') {
-    backgroundNum = 2;
-  }
-
-  if (key == '3') {
-    backgroundNum = 3;
-  }
-
-  if (key == '4') {
-    backgroundNum = 4;
-  }
 }
