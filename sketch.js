@@ -25,10 +25,13 @@ function draw() {
       break;
   }
 
-background(220);
+  background(220);
 
   if (backgroundNum == 1) {
     // 배경 1 그리기 김다현
+    background(0);
+    fill(50, 200, 50);
+    rect(50, 50, 100, 100);
   }
 
   if (backgroundNum == 2) {
@@ -55,11 +58,11 @@ function keyPressed() {
   if (key == '2') {
     backgroundNum = 2;
   }
-  
+
   if (key == '3') {
     backgroundNum = 3;
   }
-  
+
   if (key == '4') {
     backgroundNum = 4;
   }
