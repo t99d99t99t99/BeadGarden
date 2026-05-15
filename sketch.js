@@ -27,19 +27,19 @@ function draw() {
 
 background(220);
 
-  if backgroundNum == 1 {
+  if (backgroundNum == 1) {
     // 배경 1 그리기 김다현
   }
 
-  if backgroundNum == 2 {
+  if (backgroundNum == 2) {
     // 배경 2 그리기 손예원
   }
 
-  if backgroundNum == 3 {
+  if (backgroundNum == 3) {
     // 배경 3 그리기 이다은
   }
 
-  if backgroundNum == 4 {
+  if (backgroundNum == 4) {
     // 배경 4 그리기 신승주
   }
 
