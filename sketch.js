@@ -37,6 +37,7 @@ background(220);
 
   if (backgroundNum == 3) {
     // 배경 3 그리기 이다은
+    background(142,211,100)
   }
 
   if (backgroundNum == 4) {
