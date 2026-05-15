@@ -3,7 +3,7 @@ function upload(pot) {
 }
 
 function parse(data) {
-    result = new Pot(어쩌고저쩌고);
+    let result = new Pot(어쩌고저쩌고);
     // 데이터베이스의 화분을 js 오브젝트로 변환하기
     return result;
 }

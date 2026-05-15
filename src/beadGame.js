@@ -22,3 +22,12 @@ const CURVE = 2;
 
 // 이 뒤에는 실제 게임 과정이 들어옴
 // 손모양 인식, 와이어 및 비즈 물리연산 등등
+
+class BeadGame {
+    constructor() {
+        this.matterEngine = Matter.Engine.create();
+        this.matterRunner = Matter.Runner.create();
+
+        this.matterRunner.run(this.matterEngine);
+    }
+}
