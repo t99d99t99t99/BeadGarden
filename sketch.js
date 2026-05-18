@@ -13,19 +13,30 @@ const STEM_FINISH = 10; // 저장 및 데이터베이스 업로드 (팝업)
 
 let gameState = INTRO;
 let backgroundNum = 0;
+let introUI;
+let tutorialUI;
+
+function goTo(state) {
+  gameState = state;
+}
 
 function setup() {
+  createCanvas(1440, 990);
+  introUI = new IntroUI();
+  tutorialUI = new TutorialUI();
 
 }
 
 function draw() {
   switch (gameState) {
-    case (INTRO):
-      console.log("Hello");
+    case INTRO:
+      introUI.draw();
+      break;
+    case TUTORIAL:
+      tutorialUI.draw();
       break;
   }
 
-  background(220);
 
 }
 
