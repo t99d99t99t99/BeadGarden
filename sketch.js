@@ -15,6 +15,8 @@ let gameState = INTRO;
 let backgroundNum = 0;
 let introUI;
 let tutorialUI;
+let GardenUI;
+let potSetupUI;
 
 function goTo(state) {
   gameState = state;
@@ -24,6 +26,8 @@ function setup() {
   createCanvas(1440, 990);
   introUI = new IntroUI();
   tutorialUI = new TutorialUI();
+  gardenUI   = new GardenUI();
+  potSetupUI = new PotSetupUI();
 
 }
 
@@ -35,11 +39,17 @@ function draw() {
     case TUTORIAL:
       tutorialUI.draw();
       break;
+    case GARDEN:
+      gardenUI.draw();
+      potSetupUI.draw();
+      break;
   }
 
 
 }
 
 function keyPressed() {
-
 }
+function mousePressed()  { if (gameState === GARDEN) gardenUI.onMousePressed();  }
+function mouseDragged()  { if (gameState === GARDEN) gardenUI.onMouseDragged();  }
+function mouseReleased() { if (gameState === GARDEN) gardenUI.onMouseReleased(); }
