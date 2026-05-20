@@ -16,6 +16,6 @@ class Pot {
         // 비즈보다 앞에 있는 화분 앞부분 그리기
     }
 
-    addStem(stem) {
+    addStem() {
     }
 }
