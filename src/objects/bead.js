@@ -5,32 +5,81 @@ class Bead {
      * @param {Number} _y 
      * @param {Number} _w 
      * @param {Number} _h 
-     * @param {p5.Color} _color 
+     * @param {import("p5").Color} _color 
      * @param {Matter.Engine} engine 
      */
     constructor(_x, _y, _w, _h, _color, engine) {
+        /** @type {import("p5").Color} */
         this.color = _color;
 
+        /** @type {Number} */
         this.w = _w;
+        /** @type {Number} */
         this.h = _h;
+        /** @type {Number} */
         this.holeH = 10;
+        /** @type {Number} */
         this.partH = (this.h - this.holeH) / 2;
+        /** @type {Number} */
+        this.partOffset = (this.partH + this.holeH) / 2;
+        /** @type {Wire | null} */
+        this.currentWire = null;
+        /** @type {Number} */
+        this.wireCheckTolerance = Math.max(this.holeH, this.w) / 2;
+        /** @type {boolean} */
+        this.isPierced = false;
+        /** @type {Number} */
+        this.wireT = 1;
+        /** @type {Matter.Vector | null} */
+        this.previousHeldEndPosition = null;
+        /** @type {Number} */
+        this.rightApproachFrames = 0;
 
-        let part1 = Matter.Bodies.rectangle(_x, _y, this.w, this.partH);
-        let part2 = Matter.Bodies.rectangle(_x, _y + this.partH + this.holeH, this.w, this.partH);
+        let part1 = Matter.Bodies.rectangle(_x, _y - this.partOffset, this.w, this.partH);
+        let part2 = Matter.Bodies.rectangle(_x, _y + this.partOffset, this.w, this.partH);
 
         this.body = Matter.Body.create({
             parts: [part1, part2]
         });
 
+        this.body.friction = 0.001;
+
         Matter.Composite.add(engine.world, this.body);
+        this.#setIntangible(true);
     }
 
-    update() {
-        //중력 영향 받고 아래로 떨어지기
-        //근데 이거 생각해보니까 일단은 matter.js가 알아서 해줄 듯
+    /**
+     * 
+     * @param {Wire} [wire]
+     * @returns {void}
+     */
+    update(wire) {
+        let targetWire = wire || this.currentWire;
+        if (!targetWire) {
+            this.#setIntangible(!this.isPierced);
+            Matter.Body.setStatic(this.body, !this.isPierced);
+            return;
+        }
+
+        if (!this.isPierced) {
+            this.#tryPierce(targetWire);
+        }
+
+        if (!this.isPierced) {
+            this.#setIntangible(true);
+            Matter.Body.setStatic(this.body, true);
+            return;
+        }
+
+        this.currentWire = targetWire;
+        this.#setIntangible(false);
+        Matter.Body.setStatic(this.body, false);
+        this.#clampToWire(targetWire);
     }
 
+    /**
+     * @returns {void}
+     */
     display() {
         // 좌표축을 비즈의 위치 및 각도에 맞게 이동하기
         push();
@@ -39,20 +88,374 @@ class Bead {
 
         // 비즈의 몸체 부분 출력하기
         noStroke();
+        rectMode(CENTER);
         fill(this.color);
-        rect(0, 0, this.w, this.partH);
-        rect(0, this.partH + this.holeH, this.w, this.partH);
+        rect(0, -this.partOffset, this.w, this.partH);
+        rect(0, this.partOffset, this.w, this.partH);
 
         // 비즈의 구멍 부분 출력하기
-        let c = color(this.color);
-        c.setAlpha(200);
+        let c = color(red(this.color) * 0.55, green(this.color) * 0.55, blue(this.color) * 0.55, 220);
         fill(c);
-        rect(0, this.partH, this.w, this.holeH);
+        rect(0, 0, this.w, this.holeH);
 
         pop();
     }
 
-    onWire() {
+    /**
+     * 
+     * @param {Wire} [wire] 
+     * @returns {boolean}
+     */
+    onWire(wire) {
         // 와이어에 꽂혀 있는지 확인
+        if (this.isPierced && wire === this.currentWire) {
+            return true;
+        }
+
+        if (!wire || !wire.segments || wire.segments.length === 0) {
+            if (this.currentWire === wire) {
+                this.currentWire = null;
+            }
+            return false;
+        }
+
+        let beadPosition = this.body.position;
+        let closestDistance = Infinity;
+
+        for (let segment of wire.segments) {
+            let endpoints = this.#segmentEndpoints(segment, wire.segLength);
+            let distance = this.#distanceToSegment(beadPosition, endpoints.start, endpoints.end);
+            closestDistance = Math.min(closestDistance, distance);
+        }
+
+        let isOnWire = closestDistance <= this.wireCheckTolerance;
+        if (this.isPierced) {
+            this.currentWire = wire;
+        } else {
+            this.currentWire = isOnWire ? wire : null;
+        }
+        return isOnWire;
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {void}
+     */
+    #tryPierce(wire) {
+        let heldEnd = this.#heldEndPosition(wire);
+        if (!heldEnd) {
+            this.previousHeldEndPosition = null;
+            return;
+        }
+
+        let previous = this.previousHeldEndPosition;
+        this.previousHeldEndPosition = { ...heldEnd };
+
+        if (!wire.isHeld() || !previous) {
+            return;
+        }
+
+        let previousLocal = this.#worldPointToLocal(previous);
+        let currentLocal = this.#worldPointToLocal(heldEnd);
+        let rightEdge = this.w / 2;
+        let leftEdge = -this.w / 2;
+        let holeTolerance = Math.max(this.holeH, this.h * 0.35);
+        let movingLeft = currentLocal.x < previousLocal.x;
+        let wasOnRight = previousLocal.x >= rightEdge || currentLocal.x >= rightEdge;
+        if (wasOnRight && movingLeft && Math.abs(currentLocal.y) <= holeTolerance) {
+            this.rightApproachFrames = 12;
+        } else {
+            this.rightApproachFrames = Math.max(0, this.rightApproachFrames - 1);
+        }
+
+        let insideHoleNow = currentLocal.x >= leftEdge && currentLocal.x <= rightEdge && Math.abs(currentLocal.y) <= holeTolerance;
+        let reachesBead = previousLocal.x >= rightEdge && currentLocal.x <= rightEdge;
+        let throughHole = this.#sweptSegmentIntersectsHole(previousLocal, currentLocal, leftEdge, rightEdge, holeTolerance);
+
+        if (!(movingLeft && reachesBead && throughHole) && !(insideHoleNow && this.rightApproachFrames > 0)) {
+            return;
+        }
+
+        this.isPierced = true;
+        this.currentWire = wire;
+        this.wireT = 1;
+    }
+
+    /**
+     * @param {Matter.Vector} start
+     * @param {Matter.Vector} end
+     * @param {Number} leftEdge
+     * @param {Number} rightEdge
+     * @param {Number} holeTolerance
+     * @returns {boolean}
+     */
+    #sweptSegmentIntersectsHole(start, end, leftEdge, rightEdge, holeTolerance) {
+        let dx = end.x - start.x;
+        let sampleCount = Math.max(6, Math.ceil(Math.abs(dx) / Math.max(1, this.holeH)));
+
+        for (let i = 0; i <= sampleCount; ++i) {
+            let t = i / sampleCount;
+            let x = start.x + dx * t;
+            let y = start.y + (end.y - start.y) * t;
+
+            if (x >= leftEdge && x <= rightEdge && Math.abs(y) <= holeTolerance) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {void}
+     */
+    #clampToWire(wire) {
+        let projection = this.#closestPointOnWire(wire, this.body.position);
+        if (!projection) {
+            return;
+        }
+
+        this.wireT = Math.max(0.001, Math.min(0.999, projection.t));
+        let point = this.#pointOnWire(wire, this.wireT);
+        if (!point) {
+            return;
+        }
+
+        Matter.Body.setPosition(this.body, point);
+        this.#projectVelocityToWire(wire, this.wireT);
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {boolean}
+     */
+    #reachedWireBottom(wire) {
+        let lastSegment = wire.segments[wire.segments.length - 1];
+        let bottom = this.#localPointToWorld(lastSegment, { x: 0, y: wire.segLength / 2 });
+        return this.#distance(this.body.position, bottom) <= this.wireCheckTolerance;
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {Matter.Vector | null}
+     */
+    #heldEndPosition(wire) {
+        if (!wire.graphPoints || wire.graphPoints.length === 0) {
+            return null;
+        }
+
+        return wire.graphPoints[wire.graphPoints.length - 1];
+    }
+
+    /**
+     * @param {Wire} wire
+     * @param {Matter.Vector} point
+     * @returns {{point: Matter.Vector, t: Number, distance: Number} | null}
+     */
+    #closestPointOnWire(wire, point) {
+        if (!wire.graphPoints || wire.graphPoints.length < 2) {
+            return null;
+        }
+
+        let result = null;
+        for (let i = 0; i < wire.graphPoints.length - 1; ++i) {
+            let start = wire.graphPoints[i];
+            let end = wire.graphPoints[i + 1];
+            let projection = this.#projectToSegment(point, start, end);
+            let t = (i + projection.t) / (wire.graphPoints.length - 1);
+
+            if (!result || projection.distance < result.distance) {
+                result = {
+                    point: projection.point,
+                    t,
+                    distance: projection.distance
+                };
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * @param {Wire} wire
+     * @param {Number} t
+     * @returns {Matter.Vector | null}
+     */
+    #pointOnWire(wire, t) {
+        if (!wire.graphPoints || wire.graphPoints.length < 2) {
+            return null;
+        }
+
+        let scaled = Math.max(0, Math.min(1, t)) * (wire.graphPoints.length - 1);
+        let index = Math.min(Math.floor(scaled), wire.graphPoints.length - 2);
+        let localT = scaled - index;
+        let start = wire.graphPoints[index];
+        let end = wire.graphPoints[index + 1];
+
+        return {
+            x: start.x + (end.x - start.x) * localT,
+            y: start.y + (end.y - start.y) * localT
+        };
+    }
+
+    /**
+     * @param {Wire} wire
+     * @param {Number} t
+     * @returns {Matter.Vector | null}
+     */
+    #tangentOnWire(wire, t) {
+        if (!wire.graphPoints || wire.graphPoints.length < 2) {
+            return null;
+        }
+
+        let scaled = Math.max(0, Math.min(1, t)) * (wire.graphPoints.length - 1);
+        let index = Math.min(Math.floor(scaled), wire.graphPoints.length - 2);
+        let start = wire.graphPoints[index];
+        let end = wire.graphPoints[index + 1];
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let length = Math.sqrt(dx * dx + dy * dy);
+
+        if (length === 0) {
+            return { x: 1, y: 0 };
+        }
+
+        return {
+            x: dx / length,
+            y: dy / length
+        };
+    }
+
+    /**
+     * @param {Wire} wire
+     * @param {Number} t
+     * @returns {void}
+     */
+    #projectVelocityToWire(wire, t) {
+        let tangent = this.#tangentOnWire(wire, t);
+        if (!tangent) {
+            return;
+        }
+
+        let velocity = this.body.velocity;
+        let speed = velocity.x * tangent.x + velocity.y * tangent.y;
+        Matter.Body.setVelocity(this.body, {
+            x: tangent.x * speed,
+            y: tangent.y * speed
+        });
+    }
+
+    /**
+     * @param {Matter.Vector} point
+     * @param {Matter.Vector} start
+     * @param {Matter.Vector} end
+     * @returns {{point: Matter.Vector, t: Number, distance: Number}}
+     */
+    #projectToSegment(point, start, end) {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let lengthSquared = dx * dx + dy * dy;
+        let t = lengthSquared === 0 ? 0 : ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
+        t = Math.max(0, Math.min(1, t));
+        let projected = {
+            x: start.x + t * dx,
+            y: start.y + t * dy
+        };
+
+        return {
+            point: projected,
+            t,
+            distance: this.#distance(point, projected)
+        };
+    }
+
+    /**
+     * @param {Matter.Body} segment
+     * @param {Number} segmentLength
+     * @returns {{start: Matter.Vector, end: Matter.Vector}}
+     */
+    #segmentEndpoints(segment, segmentLength) {
+        return {
+            start: this.#localPointToWorld(segment, { x: 0, y: -segmentLength / 2 }),
+            end: this.#localPointToWorld(segment, { x: 0, y: segmentLength / 2 })
+        };
+    }
+
+    /**
+     * @param {Matter.Body} body
+     * @param {Matter.Vector} point
+     * @returns {Matter.Vector}
+     */
+    #localPointToWorld(body, point) {
+        let cosAngle = Math.cos(body.angle);
+        let sinAngle = Math.sin(body.angle);
+
+        return {
+            x: body.position.x + point.x * cosAngle - point.y * sinAngle,
+            y: body.position.y + point.x * sinAngle + point.y * cosAngle
+        };
+    }
+
+    /**
+     * @param {Matter.Vector} point
+     * @returns {Matter.Vector}
+     */
+    #worldPointToLocal(point) {
+        let dx = point.x - this.body.position.x;
+        let dy = point.y - this.body.position.y;
+        let cosAngle = Math.cos(-this.body.angle);
+        let sinAngle = Math.sin(-this.body.angle);
+
+        return {
+            x: dx * cosAngle - dy * sinAngle,
+            y: dx * sinAngle + dy * cosAngle
+        };
+    }
+
+    /**
+     * @param {Matter.Vector} point
+     * @param {Matter.Vector} start
+     * @param {Matter.Vector} end
+     * @returns {Number}
+     */
+    #distanceToSegment(point, start, end) {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let lengthSquared = dx * dx + dy * dy;
+
+        if (lengthSquared === 0) {
+            return this.#distance(point, start);
+        }
+
+        let t = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
+        t = Math.max(0, Math.min(1, t));
+
+        return this.#distance(point, {
+            x: start.x + t * dx,
+            y: start.y + t * dy
+        });
+    }
+
+    /**
+     * @param {Matter.Vector} a
+     * @param {Matter.Vector} b
+     * @returns {Number}
+     */
+    #distance(a, b) {
+        let dx = a.x - b.x;
+        let dy = a.y - b.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * @param {boolean} intangible
+     * @returns {void}
+     */
+    #setIntangible(intangible) {
+        this.body.isSensor = intangible;
+        for (let part of this.body.parts) {
+            part.isSensor = intangible;
+        }
     }
 }
