@@ -15,11 +15,23 @@ let gameState = INTRO;
 let backgroundNum = 0;
 let introUI;
 let tutorialUI;
-let GardenUI;
+let gardenUI;
 let potSetupUI;
+let potDecorateUI;
+let potDetailUI;
+let stemDetailUI;
+let stemBeadCraftUI;
+let stemFinishUI;
+let potLockUI;
 
 function goTo(state) {
   gameState = state;
+}
+
+function isClicked(x, y, w, h) {
+  return mouseIsPressed &&
+    mouseX > x && mouseX < x + w &&
+    mouseY > y && mouseY < y + h;
 }
 
 function setup() {
@@ -28,6 +40,12 @@ function setup() {
   tutorialUI = new TutorialUI();
   gardenUI   = new GardenUI();
   potSetupUI = new PotSetupUI();
+  potDecorateUI   = new PotDecorateUI();
+  potDetailUI = new PotDetailUI();
+  stemDetailUI = new StemDetailUI();
+  potLockUI = new PotLockUI();
+  stemBeadCraftUI = new StemBeadCraftUI();
+  stemFinishUI = new StemFinishUI();
 
 }
 
@@ -41,7 +59,27 @@ function draw() {
       break;
     case GARDEN:
       gardenUI.draw();
-      potSetupUI.draw();
+      potSetupUI.draw(); // 위에 팝업으로 표시
+      potDetailUI.draw(); // 위에 팝업으로 표시
+      potLockUI.draw(); // 위에 팝업으로 표시
+      break;
+    case POT_DECORATE:
+      gardenUI.draw();
+      potDecorateUI.draw(); // 위에 팝업으로 표시
+      break;
+    case STEM_BEAD_CRAFT:
+      stemBeadCraftUI.draw();
+      break;
+    case STEM_FINISH:
+      stemBeadCraftUI.draw();
+      stemFinishUI.draw();    // 위에 팝업으로 표시
+      break;
+    case STEM_DETAIL:
+      stemDetailUI.draw();
+      break;
+    case POT_LOCK:
+      gardenUI.draw();
+      potLockUI.draw();
       break;
   }
 
@@ -50,6 +88,17 @@ function draw() {
 
 function keyPressed() {
 }
-function mousePressed()  { if (gameState === GARDEN) gardenUI.onMousePressed();  }
-function mouseDragged()  { if (gameState === GARDEN) gardenUI.onMouseDragged();  }
-function mouseReleased() { if (gameState === GARDEN) gardenUI.onMouseReleased(); }
+function mousePressed() {
+  if (gameState === GARDEN)        {gardenUI.onMousePressed(); potDetailUI.onMousePressed(); potSetupUI.onMousePressed();}
+  if (gameState === POT_DECORATE)  potDecorateUI.onMousePressed();
+}
+function mouseDragged() {
+  if (gameState === GARDEN)       gardenUI.onMouseDragged();
+}
+function mouseReleased() {
+  if (gameState === GARDEN)       gardenUI.onMouseReleased();
+  if (gameState === POT_DECORATE) potDecorateUI.onMouseReleased();
+}
+function mouseWheel(e) {
+  if (gameState === POT_DECORATE) potDecorateUI.onMouseWheel(e.delta);
+}
