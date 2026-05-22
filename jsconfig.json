@@ -5,7 +5,8 @@
     "types": [
       "p5/global",
       "matter-js"
-    ]
+    ],
+    "noImplicitAny": false
   },
   "include": [
     "*.js",

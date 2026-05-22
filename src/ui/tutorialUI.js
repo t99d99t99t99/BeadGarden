@@ -58,7 +58,7 @@ class TutorialUI {
     fill(150);
     noStroke();
     rect(width / 2 - 18, vidY + vidH * 0.55, 14, 44, 3);
-    rect(width / 2 + 4,  vidY + vidH * 0.55, 14, 44, 3);
+    rect(width / 2 + 4, vidY + vidH * 0.55, 14, 44, 3);
 
     // 영상 끝나면 자동 전환 (지금은 임시로 수동 처리)
     if (this.videoEnded) {

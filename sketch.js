@@ -10,6 +10,7 @@ const MOBILE_IMAGE_SAVE = 7; // QR코드 스캔시 모바일에 나타날 화면
 const POT_LOCK = 8; // 화분 잠금 여부 결정하기 (팝업)
 const STEM_BEAD_CRAFT = 9; // 비즈를 꽂으며 화분 조립하기
 const STEM_FINISH = 10; // 저장 및 데이터베이스 업로드 (팝업)
+const DEBUG = 99;
 
 let gameState = INTRO;
 let backgroundNum = 0;
@@ -24,6 +25,10 @@ let stemBeadCraftUI;
 let stemFinishUI;
 let potLockUI;
 
+/**
+ * 
+ * @param {number} state 
+ */
 function goTo(state) {
   gameState = state;
 }
@@ -38,7 +43,7 @@ function setup() {
   createCanvas(1440, 990);
   introUI = new IntroUI();
   tutorialUI = new TutorialUI();
-  gardenUI   = new GardenUI();
+  gardenUI = new GardenUI();
   potSetupUI = new PotSetupUI();
   potDecorateUI   = new PotDecorateUI();
   potDetailUI = new PotDetailUI();
@@ -81,24 +86,66 @@ function draw() {
       gardenUI.draw();
       potLockUI.draw();
       break;
+    case DEBUG:
+      background(240);
+      debugSceneDraw();
+      break;
   }
 
 
+  switch (gameState) {
+  }
 }
 
 function keyPressed() {
+  console.log(keyCode);
+  if (keyCode == 220) { // 역슬래시 버튼으로 디버그 모드
+    debugSceneSetup();
+  }
 }
+
 function mousePressed() {
-  if (gameState === GARDEN)        {gardenUI.onMousePressed(); potDetailUI.onMousePressed(); potSetupUI.onMousePressed();}
-  if (gameState === POT_DECORATE)  potDecorateUI.onMousePressed();
+  switch (gameState) {
+    case GARDEN:
+      gardenUI.onMousePressed();
+      potDetailUI.onMousePressed();
+      potSetupUI.onMousePressed();
+      break;
+    case POT_DECORATE:
+      potDecorateUI.onMousePressed();
+      break;
+    case DEBUG:
+      debugSceneMousePressed();
+      break;
+  }
 }
+
 function mouseDragged() {
-  if (gameState === GARDEN)       gardenUI.onMouseDragged();
+  switch (gameState) {
+    case GARDEN:
+      gardenUI.onMouseDragged();
+      break;
+  }
 }
+
 function mouseReleased() {
-  if (gameState === GARDEN)       gardenUI.onMouseReleased();
-  if (gameState === POT_DECORATE) potDecorateUI.onMouseReleased();
+  switch (gameState) {
+    case GARDEN:
+      gardenUI.onMouseReleased();
+      break;
+    case POT_DECORATE:
+      potDecorateUI.onMouseReleased();
+      break;
+    case DEBUG:
+      debugSceneMouseReleased();
+      break;
+  }
 }
+
 function mouseWheel(e) {
-  if (gameState === POT_DECORATE) potDecorateUI.onMouseWheel(e.delta);
+  switch (gameState) {
+    case POT_DECORATE:
+      potDecorateUI.onMouseWheel(e.delta);
+      break;
+  }
 }
