@@ -155,13 +155,19 @@ class GardenUI {
     textAlign(CENTER, CENTER);
     text('+ 새 화분 만들기', btnX + btnW / 2, btnY + btnH / 2);
 
-    if (isClicked(btnX, btnY, btnW, btnH)) {
-      potSetupUI.show();
-    }
   }
 
   // 마우스 드래그로 스크롤
   onMousePressed() {
+      // 새 화분 만들기 버튼
+    let btnW = 300, btnH = 52;
+    let btnX = width / 2 - btnW / 2;
+    let btnY = height - 80;
+    if (mouseX > btnX && mouseX < btnX + btnW &&
+      mouseY > btnY && mouseY < btnY + btnH) {
+        potSetupUI.show();
+        return;
+      }
     this.isDragging  = true;
     this.dragStartX  = mouseX;
     this.dragScrollX = this.targetScrollX;
@@ -185,7 +191,7 @@ class GardenUI {
         if (!pot.locked &&
             mouseX > x && mouseX < x + this.cardW &&
             mouseY > pot.cardY && mouseY < pot.cardY + 360) {
-          goTo(POT_DETAIL);
+          potDetailUI.show(pot);
         }
       }
     }
