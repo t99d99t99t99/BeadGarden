@@ -194,23 +194,29 @@ class PotDetailUI {
 
     let btnY = imgY + imgH + 16;
 
+    let _hoveredBtn = false;
+
     if (!isLocked) {
       // 화분 꾸미기 버튼
       let decorW = 110, decorH = 36;
       let decorX = imgX + imgW - decorW - 8;
       let decorBtnY = imgY + 12;
-      fill(255); stroke(200); strokeWeight(1);
+      let decorHov = isHovered(decorX, decorBtnY, decorW, decorH);
+      fill(decorHov ? 230 : 255); stroke(200); strokeWeight(1);
       rect(decorX, decorBtnY, decorW, decorH, 18);
       fill(40); noStroke(); textSize(13); textStyle(NORMAL);
       textAlign(CENTER, CENTER);
       text('화분 꾸미기', decorX + decorW / 2, decorBtnY + decorH / 2);
+      if (decorHov) _hoveredBtn = true;
 
       // 새 비즈 줄기 만들기 버튼
-      fill(30); noStroke();
+      let stemBtnHov = isHovered(popX + 18, btnY, popW - 36, 48);
+      fill(stemBtnHov ? 55 : 30); noStroke();
       rect(popX + 18, btnY, popW - 36, 48, 24);
       fill(255); textSize(15); textStyle(BOLD);
       textAlign(CENTER, CENTER);
       text('+ 새 비즈 줄기 만들기', width / 2, btnY + 24);
+      if (stemBtnHov) _hoveredBtn = true;
 
       // 화분 잠금 영역 (줄기 있을 때만)
       if (hasStem) {
@@ -223,11 +229,13 @@ class PotDetailUI {
 
         let lockBtnW = 110, lockBtnH = 36;
         let lockBtnX = popX + popW - lockBtnW - 18;
-        fill(255); stroke(200); strokeWeight(1);
+        let lockHov = isHovered(lockBtnX, lockY, lockBtnW, lockBtnH);
+        fill(lockHov ? 230 : 255); stroke(200); strokeWeight(1);
         rect(lockBtnX, lockY, lockBtnW, lockBtnH, 18);
         fill(40); noStroke(); textSize(13); textStyle(NORMAL);
         textAlign(CENTER, CENTER);
         text('화분 잠그기', lockBtnX + lockBtnW / 2, lockY + lockBtnH / 2);
+        if (lockHov) _hoveredBtn = true;
       }
 
     } else {
@@ -243,5 +251,11 @@ class PotDetailUI {
       textAlign(CENTER, CENTER);
       text('🔒 잠금됨', lockBtnX + lockBtnW / 2, lockY + lockBtnH / 2);
     }
+
+    // X 버튼 hover
+    let xHov = isHovered(popX + popW - 40, popY + 8, 30, 30);
+    if (xHov) _hoveredBtn = true;
+
+    if (_hoveredBtn) cursor(HAND); else cursor(ARROW);
   }
 }
