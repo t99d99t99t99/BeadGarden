@@ -274,6 +274,12 @@ class PotDecorateUI {
     line(popX + 430, popY + 52, popX + 430, popY + popH - 70);
     noStroke();
 
+    // 오른쪽 패널 클리핑 — 팝업 경계 밖으로 콘텐츠가 삐져나오지 않도록
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(popX + 431, popY + 53, popW - 431, popH - 123);
+    drawingContext.clip();
+
     // 화분 세부 설정 타이틀
     fill(30); textStyle(BOLD); textSize(14); textAlign(LEFT);
     text('화분 세부 설정', panX, panY + 20);
@@ -348,6 +354,8 @@ class PotDecorateUI {
       // 스크롤 범위 설정
       this.targetScrollY = max(0, (stemSecY + 380) - (popY + popH - 80));
     }
+
+    drawingContext.restore();
 
     // ── 하단 버튼 ──
     // 건너뛰기
