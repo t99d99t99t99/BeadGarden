@@ -168,6 +168,7 @@ class GardenUI {
         potSetupUI.show();
         return;
       }
+    if (potSetupUI.isVisible || potDetailUI.isVisible) return;
     this.isDragging  = true;
     this.dragStartX  = mouseX;
     this.dragScrollX = this.targetScrollX;
@@ -183,6 +184,10 @@ class GardenUI {
   }
 
   onMouseReleased() {
+    if (potSetupUI.isVisible || potDetailUI.isVisible) {
+      this.isDragging = false;
+      return;
+    }
     // 드래그가 아닌 클릭일 때만 카드 열기
     if (abs(mouseX - this.dragStartX) < 5) {
       for (let i = 0; i < this.pots.length; i++) {
