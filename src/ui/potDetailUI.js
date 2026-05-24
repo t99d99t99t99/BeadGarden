@@ -146,9 +146,12 @@ class PotDetailUI {
     rect(popX, popY, popW, popH, 14);
 
     // X 버튼
-    fill(160); noStroke();
-    textSize(18); textAlign(CENTER, CENTER);
-    text('×', popX + popW - 28, popY + 22);
+    let xBtnX = popX + popW - 40, xBtnY = popY + 8, xBtnSize = 28;
+    let xHovDraw = isHovered(xBtnX, xBtnY, xBtnSize, xBtnSize);
+    fill(xHovDraw ? 210 : 235); noStroke();
+    ellipse(xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2, xBtnSize);
+    fill(80); textSize(16); textAlign(CENTER, CENTER);
+    text('×', xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2);
 
     // 타이틀
     fill(30); noStroke();
@@ -252,9 +255,7 @@ class PotDetailUI {
       text('🔒 잠금됨', lockBtnX + lockBtnW / 2, lockY + lockBtnH / 2);
     }
 
-    // X 버튼 hover
-    let xHov = isHovered(popX + popW - 40, popY + 8, 30, 30);
-    if (xHov) _hoveredBtn = true;
+    if (xHovDraw) _hoveredBtn = true;
 
     if (_hoveredBtn) cursor(HAND); else cursor(ARROW);
   }

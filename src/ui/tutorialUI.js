@@ -22,13 +22,15 @@ class TutorialUI {
     let btnW = 120, btnH = 48;
     let btnX = width - pad - btnW - 20;
     let btnY = pad + 15;
-    fill(160);
+    let skipHov = isHovered(btnX, btnY, btnW, btnH);
+    fill(skipHov ? 140 : 160); noStroke();
     rect(btnX, btnY, btnW, btnH, 10);
     fill(255);
     textStyle(NORMAL);
     textSize(15);
     textAlign(CENTER, CENTER);
     text('건너뛰기', btnX + btnW / 2, btnY + btnH / 2);
+    if (skipHov) cursor(HAND); else cursor(ARROW);
 
     // 건너뛰기 클릭 판정
     if (isClicked(btnX, btnY, btnW, btnH)) {
