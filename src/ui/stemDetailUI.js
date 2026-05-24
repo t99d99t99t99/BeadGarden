@@ -112,7 +112,8 @@ class StemDetailUI {
 
     // ── 상단 ──
     // 뒤로가기 버튼
-    fill(248); stroke(210); strokeWeight(1);
+    let backHov = isHovered(20, 14, 80, 32);
+    fill(backHov ? 235 : 248); stroke(210); strokeWeight(1);
     rect(20, 14, 80, 32, 6);
     fill(60); noStroke(); textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('← 나가기', 60, 30);
@@ -199,16 +200,18 @@ class StemDetailUI {
     let btnX = width / 2 - btnW / 2;
     let btnY = height - 80;
     let canStart = this.selectedPalettes.length > 0;
+    let startHov = canStart && isHovered(btnX, btnY, btnW, btnH);
 
-    fill(canStart ? 30 : 160); noStroke();
+    fill(canStart ? (startHov ? 55 : 30) : 160); noStroke();
     rect(btnX, btnY, btnW, btnH, 26);
     fill(255); textSize(15); textStyle(BOLD); textAlign(CENTER, CENTER);
     text('줄기 만들기 시작 →', btnX + btnW / 2, btnY + btnH / 2);
 
     if (canStart && isClicked(btnX, btnY, btnW, btnH)) {
-      // 팔레트 정보를 stemBeadCraft로 전달
       stemBeadCraftUI.setPalette(this.getSelectedColors());
       goTo(STEM_BEAD_CRAFT);
     }
+
+    if (backHov || startHov) cursor(HAND); else cursor(ARROW);
   }
 }

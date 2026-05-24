@@ -360,7 +360,8 @@ class PotDecorateUI {
     // ── 하단 버튼 ──
     // 건너뛰기
     let skipX = popX + 28, skipY = popY + popH - 62;
-    fill(180); noStroke();
+    let skipHov = isHovered(skipX, skipY, 140, 44);
+    fill(skipHov ? 160 : 180); noStroke();
     rect(skipX, skipY, 140, 44, 22);
     fill(255); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('건너뛰기', skipX + 70, skipY + 22);
@@ -378,7 +379,8 @@ class PotDecorateUI {
 
     // 저장하기
     let saveX = popX + popW - 168, saveY = popY + popH - 62;
-    fill(30); noStroke();
+    let saveHov = isHovered(saveX, saveY, 140, 44);
+    fill(saveHov ? 55 : 30); noStroke();
     rect(saveX, saveY, 140, 44, 22);
     fill(255); textSize(14); textAlign(CENTER, CENTER);
     text('저장하기', saveX + 70, saveY + 22);
@@ -387,6 +389,8 @@ class PotDecorateUI {
       this.hide();
       goTo(POT_DETAIL);
     }
+
+    if (skipHov || saveHov) cursor(HAND); else cursor(ARROW);
   }
 
   // 마우스 클릭으로 줄기 선택

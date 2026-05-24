@@ -197,7 +197,8 @@ class PotSetupUI {
 
     // 취소 버튼
     let cancelX = popX + 28, cancelY = popY + 464;
-    fill(180); noStroke();
+    let cancelHov = isHovered(cancelX, cancelY, 148, 48);
+    fill(cancelHov ? 160 : 180); noStroke();
     rect(cancelX, cancelY, 148, 48, 24);
     fill(255); textSize(15); textStyle(NORMAL);
     textAlign(CENTER, CENTER);
@@ -206,10 +207,14 @@ class PotSetupUI {
     // 확정 버튼
     let confirmX = popX + 196, confirmY = popY + 464;
     let canConfirm = this.nameInput && this.nameInput.value().trim().length > 0;
-    fill(canConfirm ? color(60, 60, 220) : 160); noStroke();
+    let confirmHov = canConfirm && isHovered(confirmX, confirmY, 296, 48);
+    fill(canConfirm ? (confirmHov ? color(40, 40, 200) : color(60, 60, 220)) : 160); noStroke();
     rect(confirmX, confirmY, 296, 48, 24);
     fill(255); textSize(15); textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text('이름 확정하고 화분 꾸미기 →', confirmX + 148, confirmY + 24);
+
+    // 커서
+    if (cancelHov || confirmHov) cursor(HAND); else cursor(ARROW);
   }
 }

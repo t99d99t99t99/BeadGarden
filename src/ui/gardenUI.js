@@ -137,7 +137,7 @@ class GardenUI {
       }
     }
 
-    if (!this.hoveredPot) cursor(ARROW);
+    if (!this.hoveredPot && !potSetupUI.isVisible && !potDetailUI.isVisible) cursor(ARROW);
 
     // 부드러운 스크롤
     this.scrollX = lerp(this.scrollX, this.targetScrollX, 0.12);
@@ -146,7 +146,8 @@ class GardenUI {
     let btnW = 300, btnH = 52;
     let btnX = width / 2 - btnW / 2;
     let btnY = height - 80;
-    fill(30);
+    let btnHov = isHovered(btnX, btnY, btnW, btnH);
+    fill(btnHov ? 55 : 30);
     noStroke();
     rect(btnX, btnY, btnW, btnH, 26);
     fill(255);
@@ -154,6 +155,7 @@ class GardenUI {
     textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text('+ 새 화분 만들기', btnX + btnW / 2, btnY + btnH / 2);
+    if (btnHov) cursor(HAND);
 
   }
 
