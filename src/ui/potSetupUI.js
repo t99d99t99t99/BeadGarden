@@ -13,6 +13,8 @@ class PotSetupUI {
   }
 
   show() {
+    if (this.nameInput) { this.nameInput.remove(); this.nameInput = null; }
+    if (this.descInput) { this.descInput.remove(); this.descInput = null; }
     this.isVisible       = true;
     this.selectedConcept = 1;
 
