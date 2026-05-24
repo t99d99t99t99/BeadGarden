@@ -191,6 +191,7 @@ class GardenUI {
         if (!pot.locked &&
             mouseX > x && mouseX < x + this.cardW &&
             mouseY > pot.cardY && mouseY < pot.cardY + 360) {
+          potSetupUI.hide();
           potDetailUI.show(pot);
         }
       }

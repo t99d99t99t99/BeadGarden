@@ -105,6 +105,7 @@ class PotDetailUI {
       if (mouseX > popX + 18 && mouseX < popX + 18 + popW - 36 &&
           mouseY > btnY && mouseY < btnY + 48) {
         stemDetailUI.selectedPalettes = [];
+        stemDetailUI.currentPot = this.pot;
         this.hide();
         goTo(STEM_DETAIL);
         return;

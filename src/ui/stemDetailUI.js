@@ -1,6 +1,7 @@
 class StemDetailUI {
   constructor() {
     this.selectedPalettes = []; // 최대 3개 인덱스
+    this.currentPot = null; // potDetailUI에서 전달받은 화분 참조
 
     // 9개 팔레트 데이터
     this.palettes = [
@@ -116,7 +117,8 @@ class StemDetailUI {
     fill(60); noStroke(); textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('← 나가기', 60, 30);
     if (isClicked(20, 14, 80, 32)) {
-      goTo(POT_DETAIL);
+      goTo(GARDEN);
+      potDetailUI.show(this.currentPot);
     }
 
     // 페이지 타이틀
@@ -205,7 +207,7 @@ class StemDetailUI {
 
     if (canStart && isClicked(btnX, btnY, btnW, btnH)) {
       // 팔레트 정보를 stemBeadCraft로 전달
-      stemBeadCraft.setPalette(this.getSelectedColors());
+      stemBeadCraftUI.setPalette(this.getSelectedColors());
       goTo(STEM_BEAD_CRAFT);
     }
   }
