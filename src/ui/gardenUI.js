@@ -137,7 +137,7 @@ class GardenUI {
       }
     }
 
-    if (!this.hoveredPot) cursor(ARROW);
+    if (!this.hoveredPot && !potSetupUI.isVisible && !potDetailUI.isVisible) cursor(ARROW);
 
     // 부드러운 스크롤
     this.scrollX = lerp(this.scrollX, this.targetScrollX, 0.12);
@@ -146,7 +146,8 @@ class GardenUI {
     let btnW = 300, btnH = 52;
     let btnX = width / 2 - btnW / 2;
     let btnY = height - 80;
-    fill(30);
+    let btnHov = isHovered(btnX, btnY, btnW, btnH);
+    fill(btnHov ? 55 : 30);
     noStroke();
     rect(btnX, btnY, btnW, btnH, 26);
     fill(255);
@@ -154,6 +155,7 @@ class GardenUI {
     textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text('+ 새 화분 만들기', btnX + btnW / 2, btnY + btnH / 2);
+    if (btnHov) cursor(HAND);
 
   }
 
@@ -168,6 +170,7 @@ class GardenUI {
         potSetupUI.show();
         return;
       }
+    if (potSetupUI.isVisible || potDetailUI.isVisible) return;
     this.isDragging  = true;
     this.dragStartX  = mouseX;
     this.dragScrollX = this.targetScrollX;
@@ -183,6 +186,10 @@ class GardenUI {
   }
 
   onMouseReleased() {
+    if (potSetupUI.isVisible || potDetailUI.isVisible) {
+      this.isDragging = false;
+      return;
+    }
     // 드래그가 아닌 클릭일 때만 카드 열기
     if (abs(mouseX - this.dragStartX) < 5) {
       for (let i = 0; i < this.pots.length; i++) {
@@ -191,6 +198,7 @@ class GardenUI {
         if (!pot.locked &&
             mouseX > x && mouseX < x + this.cardW &&
             mouseY > pot.cardY && mouseY < pot.cardY + 360) {
+          potSetupUI.hide();
           potDetailUI.show(pot);
         }
       }
