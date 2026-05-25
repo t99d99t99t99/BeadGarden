@@ -251,6 +251,14 @@ class PotDecorateUI {
     fill(255); stroke(220); strokeWeight(1);
     rect(popX, popY, popW, popH, 12);
 
+    // X 버튼
+    let xBtnX = popX + popW - 40, xBtnY = popY + 8, xBtnSize = 28;
+    let xHov = isHovered(xBtnX, xBtnY, xBtnSize, xBtnSize);
+    fill(xHov ? 210 : 235); noStroke();
+    ellipse(xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2, xBtnSize);
+    fill(80); textSize(16); textAlign(CENTER, CENTER);
+    text('×', xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2);
+
     // 타이틀
     noStroke(); fill(30);
     textStyle(BOLD); textSize(18); textAlign(CENTER);
@@ -390,7 +398,7 @@ class PotDecorateUI {
       goTo(POT_DETAIL);
     }
 
-    if (skipHov || saveHov) cursor(HAND); else cursor(ARROW);
+    if (xHov || skipHov || saveHov) cursor(HAND); else cursor(ARROW);
   }
 
   // 마우스 클릭으로 줄기 선택
@@ -400,6 +408,15 @@ class PotDecorateUI {
     let popW = 1060, popH = 700;
     let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
+
+    // X 버튼
+    if (mouseX > popX + popW - 40 && mouseX < popX + popW - 12 &&
+        mouseY > popY + 8 && mouseY < popY + 36) {
+      this.hide();
+      goTo(GARDEN);
+      return;
+    }
+
     let cx   = popX + 20 + 200; // 미리보기 중앙
     let baseY = popY + 62 + 590 * 0.72;
 
