@@ -126,14 +126,20 @@ class StemDetailUI {
     fill(30); textStyle(BOLD); textSize(16); textAlign(CENTER);
     text('비즈 색상 팔레트 선택', width / 2, 30);
 
-    // 안내 텍스트
-    fill(30); textStyle(NORMAL); textSize(14); textAlign(CENTER);
-    // '최대 3가지' 강조
-    text('최대 ', width / 2 - 60, height * 0.25);
-    textStyle(BOLD);
-    text('3가지', width / 2 - 22, height * 0.25);
+    // 안내 텍스트 — LEFT 정렬로 각 토막 이어 붙이기
+    textSize(14); noStroke(); fill(30);
     textStyle(NORMAL);
-    text('의 비즈 색상 팔레트를 선택하세요', width / 2 + 52, height * 0.25);
+    let prefixW = textWidth('최대 ');
+    textStyle(BOLD);
+    let boldW = textWidth('3가지');
+    textStyle(NORMAL);
+    let suffixW = textWidth('의 비즈 색상 팔레트를 선택하세요');
+    let lineX = width / 2 - (prefixW + boldW + suffixW) / 2;
+    let lineY = height * 0.25;
+    textAlign(LEFT);
+    textStyle(NORMAL); text('최대 ', lineX, lineY);
+    textStyle(BOLD);   text('3가지', lineX + prefixW, lineY);
+    textStyle(NORMAL); text('의 비즈 색상 팔레트를 선택하세요', lineX + prefixW + boldW, lineY);
 
     // ── 팔레트 카드 3×3 그리드 ──
     let cardW = 220, cardH = 80;

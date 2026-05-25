@@ -218,10 +218,10 @@ class PotDecorateUI {
     stroke(50); strokeWeight(3);
     line(x, y, nx, ny);
 
-    // 각도 숫자
+    // 각도 숫자 — 다이얼 아래에 표시
     fill(30); noStroke();
-    textSize(13); textAlign(LEFT);
-    text(`줄기 기울기  ${this.stemAngle}°`, x - r, y - r - 16);
+    textSize(13); textAlign(CENTER);
+    text(`줄기 기울기  ${this.stemAngle}°`, x, y + r + 18);
 
     // 드래그로 각도 조절
     if (this.isDraggingAngle) {
