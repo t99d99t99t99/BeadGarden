@@ -1,6 +1,7 @@
 class StemDetailUI {
   constructor() {
     this.selectedPalettes = []; // 최대 3개 인덱스
+    this.currentPot = null; // potDetailUI에서 전달받은 화분 참조
 
     // 9개 팔레트 데이터
     this.palettes = [
@@ -111,26 +112,34 @@ class StemDetailUI {
 
     // ── 상단 ──
     // 뒤로가기 버튼
-    fill(248); stroke(210); strokeWeight(1);
+    let backHov = isHovered(20, 14, 80, 32);
+    fill(backHov ? 235 : 248); stroke(210); strokeWeight(1);
     rect(20, 14, 80, 32, 6);
     fill(60); noStroke(); textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('← 나가기', 60, 30);
     if (isClicked(20, 14, 80, 32)) {
-      goTo(POT_DETAIL);
+      goTo(GARDEN);
+      potDetailUI.show(this.currentPot);
     }
 
     // 페이지 타이틀
     fill(30); textStyle(BOLD); textSize(16); textAlign(CENTER);
     text('비즈 색상 팔레트 선택', width / 2, 30);
 
-    // 안내 텍스트
-    fill(30); textStyle(NORMAL); textSize(14); textAlign(CENTER);
-    // '최대 3가지' 강조
-    text('최대 ', width / 2 - 60, height * 0.25);
-    textStyle(BOLD);
-    text('3가지', width / 2 - 22, height * 0.25);
+    // 안내 텍스트 — LEFT 정렬로 각 토막 이어 붙이기
+    textSize(14); noStroke(); fill(30);
     textStyle(NORMAL);
-    text('의 비즈 색상 팔레트를 선택하세요', width / 2 + 52, height * 0.25);
+    let prefixW = textWidth('최대 ');
+    textStyle(BOLD);
+    let boldW = textWidth('3가지');
+    textStyle(NORMAL);
+    let suffixW = textWidth('의 비즈 색상 팔레트를 선택하세요');
+    let lineX = width / 2 - (prefixW + boldW + suffixW) / 2;
+    let lineY = height * 0.25;
+    textAlign(LEFT);
+    textStyle(NORMAL); text('최대 ', lineX, lineY);
+    textStyle(BOLD);   text('3가지', lineX + prefixW, lineY);
+    textStyle(NORMAL); text('의 비즈 색상 팔레트를 선택하세요', lineX + prefixW + boldW, lineY);
 
     // ── 팔레트 카드 3×3 그리드 ──
     let cardW = 220, cardH = 80;
@@ -197,16 +206,18 @@ class StemDetailUI {
     let btnX = width / 2 - btnW / 2;
     let btnY = height - 80;
     let canStart = this.selectedPalettes.length > 0;
+    let startHov = canStart && isHovered(btnX, btnY, btnW, btnH);
 
-    fill(canStart ? 30 : 160); noStroke();
+    fill(canStart ? (startHov ? 55 : 30) : 160); noStroke();
     rect(btnX, btnY, btnW, btnH, 26);
     fill(255); textSize(15); textStyle(BOLD); textAlign(CENTER, CENTER);
     text('줄기 만들기 시작 →', btnX + btnW / 2, btnY + btnH / 2);
 
     if (canStart && isClicked(btnX, btnY, btnW, btnH)) {
-      // 팔레트 정보를 stemBeadCraft로 전달
-      stemBeadCraft.setPalette(this.getSelectedColors());
+      stemBeadCraftUI.setPalette(this.getSelectedColors());
       goTo(STEM_BEAD_CRAFT);
     }
+
+    if (backHov || startHov) cursor(HAND); else cursor(ARROW);
   }
 }

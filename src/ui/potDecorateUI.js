@@ -218,10 +218,10 @@ class PotDecorateUI {
     stroke(50); strokeWeight(3);
     line(x, y, nx, ny);
 
-    // 각도 숫자
+    // 각도 숫자 — 다이얼 아래에 표시
     fill(30); noStroke();
-    textSize(13); textAlign(LEFT);
-    text(`줄기 기울기  ${this.stemAngle}°`, x - r, y - r - 16);
+    textSize(13); textAlign(CENTER);
+    text(`줄기 기울기  ${this.stemAngle}°`, x, y + r + 18);
 
     // 드래그로 각도 조절
     if (this.isDraggingAngle) {
@@ -251,6 +251,14 @@ class PotDecorateUI {
     fill(255); stroke(220); strokeWeight(1);
     rect(popX, popY, popW, popH, 12);
 
+    // X 버튼
+    let xBtnX = popX + popW - 40, xBtnY = popY + 8, xBtnSize = 28;
+    let xHov = isHovered(xBtnX, xBtnY, xBtnSize, xBtnSize);
+    fill(xHov ? 210 : 235); noStroke();
+    ellipse(xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2, xBtnSize);
+    fill(80); textSize(16); textAlign(CENTER, CENTER);
+    text('×', xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2);
+
     // 타이틀
     noStroke(); fill(30);
     textStyle(BOLD); textSize(18); textAlign(CENTER);
@@ -273,6 +281,12 @@ class PotDecorateUI {
     stroke(220); strokeWeight(1);
     line(popX + 430, popY + 52, popX + 430, popY + popH - 70);
     noStroke();
+
+    // 오른쪽 패널 클리핑 — 팝업 경계 밖으로 콘텐츠가 삐져나오지 않도록
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(popX + 431, popY + 53, popW - 431, popH - 123);
+    drawingContext.clip();
 
     // 화분 세부 설정 타이틀
     fill(30); textStyle(BOLD); textSize(14); textAlign(LEFT);
@@ -349,10 +363,13 @@ class PotDecorateUI {
       this.targetScrollY = max(0, (stemSecY + 380) - (popY + popH - 80));
     }
 
+    drawingContext.restore();
+
     // ── 하단 버튼 ──
     // 건너뛰기
     let skipX = popX + 28, skipY = popY + popH - 62;
-    fill(180); noStroke();
+    let skipHov = isHovered(skipX, skipY, 140, 44);
+    fill(skipHov ? 160 : 180); noStroke();
     rect(skipX, skipY, 140, 44, 22);
     fill(255); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('건너뛰기', skipX + 70, skipY + 22);
@@ -370,7 +387,8 @@ class PotDecorateUI {
 
     // 저장하기
     let saveX = popX + popW - 168, saveY = popY + popH - 62;
-    fill(30); noStroke();
+    let saveHov = isHovered(saveX, saveY, 140, 44);
+    fill(saveHov ? 55 : 30); noStroke();
     rect(saveX, saveY, 140, 44, 22);
     fill(255); textSize(14); textAlign(CENTER, CENTER);
     text('저장하기', saveX + 70, saveY + 22);
@@ -379,6 +397,8 @@ class PotDecorateUI {
       this.hide();
       goTo(POT_DETAIL);
     }
+
+    if (xHov || skipHov || saveHov) cursor(HAND); else cursor(ARROW);
   }
 
   // 마우스 클릭으로 줄기 선택
@@ -388,6 +408,15 @@ class PotDecorateUI {
     let popW = 1060, popH = 700;
     let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
+
+    // X 버튼
+    if (mouseX > popX + popW - 40 && mouseX < popX + popW - 12 &&
+        mouseY > popY + 8 && mouseY < popY + 36) {
+      this.hide();
+      goTo(GARDEN);
+      return;
+    }
+
     let cx   = popX + 20 + 200; // 미리보기 중앙
     let baseY = popY + 62 + 590 * 0.72;
 
