@@ -44,9 +44,13 @@ class BeadGame {
 
     }
 
-    update() {
+    /**
+     * @param {Matter.Vector} [heldPosition]
+     */
+    update(heldPosition) {
         if (this.heldWire) {
-            this.heldWire.setHeldEnd(mouseX, mouseY);
+            let pointer = heldPosition || { x: mouseX, y: mouseY };
+            this.heldWire.setHeldEnd(pointer.x, pointer.y);
         }
 
         for (let wire of this.wires) {
@@ -71,31 +75,46 @@ class BeadGame {
     }
 
     setupDebugObjects() {
-        this.wires.push(new Wire(760, 32, width * 0.5, 120, 3, this.#matterEngine));
+        let wire = new Wire(760, 32, width * 0.5, height * 0.5, 3, this.#matterEngine);
+        this.wires.push(wire);
 
         for (let i = 0; i < 20; ++i) {
             let beadWidth = random(28, 60);
             let beadHeight = random(34, 72);
             let beadColor = color(random(50, 255), random(50, 255), random(50, 255));
-            let x = random(120, width - 120);
-            let y = random(120, height - 120);
+            let horizontalMargin = wire.safeMargin + 40 + beadWidth / 2;
+            let verticalMargin = wire.safeMargin + 40 + beadHeight / 2;
+            let maxY = Math.max(verticalMargin, wire.reachableHeldEndMaxY());
+            let x = random(horizontalMargin, width - horizontalMargin);
+            let y = random(verticalMargin, maxY);
 
             this.beads.push(new Bead(x, y, beadWidth, beadHeight, beadColor, this.#matterEngine));
         }
     }
 
     tryHoldWire() {
+        this.tryHoldWireAt({ x: mouseX, y: mouseY });
+    }
+
+    /**
+     * @param {Matter.Vector | null} position
+     */
+    tryHoldWireAt(position) {
         if (gameState !== DEBUG) {
             return;
         }
 
-        let wire = this.#wireNearMouse();
+        if (!position) {
+            return;
+        }
+
+        let wire = this.#wireNearPosition(position);
         if (!wire) {
             return;
         }
 
         this.heldWire = wire;
-        this.heldWire.setHeldEnd(mouseX, mouseY);
+        this.heldWire.setHeldEnd(position.x, position.y);
         this.heldWire.update();
     }
 
@@ -121,11 +140,17 @@ class BeadGame {
     }
 
     #wireNearMouse() {
-        let mousePosition = { x: mouseX, y: mouseY };
+        return this.#wireNearPosition({ x: mouseX, y: mouseY });
+    }
 
+    /**
+     * @param {Matter.Vector} position
+     * @returns {Wire | null}
+     */
+    #wireNearPosition(position) {
         for (let wire of this.wires) {
             let segment = this.#lastSegment(wire);
-            if (segment && this.#distance(mousePosition, segment.position) <= this.wireGrabDistance) {
+            if (segment && this.#distance(position, segment.position) <= this.wireGrabDistance) {
                 return wire;
             }
         }
