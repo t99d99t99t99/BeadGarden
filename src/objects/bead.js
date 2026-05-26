@@ -32,8 +32,10 @@ class Bead {
         this.wireT = 1;
         /** @type {Matter.Vector | null} */
         this.previousHeldEndPosition = null;
+        /** @type {boolean} */
+        this.enteredHoleFromRight = false;
         /** @type {Number} */
-        this.rightApproachFrames = 0;
+        this.safeAreaInset = 40;
 
         let part1 = Matter.Bodies.rectangle(_x, _y - this.partOffset, this.w, this.partH);
         let part2 = Matter.Bodies.rectangle(_x, _y + this.partOffset, this.w, this.partH);
@@ -43,6 +45,7 @@ class Bead {
         });
 
         this.body.friction = 0.001;
+        this.#clampUnpiercedPosition();
 
         Matter.Composite.add(engine.world, this.body);
         this.#setIntangible(true);
@@ -56,6 +59,9 @@ class Bead {
     update(wire) {
         let targetWire = wire || this.currentWire;
         if (!targetWire) {
+            if (!this.isPierced) {
+                this.#clampUnpiercedPosition();
+            }
             this.#setIntangible(!this.isPierced);
             Matter.Body.setStatic(this.body, !this.isPierced);
             return;
@@ -66,6 +72,7 @@ class Bead {
         }
 
         if (!this.isPierced) {
+            this.#clampUnpiercedPosition(targetWire);
             this.#setIntangible(true);
             Matter.Body.setStatic(this.body, true);
             return;
@@ -145,6 +152,7 @@ class Bead {
         let heldEnd = this.#heldEndPosition(wire);
         if (!heldEnd) {
             this.previousHeldEndPosition = null;
+            this.enteredHoleFromRight = false;
             return;
         }
 
@@ -152,6 +160,9 @@ class Bead {
         this.previousHeldEndPosition = { ...heldEnd };
 
         if (!wire.isHeld() || !previous) {
+            if (!wire.isHeld()) {
+                this.enteredHoleFromRight = false;
+            }
             return;
         }
 
@@ -159,20 +170,20 @@ class Bead {
         let currentLocal = this.#worldPointToLocal(heldEnd);
         let rightEdge = this.w / 2;
         let leftEdge = -this.w / 2;
+        let almostThroughX = leftEdge + this.w * 0.08;
         let holeTolerance = Math.max(this.holeH, this.h * 0.35);
         let movingLeft = currentLocal.x < previousLocal.x;
         let wasOnRight = previousLocal.x >= rightEdge || currentLocal.x >= rightEdge;
         if (wasOnRight && movingLeft && Math.abs(currentLocal.y) <= holeTolerance) {
-            this.rightApproachFrames = 12;
-        } else {
-            this.rightApproachFrames = Math.max(0, this.rightApproachFrames - 1);
+            this.enteredHoleFromRight = true;
+        } else if (Math.abs(currentLocal.y) > holeTolerance || currentLocal.x > rightEdge) {
+            this.enteredHoleFromRight = false;
         }
 
-        let insideHoleNow = currentLocal.x >= leftEdge && currentLocal.x <= rightEdge && Math.abs(currentLocal.y) <= holeTolerance;
-        let reachesBead = previousLocal.x >= rightEdge && currentLocal.x <= rightEdge;
+        let almostCompletelyThrough = currentLocal.x <= almostThroughX;
         let throughHole = this.#sweptSegmentIntersectsHole(previousLocal, currentLocal, leftEdge, rightEdge, holeTolerance);
 
-        if (!(movingLeft && reachesBead && throughHole) && !(insideHoleNow && this.rightApproachFrames > 0)) {
+        if (!(this.enteredHoleFromRight && movingLeft && almostCompletelyThrough && throughHole)) {
             return;
         }
 
@@ -457,5 +468,65 @@ class Bead {
         for (let part of this.body.parts) {
             part.isSensor = intangible;
         }
+    }
+
+    /**
+     * @param {Wire} [wire]
+     * @returns {void}
+     */
+    #clampUnpiercedPosition(wire) {
+        let position = this.#clampedUnpiercedPosition(this.body.position, wire);
+        Matter.Body.setPosition(this.body, position);
+        Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
+        Matter.Body.setAngularVelocity(this.body, 0);
+    }
+
+    /**
+     * @param {Matter.Vector} position
+     * @param {Wire} [wire]
+     * @returns {Matter.Vector}
+     */
+    #clampedUnpiercedPosition(position, wire) {
+        let wireMargin = wire && typeof wire.safeMargin === "number" ? wire.safeMargin : 120;
+        let horizontalMargin = wireMargin + this.safeAreaInset + this.w / 2;
+        let verticalMargin = wireMargin + this.safeAreaInset + this.h / 2;
+        let maxY = this.#canvasHeight() - verticalMargin;
+
+        if (wire && typeof wire.reachableHeldEndMaxY === "function") {
+            maxY = Math.min(maxY, wire.reachableHeldEndMaxY());
+        }
+
+        return {
+            x: this.#clamp(position.x, horizontalMargin, this.#canvasWidth() - horizontalMargin),
+            y: this.#clamp(position.y, verticalMargin, maxY)
+        };
+    }
+
+    /**
+     * @returns {Number}
+     */
+    #canvasWidth() {
+        return typeof width === "number" && width > 0 ? width : 1440;
+    }
+
+    /**
+     * @returns {Number}
+     */
+    #canvasHeight() {
+        return typeof height === "number" && height > 0 ? height : 990;
+    }
+
+    /**
+     * @param {Number} value
+     * @param {Number} min
+     * @param {Number} max
+     * @returns {Number}
+     */
+    #clamp(value, min, max) {
+        if (min > max) {
+            return (min + max) / 2;
+        }
+
+        return Math.max(min, Math.min(max, value));
     }
 }
