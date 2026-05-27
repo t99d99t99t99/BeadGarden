@@ -24,6 +24,7 @@ let stemDetailUI;
 let stemBeadCraftUI;
 let stemFinishUI;
 let potLockUI;
+let beadGame;
 
 /**
  * 
@@ -51,6 +52,7 @@ function setup() {
   potLockUI = new PotLockUI();
   stemBeadCraftUI = new StemBeadCraftUI();
   stemFinishUI = new StemFinishUI();
+  beadGame = new BeadGame();
 
 }
 
