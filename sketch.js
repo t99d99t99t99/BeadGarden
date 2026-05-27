@@ -45,7 +45,7 @@ function setup() {
   tutorialUI = new TutorialUI();
   gardenUI = new GardenUI();
   potSetupUI = new PotSetupUI();
-  potDecorateUI   = new PotDecorateUI();
+  potDecorateUI = new PotDecorateUI();
   potDetailUI = new PotDetailUI();
   stemDetailUI = new StemDetailUI();
   potLockUI = new PotLockUI();
