@@ -41,13 +41,16 @@ class BeadGame {
         /** @type {Wire | null} */
         this.heldWire = null;
         this.wireGrabDistance = 40;
+        this.paletteColors = [];
 
     }
 
     /**
-     * @param {Matter.Vector} [heldPosition]
+     * @param {Matter.Vector | HandDetector} [input]
      */
-    update(heldPosition) {
+    update(input) {
+        let heldPosition = this.#heldPositionFromInput(input);
+
         if (this.heldWire) {
             let pointer = heldPosition || { x: mouseX, y: mouseY };
             this.heldWire.setHeldEnd(pointer.x, pointer.y);
@@ -74,14 +77,48 @@ class BeadGame {
         }
     }
 
+    draw() {
+        this.display();
+    }
+
+    /**
+     * @returns {Number}
+     */
+    get beadCount() {
+        return this.beads.filter((bead) => bead.isPierced).length;
+    }
+
+    /**
+     * @param {string[]} paletteColors
+     * @returns {void}
+     */
+    setPalette(paletteColors) {
+        this.paletteColors = paletteColors || [];
+        this.setupCraftObjects();
+    }
+
+    getBeadColors() {
+        return this.beads.filter((bead) => bead.isPierced).map((bead) => bead.color);
+    }
+
+    setupCraftObjects() {
+        this.#clearObjects();
+        this.#spawnObjects();
+    }
+
     setupDebugObjects() {
+        this.#clearObjects();
+        this.#spawnObjects();
+    }
+
+    #spawnObjects() {
         let wire = new Wire(760, 32, width * 0.5, height * 0.5, 3, this.#matterEngine);
         this.wires.push(wire);
 
         for (let i = 0; i < 20; ++i) {
             let beadWidth = random(28, 60);
             let beadHeight = random(34, 72);
-            let beadColor = color(random(50, 255), random(50, 255), random(50, 255));
+            let beadColor = this.#randomBeadColor();
             let horizontalMargin = wire.safeMargin + 40 + beadWidth / 2;
             let verticalMargin = wire.safeMargin + 40 + beadHeight / 2;
             let maxY = Math.max(verticalMargin, wire.reachableHeldEndMaxY());
@@ -100,7 +137,7 @@ class BeadGame {
      * @param {Matter.Vector | null} position
      */
     tryHoldWireAt(position) {
-        if (gameState !== DEBUG) {
+        if (gameState !== DEBUG && gameState !== STEM_BEAD_CRAFT) {
             return;
         }
 
@@ -141,6 +178,51 @@ class BeadGame {
 
     #wireNearMouse() {
         return this.#wireNearPosition({ x: mouseX, y: mouseY });
+    }
+
+    /**
+     * @param {Matter.Vector | HandDetector} [input]
+     * @returns {Matter.Vector | null}
+     */
+    #heldPositionFromInput(input) {
+        if (input && typeof input.thumbPosition === "function" && typeof input.pinched === "function") {
+            let position = input.thumbPosition();
+            if (input.pinched()) {
+                if (!this.heldWire) {
+                    this.tryHoldWireAt(position);
+                }
+                return position;
+            }
+
+            if (this.heldWire) {
+                this.releaseWire();
+            }
+            return null;
+        }
+
+        return input || null;
+    }
+
+    #clearObjects() {
+        for (let bead of this.beads) {
+            Matter.Composite.remove(this.#matterEngine.world, bead.body);
+        }
+
+        for (let wire of this.wires) {
+            Matter.Composite.remove(this.#matterEngine.world, wire.body);
+        }
+
+        this.beads = [];
+        this.wires = [];
+        this.heldWire = null;
+    }
+
+    #randomBeadColor() {
+        if (this.paletteColors.length > 0) {
+            return color(random(this.paletteColors));
+        }
+
+        return color(random(50, 255), random(50, 255), random(50, 255));
     }
 
     /**

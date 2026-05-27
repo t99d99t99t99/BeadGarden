@@ -99,6 +99,32 @@ class StemBeadCraftUI {
     }
   }
 
+  drawHandMarkers() {
+    if (typeof handDetector === 'undefined') {
+      return;
+    }
+
+    let thumbPosition = handDetector.thumbPosition();
+    let gumjiPosition = handDetector.gumjiPosition();
+
+    push();
+    noStroke();
+
+    if (gumjiPosition) {
+      fill(255, 0, 0, 80);
+      circle(gumjiPosition.x, gumjiPosition.y, 9);
+    }
+
+    if (thumbPosition) {
+      fill(255, 0, 0);
+      circle(thumbPosition.x, thumbPosition.y, 14);
+      fill(255, 255, 255, 180);
+      circle(thumbPosition.x, thumbPosition.y, 5);
+    }
+
+    pop();
+  }
+
   draw() {
     background(255);
 
@@ -134,6 +160,7 @@ class StemBeadCraftUI {
     if (typeof beadGame !== 'undefined') {
       beadGame.update(handDetector);
       beadGame.draw();
+      this.drawHandMarkers();
     } else {
       // 팀원 코드 붙기 전 임시 안내
       fill(200); textSize(14); textStyle(NORMAL); textAlign(CENTER);
