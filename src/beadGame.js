@@ -89,6 +89,13 @@ class BeadGame {
     }
 
     /**
+     * @returns {boolean}
+     */
+    isHoldingWire() {
+        return this.heldWire !== null;
+    }
+
+    /**
      * @param {string[]} paletteColors
      * @returns {void}
      */

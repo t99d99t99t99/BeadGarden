@@ -116,6 +116,9 @@ function mousePressed() {
     case POT_DECORATE:
       potDecorateUI.onMousePressed();
       break;
+    case STEM_DETAIL:
+      stemDetailUI.onMousePressed();
+      break;
     case DEBUG:
       debugSceneMousePressed();
       break;
