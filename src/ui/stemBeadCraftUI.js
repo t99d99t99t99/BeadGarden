@@ -23,8 +23,8 @@ class StemBeadCraftUI {
 
   // 핀치 상태 읽기
   isPinching() {
-    if (typeof handDetector !== 'undefined') {
-      return handDetector.pinching;
+    if (typeof beadGame !== 'undefined' && typeof beadGame.isHoldingWire === 'function') {
+      return beadGame.isHoldingWire();
     }
     return false;
   }

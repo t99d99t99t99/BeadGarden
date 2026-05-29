@@ -7,39 +7,39 @@ class StemDetailUI {
     this.palettes = [
       {
         name: '모노크롬',
-        colors: ['#FFFFFF','#BBBBBB','#888888','#555555','#111111']
+        colors: ['#FFFFFF', '#BBBBBB', '#888888', '#555555', '#111111']
       },
       {
         name: '코튼 캔디',
-        colors: ['#F9B8C8','#D4B8F9','#B8E8F9','#F9F0B8','#B8D4F9']
+        colors: ['#F9B8C8', '#D4B8F9', '#B8E8F9', '#F9F0B8', '#B8D4F9']
       },
       {
         name: '미스티 로즈',
-        colors: ['#C9A89A','#B89AC9','#9AAEC9','#9AC9A8','#C9BBA8']
+        colors: ['#C9A89A', '#B89AC9', '#9AAEC9', '#9AC9A8', '#C9BBA8']
       },
       {
         name: '레트로 팝',
-        colors: ['#F07060','#F0C840','#40C8C0','#4090C8','#80B890']
+        colors: ['#F07060', '#F0C840', '#40C8C0', '#4090C8', '#80B890']
       },
       {
         name: '재패니즈 포스터',
-        colors: ['#CC1111','#FFFFFF','#1144BB','#DD8800','#111111']
+        colors: ['#CC1111', '#FFFFFF', '#1144BB', '#DD8800', '#111111']
       },
       {
         name: '플랜트',
-        colors: ['#1A5C2A','#2A8C3A','#50B860','#90D890','#C0F0A0']
+        colors: ['#1A5C2A', '#2A8C3A', '#50B860', '#90D890', '#C0F0A0']
       },
       {
         name: '시트러스',
-        colors: ['#FF4422','#FF8822','#FFCC22','#44CC22','#2244FF']
+        colors: ['#FF4422', '#FF8822', '#FFCC22', '#44CC22', '#2244FF']
       },
       {
         name: '비비드',
-        colors: ['#FF2288','#22AAFF','#FFAA00','#00CC88','#FF6600']
+        colors: ['#FF2288', '#22AAFF', '#FFAA00', '#00CC88', '#FF6600']
       },
       {
         name: '네온',
-        colors: ['#FF22AA','#44FF22','#FFEE00','#FF6600','#00EEFF']
+        colors: ['#FF22AA', '#44FF22', '#FFEE00', '#FF6600', '#00EEFF']
       },
     ];
   }
@@ -85,9 +85,9 @@ class StemDetailUI {
 
     // 색상 원들
     let dotSize = 32;
-    let dotGap  = 8;
-    let totalW  = p.colors.length * (dotSize + dotGap) - dotGap;
-    let startX  = x + (w - totalW) / 2;
+    let dotGap = 8;
+    let totalW = p.colors.length * (dotSize + dotGap) - dotGap;
+    let startX = x + (w - totalW) / 2;
     for (let i = 0; i < p.colors.length; i++) {
       fill(p.colors[i]);
       stroke(200); strokeWeight(0.5);
@@ -102,8 +102,44 @@ class StemDetailUI {
     text(p.name, x + 12, y + h - 12);
 
     // 클릭 판정
-    if (isClicked(x, y, w, h)) {
-      this.togglePalette(this.palettes.indexOf(p));
+  }
+
+  onMousePressed() {
+    let backX = 20, backY = 14, backW = 80, backH = 32;
+    if (mouseX > backX && mouseX < backX + backW &&
+      mouseY > backY && mouseY < backY + backH) {
+      goTo(GARDEN);
+      potDetailUI.show(this.currentPot);
+      return;
+    }
+
+    let cardW = 220, cardH = 80;
+    let colGap = 24, rowGap = 16;
+    let gridW = cardW * 3 + colGap * 2;
+    let gridX = width / 2 - gridW / 2;
+    let gridY = height * 0.29;
+
+    for (let i = 0; i < 9; i++) {
+      let col = i % 3;
+      let row = floor(i / 3);
+      let cx = gridX + col * (cardW + colGap);
+      let cy = gridY + row * (cardH + rowGap);
+      if (mouseX > cx && mouseX < cx + cardW &&
+        mouseY > cy && mouseY < cy + cardH) {
+        this.togglePalette(i);
+        return;
+      }
+    }
+
+    let btnW = 400, btnH = 52;
+    let btnX = width / 2 - btnW / 2;
+    let btnY = height - 80;
+    let canStart = this.selectedPalettes.length > 0;
+    if (canStart &&
+      mouseX > btnX && mouseX < btnX + btnW &&
+      mouseY > btnY && mouseY < btnY + btnH) {
+      stemBeadCraftUI.setPalette(this.getSelectedColors());
+      goTo(STEM_BEAD_CRAFT);
     }
   }
 
@@ -117,10 +153,6 @@ class StemDetailUI {
     rect(20, 14, 80, 32, 6);
     fill(60); noStroke(); textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('← 나가기', 60, 30);
-    if (isClicked(20, 14, 80, 32)) {
-      goTo(GARDEN);
-      potDetailUI.show(this.currentPot);
-    }
 
     // 페이지 타이틀
     fill(30); textStyle(BOLD); textSize(16); textAlign(CENTER);
@@ -138,21 +170,21 @@ class StemDetailUI {
     let lineY = height * 0.25;
     textAlign(LEFT);
     textStyle(NORMAL); text('최대 ', lineX, lineY);
-    textStyle(BOLD);   text('3가지', lineX + prefixW, lineY);
+    textStyle(BOLD); text('3가지', lineX + prefixW, lineY);
     textStyle(NORMAL); text('의 비즈 색상 팔레트를 선택하세요', lineX + prefixW + boldW, lineY);
 
     // ── 팔레트 카드 3×3 그리드 ──
     let cardW = 220, cardH = 80;
     let colGap = 24, rowGap = 16;
-    let gridW  = cardW * 3 + colGap * 2;
-    let gridX  = width / 2 - gridW / 2;
-    let gridY  = height * 0.29;
+    let gridW = cardW * 3 + colGap * 2;
+    let gridX = width / 2 - gridW / 2;
+    let gridY = height * 0.29;
 
     for (let i = 0; i < 9; i++) {
       let col = i % 3;
       let row = floor(i / 3);
-      let cx  = gridX + col * (cardW + colGap);
-      let cy  = gridY + row * (cardH + rowGap);
+      let cx = gridX + col * (cardW + colGap);
+      let cy = gridY + row * (cardH + rowGap);
       this.drawPaletteCard(
         this.palettes[i], cx, cy, cardW, cardH,
         this.selectedPalettes.includes(i)
@@ -178,7 +210,7 @@ class StemDetailUI {
     // 색상 미리보기 박스들
     let allColors = this.getSelectedColors();
     if (allColors.length > 0) {
-      let dotW   = 36, dotH = 36, gap = 4;
+      let dotW = 36, dotH = 36, gap = 4;
       let totalW = allColors.length * (dotW + gap) - gap;
 
       // 그룹별로 박스 묶어서 표시
@@ -212,11 +244,6 @@ class StemDetailUI {
     rect(btnX, btnY, btnW, btnH, 26);
     fill(255); textSize(15); textStyle(BOLD); textAlign(CENTER, CENTER);
     text('줄기 만들기 시작 →', btnX + btnW / 2, btnY + btnH / 2);
-
-    if (canStart && isClicked(btnX, btnY, btnW, btnH)) {
-      stemBeadCraftUI.setPalette(this.getSelectedColors());
-      goTo(STEM_BEAD_CRAFT);
-    }
 
     if (backHov || startHov) cursor(HAND); else cursor(ARROW);
   }
