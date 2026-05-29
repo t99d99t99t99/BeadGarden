@@ -123,8 +123,8 @@ class BeadGame {
         this.wires.push(wire);
 
         for (let i = 0; i < 20; ++i) {
-            let beadWidth = random(28, 60);
-            let beadHeight = random(34, 72);
+            let beadWidth = 12;
+            let beadHeight = 12;
             let beadColor = this.#randomBeadColor();
             let horizontalMargin = wire.safeMargin + 40 + beadWidth / 2;
             let verticalMargin = wire.safeMargin + 40 + beadHeight / 2;
