@@ -38,7 +38,7 @@ class GardenUI {
     let y      = pot.cardY;
     let w      = this.cardW;
     let h      = 360;
-    let isHovered = (this.hoveredPot === pot && !pot.locked);
+    let isHovered = (this.hoveredPot === pot);
 
     // 카드 배경
     fill(isHovered ? 240 : 248);
@@ -128,9 +128,8 @@ class GardenUI {
 
       this.drawCard(pot, x);
 
-      // 호버 감지
-      if (!pot.locked &&
-          mouseX > x && mouseX < x + this.cardW &&
+      // 호버 감지 (잠금 화분도 클릭 가능)
+      if (mouseX > x && mouseX < x + this.cardW &&
           mouseY > pot.cardY && mouseY < pot.cardY + 360) {
         this.hoveredPot = pot;
         cursor(HAND);
@@ -195,8 +194,7 @@ class GardenUI {
       for (let i = 0; i < this.pots.length; i++) {
         let pot = this.pots[i];
         let x   = this.getCardX(i);
-        if (!pot.locked &&
-            mouseX > x && mouseX < x + this.cardW &&
+        if (mouseX > x && mouseX < x + this.cardW &&
             mouseY > pot.cardY && mouseY < pot.cardY + 360) {
           potSetupUI.hide();
           potDetailUI.show(pot);

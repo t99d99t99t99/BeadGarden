@@ -161,12 +161,16 @@ class StemBeadCraftUI {
     text('비즈 줄기 꿰기', width / 2, 30);
 
     // 튜토리얼 버튼
-    fill(248); stroke(210); strokeWeight(1);
+    let tutHov = isHovered(width - 100, 14, 80, 32);
+    fill(tutHov ? 235 : 248); stroke(210); strokeWeight(1);
     rect(width - 100, 14, 80, 32, 6);
     fill(60); noStroke(); textSize(13); textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text('튜토리얼', width - 60, 30);
-    if (isClicked(width - 100, 14, 80, 32)) goTo(TUTORIAL);
+    if (isClicked(width - 100, 14, 80, 32)) {
+      prevState = STEM_BEAD_CRAFT;
+      goTo(TUTORIAL);
+    }
 
     // 카운터
     this.drawCounter();
