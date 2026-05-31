@@ -23,8 +23,8 @@ class StemBeadCraftUI {
 
   // 핀치 상태 읽기
   isPinching() {
-    if (typeof handDetector !== 'undefined') {
-      return handDetector.pinching;
+    if (typeof beadGame !== 'undefined' && typeof beadGame.isHoldingWire === 'function') {
+      return beadGame.isHoldingWire();
     }
     return false;
   }
@@ -99,6 +99,32 @@ class StemBeadCraftUI {
     }
   }
 
+  drawHandMarkers() {
+    if (typeof handDetector === 'undefined') {
+      return;
+    }
+
+    let thumbPosition = handDetector.thumbPosition();
+    let gumjiPosition = handDetector.gumjiPosition();
+
+    push();
+    noStroke();
+
+    if (gumjiPosition) {
+      fill(255, 0, 0, 80);
+      circle(gumjiPosition.x, gumjiPosition.y, 9);
+    }
+
+    if (thumbPosition) {
+      fill(255, 0, 0);
+      circle(thumbPosition.x, thumbPosition.y, 14);
+      fill(255, 255, 255, 180);
+      circle(thumbPosition.x, thumbPosition.y, 5);
+    }
+
+    pop();
+  }
+
   draw() {
     background(255);
 
@@ -116,12 +142,16 @@ class StemBeadCraftUI {
     text('비즈 줄기 꿰기', width / 2, 30);
 
     // 튜토리얼 버튼
-    fill(248); stroke(210); strokeWeight(1);
+    let tutHov = isHovered(width - 100, 14, 80, 32);
+    fill(tutHov ? 235 : 248); stroke(210); strokeWeight(1);
     rect(width - 100, 14, 80, 32, 6);
     fill(60); noStroke(); textSize(13); textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text('튜토리얼', width - 60, 30);
-    if (isClicked(width - 100, 14, 80, 32)) goTo(TUTORIAL);
+    if (isClicked(width - 100, 14, 80, 32)) {
+      prevState = STEM_BEAD_CRAFT;
+      goTo(TUTORIAL);
+    }
 
     // 카운터
     this.drawCounter();
@@ -134,6 +164,7 @@ class StemBeadCraftUI {
     if (typeof beadGame !== 'undefined') {
       beadGame.update(handDetector);
       beadGame.draw();
+      this.drawHandMarkers();
     } else {
       // 팀원 코드 붙기 전 임시 안내
       fill(200); textSize(14); textStyle(NORMAL); textAlign(CENTER);

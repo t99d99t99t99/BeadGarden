@@ -27,11 +27,13 @@ class PotDecorateUI {
 
     // 임시 저장 (건너뛰기용)
     this._savedState = null;
+    this.currentPot = null;
   }
 
   show(mode = 'new', pot = null) {
     this.isVisible = true;
     this.mode = mode;
+    this.currentPot = pot;
     this.scrollY = 0;
     this.targetScrollY = 0;
     this.selectedStemIndex = -1;
@@ -374,17 +376,6 @@ class PotDecorateUI {
     fill(255); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('건너뛰기', skipX + 70, skipY + 22);
 
-    if (isClicked(skipX, skipY, 140, 44)) {
-      // 기존값으로 복원 후 이동
-      if (this._savedState) {
-        this.selectedPotColor = this._savedState.potColor;
-        this.selectedBgColor  = this._savedState.bgColor;
-        this.selectedPotShape = this._savedState.potShape;
-      }
-      this.hide();
-      goTo(POT_DETAIL);
-    }
-
     // 저장하기
     let saveX = popX + popW - 168, saveY = popY + popH - 62;
     let saveHov = isHovered(saveX, saveY, 140, 44);
@@ -392,11 +383,6 @@ class PotDecorateUI {
     rect(saveX, saveY, 140, 44, 22);
     fill(255); textSize(14); textAlign(CENTER, CENTER);
     text('저장하기', saveX + 70, saveY + 22);
-
-    if (isClicked(saveX, saveY, 140, 44)) {
-      this.hide();
-      goTo(POT_DETAIL);
-    }
 
     if (xHov || skipHov || saveHov) cursor(HAND); else cursor(ARROW);
   }
@@ -414,6 +400,22 @@ class PotDecorateUI {
         mouseY > popY + 8 && mouseY < popY + 36) {
       this.hide();
       goTo(GARDEN);
+      return;
+    }
+
+    let skipX = popX + 28, skipY = popY + popH - 62;
+    if (mouseX > skipX && mouseX < skipX + 140 &&
+        mouseY > skipY && mouseY < skipY + 44) {
+      this.#restoreSavedState();
+      this.#returnToPotDetail();
+      return;
+    }
+
+    let saveX = popX + popW - 168, saveY = popY + popH - 62;
+    if (mouseX > saveX && mouseX < saveX + 140 &&
+        mouseY > saveY && mouseY < saveY + 44) {
+      this.#applyCurrentData();
+      this.#returnToPotDetail();
       return;
     }
 
@@ -445,5 +447,38 @@ class PotDecorateUI {
   onMouseWheel(delta) {
     if (!this.isVisible) return;
     this.targetScrollY = constrain(this.targetScrollY + delta, 0, 300);
+  }
+
+  #restoreSavedState() {
+    if (!this._savedState) {
+      return;
+    }
+
+    this.selectedPotColor = this._savedState.potColor;
+    this.selectedBgColor  = this._savedState.bgColor;
+    this.selectedPotShape = this._savedState.potShape;
+  }
+
+  #applyCurrentData() {
+    if (!this.currentPot) {
+      this.currentPot = {
+        name: '내 첫 번째 화분',
+        desc: '화분의 한 줄 설명이 적힙니다.',
+        createdAt: '2025.05.15',
+        stems: [],
+        locked: false,
+      };
+    }
+
+    let data = this.getData();
+    this.currentPot.colorIndex = data.colorIndex;
+    this.currentPot.bgIndex = data.bgIndex;
+    this.currentPot.shapeIndex = data.shapeIndex;
+  }
+
+  #returnToPotDetail() {
+    this.hide();
+    potDetailUI.show(this.currentPot);
+    goTo(GARDEN);
   }
 }
