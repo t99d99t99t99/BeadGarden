@@ -29,6 +29,7 @@ class Wire {
         };
         this.basePosition = this.heldEndRestPosition;
         this.heldEndPosition = null;
+        this.safeMargin = 120;
         this.smoothedHeldEndPosition = { ...this.heldEndRestPosition };
         this.smoothedUnheldEndPosition = { ...this.unheldEndRestPosition };
         this.liftAmount = 0;
@@ -63,6 +64,9 @@ class Wire {
         this.body = segments;
         this.segments = this.body.bodies.slice();
         Matter.Composite.add(this.body, this.unheldEndStop);
+        this.#clampRestPositions(false);
+        this.smoothedHeldEndPosition = { ...this.heldEndRestPosition };
+        this.smoothedUnheldEndPosition = { ...this.unheldEndRestPosition };
         this.update();
 
         Matter.Composite.add(engine.world, this.body);
@@ -78,15 +82,15 @@ class Wire {
      * @param {Number} y
      */
     setHeldEnd(x, y) {
-        this.heldEndPosition = { x, y };
+        this.heldEndPosition = this.#clampHeldEnd({ x, y }, true);
     }
 
     release() {
         if (this.heldEndPosition !== null) {
-            this.heldEndRestPosition = { ...this.heldEndPosition };
+            this.heldEndRestPosition = this.#clampHeldEnd(this.heldEndPosition, false);
             this.unheldEndRestPosition = {
-                x: this.heldEndPosition.x + this.endOffsetFromHeld.x,
-                y: this.heldEndPosition.y + this.endOffsetFromHeld.y
+                x: this.heldEndRestPosition.x + this.endOffsetFromHeld.x,
+                y: this.heldEndRestPosition.y + this.endOffsetFromHeld.y
             };
             this.basePosition = this.heldEndRestPosition;
         }
@@ -96,7 +100,7 @@ class Wire {
 
     update() {
         let held = this.isHeld();
-        let heldTarget = held ? this.#currentHeldEnd() : this.heldEndRestPosition;
+        let heldTarget = this.#clampHeldEnd(held ? this.#currentHeldEnd() : this.heldEndRestPosition, held);
         let unheldTarget = held ? {
             x: heldTarget.x + this.endOffsetFromHeld.x,
             y: heldTarget.y + this.endOffsetFromHeld.y
@@ -151,22 +155,101 @@ class Wire {
         pop();
     }
 
-    toStem() {
-        // 스스로를 Stem으로 변환
-        let result = new Stem();
-        return result;
+    /**
+     * @returns {Number}
+     */
+    reachableHeldEndMaxY() {
+        return this.#heldEndTargetMaxY() - this.wireLength * 0.28;
     }
 
     #currentHeldEnd() {
         if (this.heldEndPosition !== null) {
-            return this.heldEndPosition;
+            return this.#clampHeldEnd(this.heldEndPosition, true);
         }
 
         if (typeof mouseX === "number" && typeof mouseY === "number") {
-            return { x: mouseX, y: mouseY };
+            return this.#clampHeldEnd({ x: mouseX, y: mouseY }, true);
         }
 
         return this.heldEndRestPosition;
+    }
+
+    /**
+     * @param {boolean} lifted
+     * @returns {void}
+     */
+    #clampRestPositions(lifted) {
+        this.heldEndRestPosition = this.#clampHeldEnd(this.heldEndRestPosition, lifted);
+        this.unheldEndRestPosition = {
+            x: this.heldEndRestPosition.x + this.endOffsetFromHeld.x,
+            y: this.heldEndRestPosition.y + this.endOffsetFromHeld.y
+        };
+        this.basePosition = this.heldEndRestPosition;
+    }
+
+    /**
+     * @param {Matter.Vector} position
+     * @param {boolean} lifted
+     * @returns {Matter.Vector}
+     */
+    #clampHeldEnd(position, lifted) {
+        let margin = Math.min(this.safeMargin, Math.max(20, Math.min(this.#canvasWidth(), this.#canvasHeight()) * 0.2));
+        let liftPadding = lifted ? this.wireLength * 0.28 : 0;
+        let minHeldX = margin;
+        let maxHeldX = this.#canvasWidth() - margin;
+        let minHeldY = margin + liftPadding;
+        let maxHeldY = this.#heldEndTargetMaxY();
+        let unheldMinX = margin - this.endOffsetFromHeld.x;
+        let unheldMinY = margin - this.endOffsetFromHeld.y;
+
+        minHeldX = Math.max(minHeldX, unheldMinX);
+        minHeldY = Math.max(minHeldY, unheldMinY);
+
+        return {
+            x: this.#clamp(position.x, minHeldX, maxHeldX),
+            y: this.#clamp(position.y, minHeldY, maxHeldY)
+        };
+    }
+
+    /**
+     * @returns {Number}
+     */
+    #heldEndTargetMaxY() {
+        let margin = Math.min(this.safeMargin, Math.max(20, Math.min(this.#canvasWidth(), this.#canvasHeight()) * 0.2));
+        let maxHeldY = this.#canvasHeight() - margin;
+        let unheldMaxY = this.#canvasHeight() - margin - this.endOffsetFromHeld.y;
+
+        maxHeldY = Math.min(maxHeldY, unheldMaxY);
+
+        return maxHeldY;
+    }
+
+    /**
+     * @returns {Number}
+     */
+    #canvasWidth() {
+        return typeof width === "number" && width > 0 ? width : 1440;
+    }
+
+    /**
+     * @returns {Number}
+     */
+    #canvasHeight() {
+        return typeof height === "number" && height > 0 ? height : 990;
+    }
+
+    /**
+     * @param {Number} value
+     * @param {Number} min
+     * @param {Number} max
+     * @returns {Number}
+     */
+    #clamp(value, min, max) {
+        if (min > max) {
+            return (min + max) / 2;
+        }
+
+        return Math.max(min, Math.min(max, value));
     }
 
     #graphPoints() {

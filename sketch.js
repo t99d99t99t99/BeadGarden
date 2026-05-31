@@ -13,6 +13,7 @@ const STEM_FINISH = 10; // 저장 및 데이터베이스 업로드 (팝업)
 const DEBUG = 99;
 
 let gameState = INTRO;
+let prevState  = INTRO; // 튜토리얼 진입 전 이전 상태 추적
 let backgroundNum = 0;
 let introUI;
 let tutorialUI;
@@ -24,6 +25,7 @@ let stemDetailUI;
 let stemBeadCraftUI;
 let stemFinishUI;
 let potLockUI;
+let beadGame;
 
 /**
  * 
@@ -45,12 +47,13 @@ function setup() {
   tutorialUI = new TutorialUI();
   gardenUI = new GardenUI();
   potSetupUI = new PotSetupUI();
-  potDecorateUI   = new PotDecorateUI();
+  potDecorateUI = new PotDecorateUI();
   potDetailUI = new PotDetailUI();
   stemDetailUI = new StemDetailUI();
   potLockUI = new PotLockUI();
   stemBeadCraftUI = new StemBeadCraftUI();
   stemFinishUI = new StemFinishUI();
+  beadGame = new BeadGame();
 
 }
 
@@ -113,6 +116,9 @@ function mousePressed() {
       break;
     case POT_DECORATE:
       potDecorateUI.onMousePressed();
+      break;
+    case STEM_DETAIL:
+      stemDetailUI.onMousePressed();
       break;
     case DEBUG:
       debugSceneMousePressed();
