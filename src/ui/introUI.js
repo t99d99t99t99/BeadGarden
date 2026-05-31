@@ -3,7 +3,7 @@
 class IntroUI {
   constructor() {
     this.startTime = millis();
-    this.duration  = 3000; // 3초 후 자동 전환
+    this.duration  = 2000; // 2초 후 자동 전환
     this.plants    = this.generatePlants(); // 장식용 비즈 식물 데이터
   }
 
