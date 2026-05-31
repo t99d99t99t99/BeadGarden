@@ -18,23 +18,27 @@ class TutorialUI {
     textAlign(CENTER);
     text('Tutorial', width / 2, pad + 40);
 
-    // 건너뛰기 버튼
+    // 우상단 버튼 — 진입 경로에 따라 다르게
     let btnW = 120, btnH = 48;
     let btnX = width - pad - btnW - 20;
     let btnY = pad + 15;
-    let skipHov = isHovered(btnX, btnY, btnW, btnH);
-    fill(skipHov ? 140 : 160); noStroke();
+    let btnHov = isHovered(btnX, btnY, btnW, btnH);
+    fill(btnHov ? 140 : 160); noStroke();
     rect(btnX, btnY, btnW, btnH, 10);
     fill(255);
     textStyle(NORMAL);
     textSize(15);
     textAlign(CENTER, CENTER);
-    text('건너뛰기', btnX + btnW / 2, btnY + btnH / 2);
-    if (skipHov) cursor(HAND); else cursor(ARROW);
+    let btnLabel = (prevState === STEM_BEAD_CRAFT) ? '돌아가기' : '건너뛰기';
+    text(btnLabel, btnX + btnW / 2, btnY + btnH / 2);
+    if (btnHov) cursor(HAND); else cursor(ARROW);
 
-    // 건너뛰기 클릭 판정
     if (isClicked(btnX, btnY, btnW, btnH)) {
-      goTo(GARDEN);
+      if (prevState === STEM_BEAD_CRAFT) {
+        goTo(STEM_BEAD_CRAFT);
+      } else {
+        goTo(GARDEN);
+      }
     }
 
     // ── 영상 플레이스홀더 ──
