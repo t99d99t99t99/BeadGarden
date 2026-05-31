@@ -129,7 +129,7 @@ class PotDecorateUI {
     // 화분 몸통
     fill(this.potColors[this.selectedPotColor]);
     noStroke();
-    this._drawPotShape(cx, baseY, this.selectedPotShape);
+    drawPotShapeAt(cx, baseY - 10, this.selectedPotShape, 1.0);
 
     // 미리보기 텍스트
     fill(100, 100, 200);
@@ -264,7 +264,7 @@ class PotDecorateUI {
     // 타이틀
     noStroke(); fill(30);
     textStyle(BOLD); textSize(18); textAlign(CENTER);
-    text('[입력한 화분 이름] 꾸미기', width / 2, popY + 38);
+    text(`${this.currentPot?.name ?? '화분'} 꾸미기`, width / 2, popY + 38);
 
     // 구분선
     stroke(220); strokeWeight(1);
