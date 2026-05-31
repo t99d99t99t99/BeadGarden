@@ -122,9 +122,9 @@ class BeadGame {
         let wire = new Wire(760, 32, width * 0.5, height * 0.5, 3, this.#matterEngine);
         this.wires.push(wire);
 
-        for (let i = 0; i < 20; ++i) {
-            let beadWidth = random(28, 60);
-            let beadHeight = random(34, 72);
+        for (let i = 0; i < 50; ++i) {
+            let beadWidth = 12;
+            let beadHeight = 12;
             let beadColor = this.#randomBeadColor();
             let horizontalMargin = wire.safeMargin + 40 + beadWidth / 2;
             let verticalMargin = wire.safeMargin + 40 + beadHeight / 2;
@@ -239,7 +239,10 @@ class BeadGame {
     #wireNearPosition(position) {
         for (let wire of this.wires) {
             let segment = this.#lastSegment(wire);
-            if (segment && this.#distance(position, segment.position) <= this.wireGrabDistance) {
+            if (segment &&
+                position.x - segment.position.x >= -40 &&
+                position.x - segment.position.x <= 100 &&
+                abs(position.y - segment.position.y) <= 40) {
                 return wire;
             }
         }

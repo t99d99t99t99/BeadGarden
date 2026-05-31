@@ -278,7 +278,7 @@ class HandDetector {
             return this.pinchThreshold;
         }
 
-        return Math.max(this.pinchThreshold, palmSize * 0.55);
+        return Math.max(this.pinchThreshold, palmSize * 0.27);
     }
 
     /**
