@@ -61,10 +61,15 @@ class PotLockUI {
     text('잠금 확정', confirmX + confirmW / 2, confirmY + confirmH / 2);
 
     if (isClicked(confirmX, confirmY, confirmW, confirmH)) {
-      // 화분 잠금 처리
-      if (this.pot) this.pot.locked = true;
+      if (this.pot) {
+        this.pot.locked = true;
+        // Firestore 잠금 저장
+        if (this.pot.firestoreId) {
+          lockPot(this.pot.firestoreId)
+            .catch(err => console.error('[Firestore] 잠금 저장 오류:', err));
+        }
+      }
       this.hide();
-      // POT_DETAIL 다시 열기 (잠금 상태로)
       potDetailUI.show(this.pot);
       goTo(GARDEN);
     }

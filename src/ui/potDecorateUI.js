@@ -463,8 +463,7 @@ class PotDecorateUI {
     if (!this.currentPot) {
       this.currentPot = {
         name: '내 첫 번째 화분',
-        desc: '화분의 한 줄 설명이 적힙니다.',
-        createdAt: '2025.05.15',
+        desc: '',
         stems: [],
         locked: false,
       };
@@ -472,8 +471,14 @@ class PotDecorateUI {
 
     let data = this.getData();
     this.currentPot.colorIndex = data.colorIndex;
-    this.currentPot.bgIndex = data.bgIndex;
+    this.currentPot.bgIndex    = data.bgIndex;
     this.currentPot.shapeIndex = data.shapeIndex;
+
+    // Firestore 저장
+    if (this.currentPot.firestoreId) {
+      updatePotDecor(this.currentPot.firestoreId, data)
+        .catch(err => console.error('[Firestore] 꾸미기 저장 오류:', err));
+    }
   }
 
   #returnToPotDetail() {

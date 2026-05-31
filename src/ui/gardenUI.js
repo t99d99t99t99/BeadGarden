@@ -10,21 +10,7 @@ class GardenUI {
     this.dragStartX  = 0;
     this.dragScrollX = 0;
 
-    // 임시 더미 데이터 (Firebase 연동 전까지)
-    this.loadDummyPots();
-  }
-
-  loadDummyPots() {
-    for (let i = 0; i < 6; i++) {
-      this.pots.push({
-        id:       i,
-        name:     `화분 타이틀${i + 1}`,
-        stemCount: 2,
-        locked:   i === 0 || i === 4, // 1번, 5번 잠금
-        // 카드 y위치 랜덤 (위아래로 자연스럽게 배치)
-        cardY:    random(height * 0.15, height * 0.45),
-      });
-    }
+    // pots는 listenPots() 콜백에서 채워짐 (sketch.js setup 참고)
   }
 
   // 카드 X 위치 계산 — 최신이 오른쪽
@@ -61,7 +47,7 @@ class GardenUI {
     fill(100);
     textStyle(NORMAL);
     textSize(13);
-    text(`줄기 ${pot.stemCount}개`, x + 16, y + h * 0.78);
+    text(`줄기 ${pot.stems ? pot.stems.length : 0}개`, x + 16, y + h * 0.78);
 
     // 클릭하여 열기
     fill(pot.locked ? 180 : 100);

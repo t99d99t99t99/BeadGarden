@@ -73,7 +73,8 @@ class PotDetailUI {
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let popH     = isLocked ? 560 : (hasStem ? 660 : 560);
+    let canEdit  = (this.pot.createdBy === myDeviceId) && !isLocked;
+    let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
     let popX     = width  / 2 - popW / 2;
     let popY     = height / 2 - popH / 2;
     let imgX     = popX + 18, imgY = popY + 100;
@@ -88,7 +89,7 @@ class PotDetailUI {
       return;
     }
 
-    if (!isLocked) {
+    if (canEdit) {
       // 화분 꾸미기 버튼
       let decorW = 110, decorH = 36;
       let decorX = imgX + imgW - decorW - 8;
@@ -133,7 +134,8 @@ class PotDetailUI {
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let popH     = isLocked ? 560 : (hasStem ? 660 : 560);
+    let canEdit  = (this.pot.createdBy === myDeviceId) && !isLocked;
+    let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
     let popX     = width  / 2 - popW / 2;
     let popY     = height / 2 - popH / 2;
 
@@ -199,7 +201,7 @@ class PotDetailUI {
 
     let _hoveredBtn = false;
 
-    if (!isLocked) {
+    if (canEdit) {
       // 화분 꾸미기 버튼
       let decorW = 110, decorH = 36;
       let decorX = imgX + imgW - decorW - 8;

@@ -55,6 +55,10 @@ function setup() {
   stemFinishUI = new StemFinishUI();
   beadGame = new BeadGame();
 
+  // Firestore 실시간 구독 — 전체 화분 목록을 gardenUI에 반영
+  listenPots(pots => {
+    gardenUI.pots = pots;
+  });
 }
 
 function draw() {

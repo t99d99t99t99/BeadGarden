@@ -105,9 +105,28 @@ class PotSetupUI {
     if (data.name.length > 0 &&
         mouseX > confirmX && mouseX < confirmX + 296 &&
         mouseY > confirmY && mouseY < confirmY + 48) {
-      this.hide();
-      potDecorateUI.show('new');
-      goTo(POT_DECORATE);
+      // Firestore에 화분 생성 후 꾸미기 화면으로 이동
+      let cardY = random(height * 0.15, height * 0.45);
+      createPot({ name: data.name, desc: data.desc, concept: data.concept, cardY })
+        .then(potId => {
+          const newPot = {
+            firestoreId: potId,
+            createdBy:   myDeviceId,
+            name:        data.name,
+            desc:        data.desc,
+            concept:     data.concept,
+            cardY,
+            colorIndex:  0,
+            bgIndex:     0,
+            shapeIndex:  0,
+            locked:      false,
+            stems:       [],
+          };
+          this.hide();
+          potDecorateUI.show('new', newPot);
+          goTo(POT_DECORATE);
+        })
+        .catch(err => console.error('[Firestore] 화분 생성 오류:', err));
       return;
     }
   }
