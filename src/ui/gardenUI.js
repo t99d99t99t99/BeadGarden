@@ -32,8 +32,8 @@ class GardenUI {
     strokeWeight(isHovered ? 2 : 1);
     rect(x, y, w, h, 12);
 
-    // 화분 + 줄기 그리기 (임시 — 나중에 Pot 클래스 draw()로 교체)
-    this.drawPotPreview(x + w / 2, y + h * 0.55);
+    // 화분 + 줄기 그리기
+    this.drawPotPreview(x + w / 2, y + h * 0.55, pot);
 
     // 화분 이름 + 잠금 아이콘
     noStroke();
@@ -55,36 +55,37 @@ class GardenUI {
     text('클릭하여 열기 →', x + 16, y + h * 0.85);
   }
 
-  // 임시 화분 미리보기
-  drawPotPreview(cx, cy) {
-    // 줄기 + 비즈
-    stroke(160);
-    strokeWeight(1.5);
-    let stems = [
-      { angle: -0.3, len: 110 },
-      { angle:  0.0, len: 130 },
-      { angle:  0.25, len: 105 },
-    ];
-    for (let s of stems) {
-      let tx = cx + sin(s.angle) * s.len;
-      let ty = cy - cos(s.angle) * s.len;
-      line(cx, cy - 30, tx, ty);
-      // 비즈 4개
-      noStroke();
-      fill(190);
-      for (let i = 1; i <= 4; i++) {
-        let t  = i / 5;
-        let bx = lerp(cx, tx, t);
-        let by = lerp(cy - 30, ty, t);
-        ellipse(bx, by, 14 - i);
+  // 화분 카드 미리보기 — pot 데이터 기반으로 렌더링
+  drawPotPreview(cx, cy, pot) {
+    let baseY = cy - 10; // 화분 몸통 상단 기준
+
+    // ── 줄기 (저장된 줄기 있을 때만) ──
+    if (pot && pot.stems && pot.stems.length > 0) {
+      let angles = [-0.3, 0.0, 0.25, -0.15, 0.4];
+      let lens   = [110, 130, 105, 120, 100];
+      for (let i = 0; i < pot.stems.length; i++) {
+        let stem  = pot.stems[i];
+        let angle = angles[i % angles.length];
+        let len   = lens[i % lens.length];
+        let tx    = cx + sin(angle) * len;
+        let ty    = baseY - cos(angle) * len;
+        let col   = (stem.stemColor !== undefined)
+                    ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+        stroke(col); strokeWeight(1.5);
+        line(cx, baseY, tx, ty);
+        noStroke(); fill(190);
+        for (let j = 1; j <= 4; j++) {
+          let t = j / 5;
+          ellipse(lerp(cx, tx, t), lerp(baseY, ty, t), 13 - j);
+        }
       }
-      stroke(160);
-      strokeWeight(1.5);
     }
-    // 화분 몸통
-    noStroke();
-    fill(200);
-    rect(cx - 30, cy - 30, 60, 55, 4);
+
+    // ── 화분 몸통 ──
+    let potCol = (pot && pot.colorIndex !== undefined)
+                 ? POT_COLORS[pot.colorIndex] : '#CCCCCC';
+    fill(potCol); noStroke();
+    drawPotShapeAt(cx, baseY, pot ? (pot.shapeIndex ?? 0) : 0, 0.62);
   }
 
   draw() {
