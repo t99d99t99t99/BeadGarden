@@ -13,6 +13,7 @@ const STEM_FINISH = 10; // 저장 및 데이터베이스 업로드 (팝업)
 const DEBUG = 99;
 
 let gameState = INTRO;
+let prevState  = INTRO; // 튜토리얼 진입 전 이전 상태 추적
 let backgroundNum = 0;
 let introUI;
 let tutorialUI;
