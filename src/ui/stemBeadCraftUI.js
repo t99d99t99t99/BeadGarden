@@ -23,6 +23,14 @@ class StemBeadCraftUI {
 
   // 핀치 상태 읽기
   isPinching() {
+    if (typeof handDetector !== 'undefined' && typeof handDetector.pinched === 'function') {
+      return handDetector.pinched();
+    }
+    return false;
+  }
+
+  // 철사 잡기 상태 읽기
+  isHoldingWire() {
     if (typeof beadGame !== 'undefined' && typeof beadGame.isHoldingWire === 'function') {
       return beadGame.isHoldingWire();
     }
@@ -31,9 +39,15 @@ class StemBeadCraftUI {
 
   // ── 상단 안내 메시지 ──
   drawGuide() {
-    let msg = this.isPinching()
-      ? '👆 철사를 잡았어요! 비즈 구멍에 통과시켜 보세요.'
-      : '👌 손가락을 모아 철사를 잡으세요.';
+    let isPinching = this.isPinching();
+    let isHoldingWire = this.isHoldingWire();
+    let msg = '👌 손가락을 모아 철사를 잡으세요.';
+
+    if (isPinching && !isHoldingWire) {
+      msg = '👌 철사를 잡지 못했어요! 손가락을 뗀 뒤 다시 철사를 잡아 보세요.';
+    } else if (isHoldingWire) {
+      msg = '👆 철사를 잡았어요! 비즈 구멍에 통과시켜 보세요.';
+    }
 
     fill(248); stroke(220); strokeWeight(1);
     rect(width / 2 - 220, 100, 440, 44, 22);
@@ -44,8 +58,8 @@ class StemBeadCraftUI {
 
   // ── 비즈 카운터 ──
   drawCounter() {
-    let count   = this.getBeadCount();
-    let isDone  = count >= this.minBeads;
+    let count = this.getBeadCount();
+    let isDone = count >= this.minBeads;
     let display = `꿴 비즈: ${count} / ${this.minBeads}`;
 
     fill(30); noStroke(); textSize(14); textStyle(NORMAL);
@@ -63,11 +77,11 @@ class StemBeadCraftUI {
 
   // ── 완성하기 버튼 ──
   drawCompleteBtn() {
-    let count    = this.getBeadCount();
-    let canDone  = count >= this.minBeads;
-    let isHover  = canDone &&
+    let count = this.getBeadCount();
+    let canDone = count >= this.minBeads;
+    let isHover = canDone &&
       mouseX > width / 2 - 230 && mouseX < width / 2 + 230 &&
-      mouseY > height - 68    && mouseY < height - 20;
+      mouseY > height - 68 && mouseY < height - 20;
 
     let btnW = 460, btnH = 48;
     let btnX = width / 2 - btnW / 2;
@@ -94,8 +108,8 @@ class StemBeadCraftUI {
 
     // 클릭 → STEM_FINISH
     if (canDone && !this.isPinching() && isClicked(btnX, btnY, btnW, btnH)) {
-        stemFinishUI.show();
-        goTo(STEM_FINISH);
+      stemFinishUI.show();
+      goTo(STEM_FINISH);
     }
   }
 
@@ -110,13 +124,18 @@ class StemBeadCraftUI {
     push();
     noStroke();
 
+    let pointerColor = color(255, 0, 0, 80);
+    if (handDetector.pinched()) {
+      pointerColor = color(0, 0, 255, 80);
+    }
+
     if (gumjiPosition) {
-      fill(255, 0, 0, 80);
+      fill(pointerColor);
       circle(gumjiPosition.x, gumjiPosition.y, 9);
     }
 
     if (thumbPosition) {
-      fill(255, 0, 0);
+      fill(red(pointerColor), green(pointerColor), blue(pointerColor), 255);
       circle(thumbPosition.x, thumbPosition.y, 14);
       fill(255, 255, 255, 180);
       circle(thumbPosition.x, thumbPosition.y, 5);
