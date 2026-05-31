@@ -42,6 +42,8 @@ class BeadGame {
         this.heldWire = null;
         this.wireGrabDistance = 40;
         this.paletteColors = [];
+        this.beadSpawnCount = 50;
+        this.nextPierceOrder = 0;
 
     }
 
@@ -62,8 +64,15 @@ class BeadGame {
 
         let wire = this.wires[0];
         for (let bead of this.beads) {
+            let wasPierced = bead.isPierced;
             bead.update(wire);
+            if (!wasPierced && bead.isPierced) {
+                bead.setPierceOrder(this.nextPierceOrder);
+                this.nextPierceOrder += 1;
+            }
         }
+
+        this.#keepPiercedBeadsOrdered(wire);
     }
 
 
@@ -105,24 +114,55 @@ class BeadGame {
     }
 
     getBeadColors() {
-        return this.beads.filter((bead) => bead.isPierced).map((bead) => bead.color);
+        return this.beads
+            .filter((bead) => bead.isPierced)
+            .sort((a, b) => (b.pierceOrder ?? 0) - (a.pierceOrder ?? 0))
+            .map((bead) => bead.color);
+    }
+
+    getPiercedBeadPreviewItems() {
+        return this.beads
+            .filter((bead) => bead.isPierced)
+            .sort((a, b) => (b.pierceOrder ?? 0) - (a.pierceOrder ?? 0))
+            .map((bead) => ({
+                color: bead.color,
+                w: bead.w,
+                h: bead.h,
+                holeH: bead.holeH,
+                partH: bead.partH,
+                partOffset: bead.partOffset
+            }));
     }
 
     setupCraftObjects() {
         this.#clearObjects();
-        this.#spawnObjects();
+        this.spawnWire();
+        this.spawnBeads();
     }
 
     setupDebugObjects() {
         this.#clearObjects();
-        this.#spawnObjects();
+        this.spawnWire();
+        this.spawnBeads();
     }
 
-    #spawnObjects() {
+    /**
+     * @returns {Wire}
+     */
+    spawnWire() {
         let wire = new Wire(760, 32, width * 0.5, height * 0.5, 3, this.#matterEngine);
         this.wires.push(wire);
+        return wire;
+    }
 
-        for (let i = 0; i < 50; ++i) {
+    /**
+     * @param {Number} [count]
+     * @returns {void}
+     */
+    spawnBeads(count = this.beadSpawnCount) {
+        let wire = this.wires[0] || this.spawnWire();
+
+        for (let i = 0; i < count; ++i) {
             let beadWidth = 12;
             let beadHeight = 12;
             let beadColor = this.#randomBeadColor();
@@ -134,6 +174,15 @@ class BeadGame {
 
             this.beads.push(new Bead(x, y, beadWidth, beadHeight, beadColor, this.#matterEngine));
         }
+    }
+
+    /**
+     * @param {Number} [count]
+     * @returns {void}
+     */
+    regenerateUnpiercedBeads(count = this.beadSpawnCount) {
+        this.#removeUnpiercedBeads();
+        this.spawnBeads(count);
     }
 
     tryHoldWire() {
@@ -222,6 +271,101 @@ class BeadGame {
         this.beads = [];
         this.wires = [];
         this.heldWire = null;
+        this.nextPierceOrder = 0;
+    }
+
+    #removeUnpiercedBeads() {
+        let keptBeads = [];
+
+        for (let bead of this.beads) {
+            if (bead.isPierced) {
+                keptBeads.push(bead);
+                continue;
+            }
+
+            Matter.Composite.remove(this.#matterEngine.world, bead.body);
+        }
+
+        this.beads = keptBeads;
+    }
+
+    /**
+     * @param {Wire | undefined} wire
+     * @returns {void}
+     */
+    #keepPiercedBeadsOrdered(wire) {
+        if (!wire) {
+            return;
+        }
+
+        let piercedBeads = this.beads
+            .filter((bead) => bead.isPierced)
+            .sort((a, b) => (a.pierceOrder ?? 0) - (b.pierceOrder ?? 0));
+
+        if (piercedBeads.length === 0) {
+            return;
+        }
+
+        let minSpacingT = this.#beadSpacingT(wire, piercedBeads);
+        let minT = 0.001;
+        let maxT = 0.999;
+
+        for (let i = 0; i < piercedBeads.length; ++i) {
+            let bead = piercedBeads[i];
+            let slotMin = minT + minSpacingT * i;
+            let slotMax = maxT - minSpacingT * (piercedBeads.length - 1 - i);
+
+            bead.setWireTRange(slotMin, slotMax);
+            bead.wireT = this.#clamp(bead.wireT, slotMin, slotMax);
+        }
+
+        for (let i = 1; i < piercedBeads.length; ++i) {
+            piercedBeads[i].wireT = Math.max(
+                piercedBeads[i].wireT,
+                piercedBeads[i - 1].wireT + minSpacingT
+            );
+        }
+
+        for (let i = piercedBeads.length - 2; i >= 0; --i) {
+            piercedBeads[i].wireT = Math.min(
+                piercedBeads[i].wireT,
+                piercedBeads[i + 1].wireT - minSpacingT
+            );
+        }
+
+        for (let bead of piercedBeads) {
+            bead.wireT = this.#clamp(bead.wireT, bead.wireTRange.min, bead.wireTRange.max);
+            bead.snapToWireT(wire);
+        }
+    }
+
+    /**
+     * @param {Wire} wire
+     * @param {Bead[]} beads
+     * @returns {Number}
+     */
+    #beadSpacingT(wire, beads) {
+        let maxBeadSize = 1;
+        for (let bead of beads) {
+            maxBeadSize = Math.max(maxBeadSize, bead.w, bead.h);
+        }
+
+        let wireLength = typeof wire.wireLength === "number" && wire.wireLength > 0 ? wire.wireLength : 760;
+        return Math.min(0.08, maxBeadSize * 1.15 / wireLength);
+    }
+
+    /**
+     * @param {Number} value
+     * @param {Number} min
+     * @param {Number} max
+     * @returns {Number}
+     */
+    #clamp(value, min, max) {
+        if (min > max) {
+            return (min + max) / 2;
+        }
+
+        return Math.max(min, Math.min(max, value));
     }
 
     #randomBeadColor() {

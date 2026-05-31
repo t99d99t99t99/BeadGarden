@@ -36,6 +36,10 @@ class Bead {
         this.enteredHoleFromRight = false;
         /** @type {Number} */
         this.safeAreaInset = 40;
+        /** @type {Number | null} */
+        this.pierceOrder = null;
+        /** @type {{min: Number, max: Number}} */
+        this.wireTRange = { min: 0.001, max: 0.999 };
 
         let part1 = Matter.Bodies.rectangle(_x, _y - this.partOffset, this.w, this.partH);
         let part2 = Matter.Bodies.rectangle(_x, _y + this.partOffset, this.w, this.partH);
@@ -189,7 +193,58 @@ class Bead {
 
         this.isPierced = true;
         this.currentWire = wire;
-        this.wireT = 1;
+        this.wireT = this.wireTRange.max;
+    }
+
+    /**
+     * @param {Number} order
+     * @returns {void}
+     */
+    setPierceOrder(order) {
+        if (this.pierceOrder === null) {
+            this.pierceOrder = order;
+        }
+    }
+
+    /**
+     * @param {Number} minT
+     * @param {Number} maxT
+     * @returns {void}
+     */
+    setWireTRange(minT, maxT) {
+        minT = Math.max(0.001, Math.min(0.999, minT));
+        maxT = Math.max(0.001, Math.min(0.999, maxT));
+
+        if (minT > maxT) {
+            let middle = (minT + maxT) / 2;
+            minT = middle;
+            maxT = middle;
+        }
+
+        this.wireTRange = { min: minT, max: maxT };
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {void}
+     */
+    correctWirePosition(wire) {
+        this.#clampToWire(wire);
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {void}
+     */
+    snapToWireT(wire) {
+        this.wireT = this.#clamp(this.wireT, this.wireTRange.min, this.wireTRange.max);
+        let point = this.#pointOnWire(wire, this.wireT);
+        if (!point) {
+            return;
+        }
+
+        Matter.Body.setPosition(this.body, point);
+        this.#projectVelocityToWire(wire, this.wireT);
     }
 
     /**
@@ -227,7 +282,7 @@ class Bead {
             return;
         }
 
-        this.wireT = Math.max(0.001, Math.min(0.999, projection.t));
+        this.wireT = this.#clamp(projection.t, this.wireTRange.min, this.wireTRange.max);
         let point = this.#pointOnWire(wire, this.wireT);
         if (!point) {
             return;
