@@ -6,13 +6,10 @@ class PotDecorateUI {
     this.targetScrollY = 0;
 
     // 화분 설정
-    this.potColors = ['#F4A7B9','#89C4E1','#90E0AE','#D4A8E8','#F5F5F5','#CCCCCC','#888888','#333333'];
     this.bgColors  = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
-    this.potShapes = ['사각형','삼각형','원형','지그재그형','비정형'];
-
-    this.selectedPotColor  = 0;
-    this.selectedBgColor   = 0;
-    this.selectedPotShape  = 0;
+    this.availablePots   = [];
+    this.selectedPotAsset = 0;
+    this.selectedBgColor  = 0;
 
     // 줄기 세부 설정
     this.selectedStemIndex = -1; // -1 = 선택 안 됨
@@ -38,24 +35,21 @@ class PotDecorateUI {
     this.targetScrollY = 0;
     this.selectedStemIndex = -1;
 
+    // 컨셉에 따라 사용 가능한 화분 에셋 목록 결정
+    const concept = pot?.concept ?? '스타 에디션';
+    this.availablePots = POT_ASSETS_BY_CONCEPT[concept] ?? Object.values(POT_ASSETS_BY_CONCEPT)[0];
+
     if (mode === 'new') {
-      // 랜덤 초기값
-      this.selectedPotColor = floor(random(this.potColors.length));
+      this.selectedPotAsset = 0;
       this.selectedBgColor  = floor(random(this.bgColors.length));
-      this.selectedPotShape = floor(random(this.potShapes.length));
     } else {
-      // 기존 저장값 불러오기
-      if (pot) {
-        this.selectedPotColor = pot.colorIndex  ?? 0;
-        this.selectedBgColor  = pot.bgIndex     ?? 0;
-        this.selectedPotShape = pot.shapeIndex  ?? 0;
-      }
+      this.selectedPotAsset = pot?.potAssetIndex ?? 0;
+      this.selectedBgColor  = pot?.bgIndex ?? 0;
     }
-    // 건너뛰기용 스냅샷
+
     this._savedState = {
-      potColor: this.selectedPotColor,
+      potAsset: this.selectedPotAsset,
       bgColor:  this.selectedBgColor,
-      potShape: this.selectedPotShape,
     };
   }
 
@@ -65,12 +59,10 @@ class PotDecorateUI {
 
   getData() {
     return {
-      colorIndex: this.selectedPotColor,
-      bgIndex:    this.selectedBgColor,
-      shapeIndex: this.selectedPotShape,
-      potColor:   this.potColors[this.selectedPotColor],
-      bgColor:    this.bgColors[this.selectedBgColor],
-      potShape:   this.potShapes[this.selectedPotShape],
+      potAssetIndex: this.selectedPotAsset,
+      potAssetName:  this.availablePots?.[this.selectedPotAsset] ?? '',
+      bgIndex:       this.selectedBgColor,
+      bgColor:       this.bgColors[this.selectedBgColor],
     };
   }
 
@@ -81,62 +73,50 @@ class PotDecorateUI {
     noStroke();
     rect(x, y, w, h, 8);
 
+    let cx    = x + w / 2;
+    let baseY = y + h * 0.65;
+
     // 임시 줄기 3개
-    let cx = x + w / 2;
-    let baseY = y + h * 0.72;
     let stems = [
       { angle: -0.35, len: 160 },
       { angle:  0.0,  len: 180 },
       { angle:  0.3,  len: 150 },
     ];
-
     for (let i = 0; i < stems.length; i++) {
       let s   = stems[i];
       let tx  = cx + sin(s.angle) * s.len;
       let ty  = baseY - cos(s.angle) * s.len;
-      let isHov = this._isStemHovered(cx, baseY, tx, ty, i);
       let isSel = (this.selectedStemIndex === i);
+      let isHov = this._isStemHovered(cx, baseY, tx, ty, i);
 
-      // 줄기 강조
-      if (isSel) {
-        stroke(100, 100, 220, 80);
-        strokeWeight(14);
-        line(cx, baseY, tx, ty);
-      } else if (isHov) {
-        stroke(180, 180, 220, 60);
-        strokeWeight(10);
-        line(cx, baseY, tx, ty);
-      }
+      if (isSel) { stroke(100, 100, 220, 80); strokeWeight(14); line(cx, baseY, tx, ty); }
+      else if (isHov) { stroke(180, 180, 220, 60); strokeWeight(10); line(cx, baseY, tx, ty); }
 
-      // 줄기 선
-      stroke(this.mode === 'edit' && isSel
-        ? this.stemColors[this.selectedStemColor]
-        : '#AAAAAA');
+      stroke(isSel ? this.stemColors[this.selectedStemColor] : '#AAAAAA');
       strokeWeight(2);
       line(cx, baseY, tx, ty);
 
-      // 비즈 (임시)
-      noStroke();
-      fill(200);
+      noStroke(); fill(200);
       for (let j = 1; j <= 5; j++) {
-        let t  = j / 6;
-        let bx = lerp(cx, tx, t);
-        let by = lerp(baseY, ty, t);
-        ellipse(bx, by, 14 - j * 1.5);
+        let t = j / 6;
+        ellipse(lerp(cx, tx, t), lerp(baseY, ty, t), 14 - j * 1.5);
       }
     }
 
-    // 화분 몸통
-    fill(this.potColors[this.selectedPotColor]);
-    noStroke();
-    drawPotShapeAt(cx, baseY - 10, this.selectedPotShape, 1.0);
+    // 화분 이미지
+    const assetName = this.availablePots?.[this.selectedPotAsset];
+    const img = assetName ? potAssetImages[assetName] : null;
+    if (img) {
+      let iw = 120, ih = 120;
+      image(img, cx - iw / 2, baseY - 10, iw, ih);
+    } else {
+      fill(200); noStroke();
+      rect(cx - 45, baseY - 10, 90, 80, 4);
+    }
 
-    // 미리보기 텍스트
-    fill(100, 100, 200);
-    textSize(12);
-    textAlign(CENTER);
-    textStyle(NORMAL);
-    text('(화분 미리보기)', cx, y + h * 0.88);
+    fill(100, 100, 200); noStroke();
+    textSize(12); textAlign(CENTER); textStyle(NORMAL);
+    text('(화분 미리보기)', cx, y + h * 0.92);
   }
 
   _drawPotShape(cx, baseY, shapeIdx) {
@@ -290,43 +270,65 @@ class PotDecorateUI {
     drawingContext.rect(popX + 431, popY + 53, popW - 431, popH - 123);
     drawingContext.clip();
 
-    // 화분 세부 설정 타이틀
+    // 화분 선택 타이틀
     fill(30); textStyle(BOLD); textSize(14); textAlign(LEFT);
-    text('화분 세부 설정', panX, panY + 20);
+    text('화분 선택', panX, panY + 20);
 
-    // 화분 색상
-    this._drawColorPalette(
-      '화분 색상', this.potColors, this.selectedPotColor,
-      panX, panY + 44,
-      (i) => { this.selectedPotColor = i; }
-    );
+    // 화분 이미지 그리드 (3열)
+    const pots = this.availablePots ?? [];
+    const cellW = 90, cellH = 90, colGap = 14, rowGap = 18;
+    const cols  = 3;
+    for (let i = 0; i < pots.length; i++) {
+      let col = i % cols;
+      let row = Math.floor(i / cols);
+      let sx  = panX + col * (cellW + colGap);
+      let sy  = panY + 34 + row * (cellH + rowGap + 16);
+      let isSel = (this.selectedPotAsset === i);
+
+      // 셀 배경
+      fill(isSel ? color(230, 232, 255) : 248);
+      stroke(isSel ? color(60, 60, 220) : 210);
+      strokeWeight(isSel ? 2 : 1);
+      rect(sx, sy, cellW, cellH, 8);
+
+      // 화분 이미지
+      const img = potAssetImages[pots[i]];
+      if (img) {
+        imageMode(CENTER);
+        image(img, sx + cellW / 2, sy + cellH / 2, cellW - 12, cellH - 12);
+        imageMode(CORNER);
+      }
+
+      // 선택 체크
+      if (isSel) {
+        fill(60, 60, 220); noStroke();
+        rect(sx + cellW - 20, sy + 4, 16, 16, 3);
+        fill(255); textSize(10); textAlign(CENTER, CENTER);
+        text('✓', sx + cellW - 12, sy + 12);
+      }
+
+      // 라벨
+      noStroke(); fill(isSel ? color(60, 60, 200) : 120);
+      textSize(10); textStyle(NORMAL); textAlign(CENTER);
+      text(pots[i], sx + cellW / 2, sy + cellH + 12);
+
+      if (isClicked(sx, sy, cellW, cellH)) this.selectedPotAsset = i;
+    }
+
+    const potGridRows = Math.ceil(pots.length / cols);
+    const potGridBottom = panY + 34 + potGridRows * (cellH + rowGap + 16);
 
     // 배경 색상
     this._drawColorPalette(
       '배경 색상', this.bgColors, this.selectedBgColor,
-      panX, panY + 132,
+      panX, potGridBottom + 16,
       (i) => { this.selectedBgColor = i; }
     );
 
-    // 화분 모양
-    fill(30); textStyle(NORMAL); textSize(13); textAlign(LEFT);
-    text('화분 모양', panX, panY + 222);
-    for (let i = 0; i < this.potShapes.length; i++) {
-      let sx = panX + i * 106;
-      let sy = panY + 238;
-      let isSelected = (this.selectedPotShape === i);
-      fill(isSelected ? 240 : 248);
-      stroke(isSelected ? 60 : 210);
-      strokeWeight(isSelected ? 2 : 1);
-      rect(sx, sy, 90, 80, 6);
-      noStroke(); fill(100);
-      textSize(11); textAlign(CENTER);
-      text(this.potShapes[i], sx + 45, sy + 92);
-      if (isClicked(sx, sy, 90, 80)) this.selectedPotShape = i;
-    }
-
     // 줄기 세부 설정
-    let stemSecY = panY + 360;
+    const pots2 = this.availablePots ?? [];
+    const potGridRows2 = Math.ceil(pots2.length / 3);
+    let stemSecY = panY + 34 + potGridRows2 * (90 + 18 + 16) + 16 + 100;
     fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
     text('줄기 세부 설정', panX, stemSecY);
 
@@ -450,31 +452,21 @@ class PotDecorateUI {
   }
 
   #restoreSavedState() {
-    if (!this._savedState) {
-      return;
-    }
-
-    this.selectedPotColor = this._savedState.potColor;
+    if (!this._savedState) return;
+    this.selectedPotAsset = this._savedState.potAsset;
     this.selectedBgColor  = this._savedState.bgColor;
-    this.selectedPotShape = this._savedState.potShape;
   }
 
   #applyCurrentData() {
     if (!this.currentPot) {
-      this.currentPot = {
-        name: '내 첫 번째 화분',
-        desc: '',
-        stems: [],
-        locked: false,
-      };
+      this.currentPot = { name: '내 첫 번째 화분', desc: '', stems: [], locked: false };
     }
 
     let data = this.getData();
-    this.currentPot.colorIndex = data.colorIndex;
-    this.currentPot.bgIndex    = data.bgIndex;
-    this.currentPot.shapeIndex = data.shapeIndex;
+    this.currentPot.potAssetIndex = data.potAssetIndex;
+    this.currentPot.potAssetName  = data.potAssetName;
+    this.currentPot.bgIndex       = data.bgIndex;
 
-    // Firestore 저장
     if (this.currentPot.firestoreId) {
       updatePotDecor(this.currentPot.firestoreId, data)
         .catch(err => console.error('[Firestore] 꾸미기 저장 오류:', err));
