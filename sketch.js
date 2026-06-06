@@ -141,6 +141,12 @@ function mouseDragged() {
     case GARDEN:
       gardenUI.onMouseDragged();
       break;
+    case POT_DECORATE:
+      potDecorateUI.onMouseDragged();
+      break;
+    case DEBUG:
+      debugSceneMouseDragged();
+      break;
   }
 }
 
@@ -162,6 +168,9 @@ function mouseWheel(e) {
   switch (gameState) {
     case POT_DECORATE:
       potDecorateUI.onMouseWheel(e.delta);
-      break;
+      return false;
+    case DEBUG:
+      debugSceneMouseWheel(e.delta);
+      return false;
   }
 }
