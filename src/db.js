@@ -1,3 +1,31 @@
+// ── 비즈 카탈로그 (앱 시작 시 1회 로드) ──────────────────────────────────────
+// beadCatalog: { [beadId]: { name, theme, imageUrl, width, height } }
+// beadImages:  { [beadId]: p5.Image }
+let beadCatalog = {};
+let beadImages  = {};
+
+async function loadBeadCatalog() {
+  const snapshot = await db.collection('beads').get();
+  snapshot.docs.forEach(doc => {
+    beadCatalog[doc.id] = doc.data();
+  });
+  return beadCatalog;
+}
+
+// p5.js preload()에서 호출 — 모든 비즈 이미지를 미리 로드
+function preloadBeadImages() {
+  for (const [beadId, data] of Object.entries(beadCatalog)) {
+    beadImages[beadId] = loadImage(data.imagePath);
+  }
+}
+
+// 특정 theme의 비즈 목록 반환 ('basic' 포함)
+function getBeadsByTheme(theme) {
+  return Object.entries(beadCatalog)
+    .filter(([, d]) => d.theme === 'basic' || d.theme === theme)
+    .map(([id, d]) => ({ beadId: id, ...d }));
+}
+
 // ── Device ID ──────────────────────────────────────────────────────────────
 // 로그인 없이 기기를 구분하기 위한 UUID. localStorage에 영구 저장.
 const myDeviceId = (() => {
@@ -54,9 +82,9 @@ async function createPot(data) {
 // potDecorateUI 저장 시 호출.
 async function updatePotDecor(potId, decorData) {
   await db.collection('pots').doc(potId).update({
-    colorIndex: decorData.colorIndex,
-    bgIndex:    decorData.bgIndex,
-    shapeIndex: decorData.shapeIndex,
+    potAssetIndex: decorData.potAssetIndex,
+    potAssetName:  decorData.potAssetName,
+    bgIndex:       decorData.bgIndex,
   });
 }
 

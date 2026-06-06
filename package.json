@@ -1,6 +1,7 @@
 {
     "devDependencies": {
         "@types/matter-js": "^0.10.9",
-        "@types/p5": "^1.7.7"
+        "@types/p5": "^1.7.7",
+        "firebase-admin": "^13.10.0"
     }
 }

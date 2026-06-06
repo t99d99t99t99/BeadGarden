@@ -41,6 +41,12 @@ function isClicked(x, y, w, h) {
     mouseY > y && mouseY < y + h;
 }
 
+async function preload() {
+  await loadBeadCatalog();
+  preloadBeadImages();
+  preloadPotImages();
+}
+
 function setup() {
   createCanvas(1440, 990);
   introUI = new IntroUI();
