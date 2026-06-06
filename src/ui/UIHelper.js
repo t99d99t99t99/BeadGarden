@@ -18,24 +18,6 @@ const POT_COLORS  = ['#F4A7B9','#89C4E1','#90E0AE','#D4A8E8','#F5F5F5','#CCCCCC'
 const BG_COLORS   = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
 const STEM_COLORS = ['#222222','#FFFFFF','#1A7A1A','#66FF44'];
 
-// ── 컨셉별 화분 에셋 매핑 ────────────────────────────────────────────────────
-// pot_setup에서 선택한 concept label → 사용 가능한 화분 파일명 목록
-const POT_ASSETS_BY_CONCEPT = {
-  '스타 에디션': ['bootsTaddyMint', 'bootsTaddyPink', 'potPinkTaddy', 'potBlack', 'bootsBlack', 'Glass'],
-  '식물 에디션': ['ceramicGreen', 'ceramicWhite', 'ceramicBlack', 'ceramicBlue', 'potBrown', 'mushroomPink', 'mushroomYellow'],
-  '바다 에디션': ['whale', 'potSkyblue', 'bootsTaddyWhite', 'Glass', 'Rectangle 144'],
-};
-
-// 화분 이미지 캐시 (preloadPotImages에서 채워짐)
-const potAssetImages = {};
-
-function preloadPotImages() {
-  const allNames = new Set(Object.values(POT_ASSETS_BY_CONCEPT).flat());
-  for (const name of allNames) {
-    potAssetImages[name] = loadImage(`assets/pots/${name}.png`);
-  }
-}
-
 // ── 화분 모양 그리기 (scale 파라미터로 카드/팝업 크기 조정) ─────────────────────
 // cx, baseY: 화분 상단 중앙 기준점 / scale: 1.0 = 원본, 0.6 = 카드용
 function drawPotShapeAt(cx, baseY, shapeIdx, scale) {

@@ -88,7 +88,9 @@ async function updatePotDecor(potId, decorData) {
   await db.collection('pots').doc(potId).update({
     potAssetIndex: decorData.potAssetIndex,
     potAssetName:  decorData.potAssetName,
+    colorIndex:    decorData.colorIndex,
     bgIndex:       decorData.bgIndex,
+    stems:         decorData.stems,
   });
 }
 

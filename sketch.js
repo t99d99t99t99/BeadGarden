@@ -67,6 +67,7 @@ function startStemCraftForPot(pot) {
 function setup() {
   createCanvas(1440, 990);
   initializeBeadAtlasSprites();
+  initializePotAtlasSprites();
   loadBeadCatalog()
     .then(() => preloadBeadImages())
     .catch(err => console.error('[Firestore] 비즈 카탈로그 로드 오류:', err));
