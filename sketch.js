@@ -119,6 +119,9 @@ function keyPressed() {
 
 function mousePressed() {
   switch (gameState) {
+    case TUTORIAL:
+      tutorialUI.onMousePressed();
+      break;
     case GARDEN:
       gardenUI.onMousePressed();
       potDetailUI.onMousePressed();
