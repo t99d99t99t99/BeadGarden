@@ -79,29 +79,23 @@ class PotDecorateUI {
 
   // ── 화분 미리보기 그리기 ──
   drawPreview(x, y, w, h) {
-    // 배경
     fill(this.bgColors[this.selectedBgColor]);
     noStroke();
     rect(x, y, w, h, 8);
 
     let cx    = x + w / 2;
-    let baseY = y + h * 0.65;
+    let baseY = y + h * 0.72;
+    let stems = this._previewStems(cx, baseY);
 
-    // 임시 줄기 3개
-    let stems = [
-      { angle: -0.35, len: 160 },
-      { angle:  0.0,  len: 180 },
-      { angle:  0.3,  len: 150 },
-    ];
     for (let i = 0; i < stems.length; i++) {
-      let s   = stems[i];
-      let tx  = cx + sin(s.angle) * s.len;
-      let ty  = baseY - cos(s.angle) * s.len;
-      let isSel = (this.selectedStemIndex === i);
-      let isHov = this._isStemHovered(cx, baseY, tx, ty, i);
+      let s        = stems[i];
+      let shapeIdx = (this.selectedStemIndex === i) ? this.selectedStemShape : 0;
+      let points   = this._stemPathPoints(s, shapeIdx);
+      let isSel    = (this.selectedStemIndex === i);
+      let isHov    = this._isStemHovered(s.baseX, s.baseY, s.tipX, s.tipY, i);
 
-      if (isSel) { stroke(100, 100, 220, 80); strokeWeight(14); line(cx, baseY, tx, ty); }
-      else if (isHov) { stroke(180, 180, 220, 60); strokeWeight(10); line(cx, baseY, tx, ty); }
+      if (isSel) { stroke(100, 100, 220, 80); strokeWeight(14); this._drawStemPath(points); }
+      else if (isHov) { stroke(180, 180, 220, 60); strokeWeight(10); this._drawStemPath(points); }
 
       stroke(isSel ? this.stemColors[this.selectedStemColor] : '#AAAAAA');
       strokeWeight(2);
@@ -109,8 +103,8 @@ class PotDecorateUI {
 
       noStroke(); fill(200);
       for (let j = 1; j <= 5; j++) {
-        let t = j / 6;
-        ellipse(lerp(cx, tx, t), lerp(baseY, ty, t), 14 - j * 1.5);
+        let bp = this._pointOnStemPath(points, j / 6);
+        ellipse(bp.x, bp.y, 14 - j * 1.5);
       }
     }
 
@@ -118,8 +112,9 @@ class PotDecorateUI {
     const assetName = this.availablePots?.[this.selectedPotAsset];
     const img = assetName ? potAssetImages[assetName] : null;
     if (img) {
-      let iw = 120, ih = 120;
-      image(img, cx - iw / 2, baseY - 10, iw, ih);
+      imageMode(CENTER);
+      image(img, cx, baseY + 30, 130, 130);
+      imageMode(CORNER);
     } else {
       fill(200); noStroke();
       rect(cx - 45, baseY - 10, 90, 80, 4);
@@ -127,7 +122,7 @@ class PotDecorateUI {
 
     fill(100, 100, 200); noStroke();
     textSize(12); textAlign(CENTER); textStyle(NORMAL);
-    text('(화분 미리보기)', cx, y + h * 0.92);
+    text('(화분 미리보기)', cx, y + h * 0.95);
   }
 
   _previewStems(cx, baseY) {
