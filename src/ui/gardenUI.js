@@ -36,48 +36,59 @@ class GardenUI {
 
   // ── 화분 카드 그리기 ────────────────────────────────────────────────────────
   drawCard(pot, x) {
-    const y       = pot.cardY ?? height * 0.25;
-    const w       = this.cardW;
-    const stemH   = 180;   // 줄기 영역 높이
-    const infoH   = 80;    // 텍스트 영역 높이
-    const h       = stemH + infoH;
-    const isHov   = (this.hoveredPot === pot);
+    const y     = pot.cardY ?? height * 0.25;
+    const w     = this.cardW;
+    const imgH  = 200;  // 이미지/줄기 영역
+    const infoH = 76;   // 텍스트 영역
+    const h     = imgH + infoH;
+    const isHov = (this.hoveredPot === pot);
+    const cx    = x + w / 2;
 
-    // 카드 배경
+    // ── 카드 전체 배경 ──
     fill(this._cardBg(pot));
     stroke(isHov ? color(60, 60, 220) : color(200));
     strokeWeight(isHov ? 2 : 1);
     rect(x, y, w, h, 12);
 
-    // 줄기 + 화분 이미지
-    const cx   = x + w / 2;
-    const potY = y + stemH;          // 화분 이미지 상단 기준
-    this._drawStems(cx, potY, pot);
-    this._drawPotImage(cx, potY, pot, w);
+    // ── 줄기 (이미지 영역 안에서만 그리기) ──
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(x + 1, y + 1, w - 2, imgH - 1);
+    drawingContext.clip();
+    const stemBase = y + imgH - 20;
+    this._drawStems(cx, stemBase, pot);
+    this._drawPotImage(cx, stemBase, pot, w);
+    drawingContext.restore();
+
+    // ── 텍스트 영역 (흰 반투명 배경) ──
+    noStroke();
+    fill(255, 255, 255, 200);
+    rect(x, y + imgH, w, infoH, 0, 0, 12, 12);
 
     // 구분선
     stroke(200); strokeWeight(1);
-    line(x + 12, y + h - infoH, x + w - 12, y + h - infoH);
+    line(x + 14, y + imgH, x + w - 14, y + imgH);
 
     // 화분 이름 + 잠금
     noStroke();
     fill(40);
+    textFont('sans-serif');
     textSize(13);
     textStyle(BOLD);
     textAlign(LEFT);
-    text(pot.name + (pot.locked ? ' 🔒' : ''), x + 14, y + h - infoH + 18);
+    text(pot.name + (pot.locked ? ' 🔒' : ''), x + 14, y + imgH + 20);
 
     // 줄기 개수 + 에디션
     fill(120);
     textStyle(NORMAL);
     textSize(11);
     const stemCount = pot.stems ? pot.stems.length : 0;
-    text(`줄기 ${stemCount}개 (${this._editionLabel(pot)})`, x + 14, y + h - infoH + 34);
+    text(`줄기 ${stemCount}개 (${this._editionLabel(pot)})`, x + 14, y + imgH + 38);
 
     // 클릭하여 열기
-    fill(isHov ? color(60, 60, 200) : 140);
+    fill(isHov ? color(60, 60, 200) : 150);
     textSize(11);
-    text('클릭하여 열기 →', x + 14, y + h - infoH + 50);
+    text('클릭하여 열기 →', x + 14, y + imgH + 56);
   }
 
   // ── 줄기 렌더링 (저장된 stem 데이터 기반) ───────────────────────────────────
@@ -129,19 +140,15 @@ class GardenUI {
   _drawPotImage(cx, baseY, pot, cardW) {
     const assetName = pot.potAssetName;
     const img = assetName ? potAssetImages[assetName] : null;
-    const potW = cardW * 0.55;
+    const potW = cardW * 0.5;
     const potH = potW;
 
     if (img) {
       imageMode(CENTER);
-      image(img, cx, baseY + potH * 0.45, potW, potH);
+      image(img, cx, baseY + 10, potW, potH);
       imageMode(CORNER);
-    } else {
-      // fallback: 단색 사각형
-      const col = (pot.bgIndex !== undefined) ? BG_COLORS[pot.bgIndex] : '#CCCCCC';
-      fill(col); noStroke();
-      rect(cx - potW / 2, baseY, potW, potH * 0.8, 6);
     }
+    // fallback: 아무것도 그리지 않음 (카드 배경색 그대로)
   }
 
   // ── 전체 draw ─────────────────────────────────────────────────────────────
@@ -182,7 +189,7 @@ class GardenUI {
       this.drawCard(pot, x);
 
       if (mouseX > x && mouseX < x + this.cardW &&
-          mouseY > y && mouseY < y + h) {
+          mouseY > y && mouseY < y + 276) {
         this.hoveredPot = pot;
         cursor(HAND);
       }
@@ -243,7 +250,7 @@ class GardenUI {
         const x   = this._cardX(i);
         const y   = pot.cardY ?? height * 0.25;
         if (mouseX > x && mouseX < x + this.cardW &&
-            mouseY > y && mouseY < y + 260) {
+            mouseY > y && mouseY < y + 276) {
           potSetupUI.hide();
           potDetailUI.show(pot);
         }
