@@ -41,6 +41,12 @@ function isClicked(x, y, w, h) {
     mouseY > y && mouseY < y + h;
 }
 
+async function preload() {
+  await loadBeadCatalog();
+  preloadBeadImages();
+  preloadPotImages();
+}
+
 function setup() {
   createCanvas(1440, 990);
   introUI = new IntroUI();
@@ -55,6 +61,10 @@ function setup() {
   stemFinishUI = new StemFinishUI();
   beadGame = new BeadGame();
 
+  // Firestore 실시간 구독 — 전체 화분 목록을 gardenUI에 반영
+  listenPots(pots => {
+    gardenUI.pots = pots;
+  });
 }
 
 function draw() {
@@ -109,6 +119,9 @@ function keyPressed() {
 
 function mousePressed() {
   switch (gameState) {
+    case TUTORIAL:
+      tutorialUI.onMousePressed();
+      break;
     case GARDEN:
       gardenUI.onMousePressed();
       potDetailUI.onMousePressed();
@@ -131,6 +144,12 @@ function mouseDragged() {
     case GARDEN:
       gardenUI.onMouseDragged();
       break;
+    case POT_DECORATE:
+      potDecorateUI.onMouseDragged();
+      break;
+    case DEBUG:
+      debugSceneMouseDragged();
+      break;
   }
 }
 
@@ -152,6 +171,9 @@ function mouseWheel(e) {
   switch (gameState) {
     case POT_DECORATE:
       potDecorateUI.onMouseWheel(e.delta);
-      break;
+      return false;
+    case DEBUG:
+      debugSceneMouseWheel(e.delta);
+      return false;
   }
 }

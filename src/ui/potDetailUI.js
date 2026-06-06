@@ -24,17 +24,14 @@ class PotDetailUI {
   }
 
   drawPotPreview(x, y, w, h) {
-    let bgColors  = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
-    let potColors = ['#F4A7B9','#89C4E1','#90E0AE','#D4A8E8','#F5F5F5','#CCCCCC','#888888','#333333'];
-
-    let bgCol  = bgColors[this.pot.bgIndex    ?? 0];
-    let potCol = potColors[this.pot.colorIndex ?? 0];
+    let bgCol  = BG_COLORS[this.pot.bgIndex    ?? 0];
+    let potCol = POT_COLORS[this.pot.colorIndex ?? 0];
 
     fill(bgCol); noStroke();
     rect(x, y, w, h, 8);
 
-    let cx    = x + w / 2;
-    let baseY = y + h * 0.72;
+    let cx      = x + w / 2;
+    let baseY   = y + h * 0.72;
     let hasStem = this.pot.stems && this.pot.stems.length > 0;
 
     if (!hasStem) {
@@ -42,18 +39,17 @@ class PotDetailUI {
       text('아직 비즈 식물의 줄기가 없어요.\n새로운 비즈 줄기를 만들어서 식물을 심어주세요.',
         cx, y + h * 0.44);
     } else {
-      let stemData = [
-        { angle: -0.4,  len: 150 },
-        { angle: -0.15, len: 170 },
-        { angle:  0.1,  len: 160 },
-        { angle:  0.35, len: 145 },
-        { angle:  0.55, len: 130 },
-      ].slice(0, this.pot.stems.length);
-
-      for (let s of stemData) {
-        let tx = cx + sin(s.angle) * s.len;
-        let ty = baseY - cos(s.angle) * s.len;
-        stroke(170); strokeWeight(2);
+      let angles = [-0.4, -0.15, 0.1, 0.35, 0.55];
+      let lens   = [150, 170, 160, 145, 130];
+      for (let i = 0; i < this.pot.stems.length; i++) {
+        let stem  = this.pot.stems[i];
+        let angle = angles[i % angles.length];
+        let len   = lens[i % lens.length];
+        let tx    = cx + sin(angle) * len;
+        let ty    = baseY - cos(angle) * len;
+        let col   = (stem.stemColor !== undefined)
+                    ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+        stroke(col); strokeWeight(2);
         line(cx, baseY, tx, ty);
         noStroke(); fill(200);
         for (let j = 1; j <= 5; j++) {
@@ -64,7 +60,7 @@ class PotDetailUI {
     }
 
     fill(potCol); noStroke();
-    rect(cx - 45, baseY - 10, 90, 80, 4);
+    drawPotShapeAt(cx, baseY - 10, this.pot.shapeIndex ?? 0, 1.0);
   }
 
   onMousePressed() {
@@ -73,7 +69,8 @@ class PotDetailUI {
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let popH     = isLocked ? 560 : (hasStem ? 660 : 560);
+    let canEdit  = (this.pot.createdBy === myDeviceId) && !isLocked;
+    let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
     let popX     = width  / 2 - popW / 2;
     let popY     = height / 2 - popH / 2;
     let imgX     = popX + 18, imgY = popY + 100;
@@ -88,7 +85,7 @@ class PotDetailUI {
       return;
     }
 
-    if (!isLocked) {
+    if (canEdit) {
       // 화분 꾸미기 버튼
       let decorW = 110, decorH = 36;
       let decorX = imgX + imgW - decorW - 8;
@@ -133,7 +130,8 @@ class PotDetailUI {
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let popH     = isLocked ? 560 : (hasStem ? 660 : 560);
+    let canEdit  = (this.pot.createdBy === myDeviceId) && !isLocked;
+    let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
     let popX     = width  / 2 - popW / 2;
     let popY     = height / 2 - popH / 2;
 
@@ -160,7 +158,7 @@ class PotDetailUI {
 
     // 날짜
     fill(140); textStyle(NORMAL); textSize(12);
-    text(`${isLocked ? '심은' : '만든'} 날짜: ${this.pot.createdAt}`,
+    text(`${isLocked ? '심은' : '만든'} 날짜: ${formatDate(this.pot.createdAt)}`,
       width / 2, popY + 62);
 
     // 설명
@@ -199,7 +197,7 @@ class PotDetailUI {
 
     let _hoveredBtn = false;
 
-    if (!isLocked) {
+    if (canEdit) {
       // 화분 꾸미기 버튼
       let decorW = 110, decorH = 36;
       let decorX = imgX + imgW - decorW - 8;
