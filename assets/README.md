@@ -1,0 +1,2 @@
+- `assets/ocean/`, `assets/plant/`, `assets/pots/` and `assets/star/` contains the image as a single file for each bead. Directly using them may cause performance issues.
+- If you need a single sprite image, use sprite sheet files like `assets/beads.png`, `assets/holes.png`, `assets/pots.png` instead.
