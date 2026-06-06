@@ -139,6 +139,7 @@ class StemDetailUI {
       mouseX > btnX && mouseX < btnX + btnW &&
       mouseY > btnY && mouseY < btnY + btnH) {
       stemBeadCraftUI.setPalette(this.getSelectedColors());
+      stemBeadCraftUI.currentPot = this.currentPot; // pot 참조 전달
       goTo(STEM_BEAD_CRAFT);
     }
   }

@@ -24,43 +24,66 @@ class PotDetailUI {
   }
 
   drawPotPreview(x, y, w, h) {
-    let bgCol  = BG_COLORS[this.pot.bgIndex    ?? 0];
-    let potCol = POT_COLORS[this.pot.colorIndex ?? 0];
-
-    fill(bgCol); noStroke();
+    // 배경색
+    const bgColors = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
+    const bgHex = bgColors[this.pot.bgIndex ?? 0] ?? '#F5F5F5';
+    fill(bgHex); noStroke();
     rect(x, y, w, h, 8);
 
-    let cx      = x + w / 2;
-    let baseY   = y + h * 0.72;
-    let hasStem = this.pot.stems && this.pot.stems.length > 0;
+    const cx    = x + w / 2;
+    const baseY = y + h * 0.72;
+    const hasStem = this.pot.stems && this.pot.stems.length > 0;
 
     if (!hasStem) {
-      fill(180); textSize(13); textStyle(NORMAL); textAlign(CENTER);
+      fill(160); textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
       text('아직 비즈 식물의 줄기가 없어요.\n새로운 비즈 줄기를 만들어서 식물을 심어주세요.',
-        cx, y + h * 0.44);
+        cx, y + h * 0.42);
     } else {
-      let angles = [-0.4, -0.15, 0.1, 0.35, 0.55];
-      let lens   = [150, 170, 160, 145, 130];
+      const STEM_COLORS = ['#222222','#FFFFFF','#1A7A1A','#66FF44'];
+      const defaultAngles  = [340, 0, 20, -20, 350];
+      const defaultOffsets = [-20, 0, 20, -10, 10];
+      const stemLen = min(w, h) * 0.52;
+
       for (let i = 0; i < this.pot.stems.length; i++) {
-        let stem  = this.pot.stems[i];
-        let angle = angles[i % angles.length];
-        let len   = lens[i % lens.length];
-        let tx    = cx + sin(angle) * len;
-        let ty    = baseY - cos(angle) * len;
-        let col   = (stem.stemColor !== undefined)
-                    ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
-        stroke(col); strokeWeight(2);
-        line(cx, baseY, tx, ty);
-        noStroke(); fill(200);
-        for (let j = 1; j <= 5; j++) {
-          let t = j / 6;
-          ellipse(lerp(cx, tx, t), lerp(baseY, ty, t), 14 - j * 1.5);
+        const stem     = this.pot.stems[i];
+        const angleDeg = stem.angle ?? defaultAngles[i % defaultAngles.length];
+        const offset   = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
+        const bx       = cx + offset * 0.6;
+        const angle    = radians(angleDeg);
+        const tx       = bx + sin(angle) * stemLen;
+        const ty       = baseY - cos(angle) * stemLen;
+        const col      = STEM_COLORS[stem.stemColor] ?? '#AAAAAA';
+
+        stroke(col); strokeWeight(1.5);
+        line(bx, baseY, tx, ty);
+
+        // 비즈 — beadColors 배열 있으면 색상 사용, 없으면 회색
+        const beadColors = stem.beadColors ?? [];
+        const count      = max(beadColors.length, 5);
+        noStroke();
+        for (let j = 0; j < count; j++) {
+          const t   = (j + 1) / (count + 1);
+          const bpx = lerp(bx, tx, t);
+          const bpy = lerp(baseY, ty, t);
+          const sz  = 13 - j * 1.2;
+          fill(beadColors[j] ?? '#C8C4CC');
+          ellipse(bpx, bpy, max(sz, 6));
         }
       }
     }
 
-    fill(potCol); noStroke();
-    drawPotShapeAt(cx, baseY - 10, this.pot.shapeIndex ?? 0, 1.0);
+    // 화분 이미지
+    const assetName = this.pot.potAssetName;
+    const img = assetName ? potAssetImages[assetName] : null;
+    if (img) {
+      imageMode(CENTER);
+      image(img, cx, baseY + 20, w * 0.38, w * 0.38);
+      imageMode(CORNER);
+    } else {
+      // 폴백: 단순 사각형
+      fill(200, 195, 210); noStroke();
+      rect(cx - 32, baseY, 64, 52, 4);
+    }
   }
 
   onMousePressed() {

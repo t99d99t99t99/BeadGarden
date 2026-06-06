@@ -115,22 +115,26 @@ class GardenUI {
       line(bx, baseY, tx, ty);
 
       // 비즈 (저장된 beadId 있으면 이미지, 없으면 원형 fallback)
-      const beads = stem.beads ?? [];
-      const count = beads.length > 0 ? beads.length : 4;
+      const beads      = stem.beads ?? [];
+      const beadColors = stem.beadColors ?? [];
+      const count      = beads.length > 0 ? beads.length
+                       : beadColors.length > 0 ? beadColors.length : 5;
       for (let j = 0; j < count; j++) {
         const t   = (j + 1) / (count + 1);
         const bpx = lerp(bx, tx, t);
         const bpy = lerp(baseY, ty, t);
-        const bead = beads[j];
-        const img  = bead ? beadImages[bead.beadId] : null;
+        // beadId 이미지 → beadColors 색상 → 회색 순으로 폴백
+        const bead    = beads[j];
+        const img     = bead?.beadId ? beadImages[bead.beadId] : null;
+        const beadCol = stem.beadColors?.[j] ?? null;
         if (img) {
           imageMode(CENTER);
           image(img, bpx, bpy, 14, 14);
           imageMode(CORNER);
         } else {
           noStroke();
-          fill(190, 185, 200);
-          ellipse(bpx, bpy, 13 - j * 1.5);
+          fill(beadCol ?? '#BEB9C8');
+          ellipse(bpx, bpy, max(13 - j * 1.5, 5));
         }
       }
     }
