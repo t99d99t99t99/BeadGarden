@@ -42,6 +42,7 @@ class BeadGame {
         this.heldWire = null;
         this.wireGrabDistance = 40;
         this.paletteColors = [];
+        this.theme = POT_THEMES.LEGACY;
         this.beadSpawnCount = 50;
         this.nextPierceOrder = 0;
 
@@ -78,11 +79,15 @@ class BeadGame {
 
     display() {
         for (let bead of this.beads) {
-            bead.display();
+            bead.displayHole();
         }
 
         for (let wire of this.wires) {
             wire.display();
+        }
+
+        for (let bead of this.beads) {
+            bead.displayBody();
         }
     }
 
@@ -110,6 +115,17 @@ class BeadGame {
      */
     setPalette(paletteColors) {
         this.paletteColors = paletteColors || [];
+        this.theme = POT_THEMES.LEGACY;
+        this.setupCraftObjects();
+    }
+
+    /**
+     * @param {string} theme
+     * @returns {void}
+     */
+    setTheme(theme) {
+        this.theme = normalizePotTheme(theme);
+        this.paletteColors = [];
         this.setupCraftObjects();
     }
 
@@ -125,12 +141,25 @@ class BeadGame {
             .filter((bead) => bead.isPierced)
             .sort((a, b) => (b.pierceOrder ?? 0) - (a.pierceOrder ?? 0))
             .map((bead) => ({
+                assetId: bead.assetId,
                 color: bead.color,
                 w: bead.w,
                 h: bead.h,
                 holeH: bead.holeH,
                 partH: bead.partH,
                 partOffset: bead.partOffset
+            }));
+    }
+
+    getPiercedBeadData() {
+        return this.beads
+            .filter((bead) => bead.isPierced)
+            .sort((a, b) => (a.pierceOrder ?? 0) - (b.pierceOrder ?? 0))
+            .map((bead) => ({
+                assetId: bead.assetId,
+                color: bead.assetId ? null : bead.color?.toString?.() ?? null,
+                w: bead.w,
+                h: bead.h,
             }));
     }
 
@@ -142,6 +171,7 @@ class BeadGame {
 
     setupDebugObjects() {
         this.#clearObjects();
+        this.theme = POT_THEMES.PLANT;
         this.spawnWire();
         this.spawnBeads();
     }
@@ -163,16 +193,25 @@ class BeadGame {
         let wire = this.wires[0] || this.spawnWire();
 
         for (let i = 0; i < count; ++i) {
-            let beadWidth = 12;
-            let beadHeight = 12;
-            let beadColor = this.#randomBeadColor();
+            let beadAsset = this.#randomBeadAsset();
+            let beadWidth = beadAsset?.gameplayWidth ?? 12;
+            let beadHeight = beadAsset?.gameplayHeight ?? 12;
+            let beadColor = beadAsset ? null : this.#randomBeadColor();
             let horizontalMargin = wire.safeMargin + 40 + beadWidth / 2;
             let verticalMargin = wire.safeMargin + 40 + beadHeight / 2;
             let maxY = Math.max(verticalMargin, wire.reachableHeldEndMaxY());
             let x = random(horizontalMargin, width - horizontalMargin);
             let y = random(verticalMargin, maxY);
 
-            this.beads.push(new Bead(x, y, beadWidth, beadHeight, beadColor, this.#matterEngine));
+            this.beads.push(new Bead(
+                x,
+                y,
+                beadWidth,
+                beadHeight,
+                beadColor,
+                this.#matterEngine,
+                beadAsset
+            ));
         }
     }
 
@@ -374,6 +413,15 @@ class BeadGame {
         }
 
         return color(random(50, 255), random(50, 255), random(50, 255));
+    }
+
+    #randomBeadAsset() {
+        if (this.theme === POT_THEMES.LEGACY) {
+            return null;
+        }
+
+        let pool = getBeadAtlasPool(this.theme);
+        return pool.length > 0 ? random(pool) : null;
     }
 
     /**

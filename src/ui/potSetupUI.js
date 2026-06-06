@@ -6,9 +6,9 @@ class PotSetupUI {
     this.descInput       = null;
 
     this.concepts = [
-      { label: '식물 에디션' },
-      { label: '스타 에디션' },
-      { label: '바다 에디션' },
+      { label: '식물 에디션', theme: POT_THEMES.PLANT },
+      { label: '스타 에디션', theme: POT_THEMES.STAR },
+      { label: '바다 에디션', theme: POT_THEMES.OCEAN },
     ];
   }
 
@@ -66,6 +66,7 @@ class PotSetupUI {
       name:    this.nameInput ? this.nameInput.value().trim() : '',
       desc:    this.descInput ? this.descInput.value().trim() : '',
       concept: this.concepts[this.selectedConcept].label,
+      theme:   this.concepts[this.selectedConcept].theme,
     };
   }
 
@@ -107,7 +108,7 @@ class PotSetupUI {
         mouseY > confirmY && mouseY < confirmY + 48) {
       // Firestore에 화분 생성 후 꾸미기 화면으로 이동
       let cardY = random(height * 0.15, height * 0.45);
-      createPot({ name: data.name, desc: data.desc, concept: data.concept, cardY })
+      createPot({ name: data.name, desc: data.desc, concept: data.concept, theme: data.theme, cardY })
         .then(potId => {
           const newPot = {
             firestoreId: potId,
@@ -115,6 +116,7 @@ class PotSetupUI {
             name:        data.name,
             desc:        data.desc,
             concept:     data.concept,
+            theme:       data.theme,
             cardY,
             colorIndex:  0,
             bgIndex:     0,

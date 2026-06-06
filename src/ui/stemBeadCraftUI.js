@@ -1,6 +1,7 @@
 class StemBeadCraftUI {
   constructor() {
     this.paletteColors = []; // stemDetailUI에서 전달받음
+    this.currentPot = null;
     this.minBeads = 10;
     this.newBeadButtonWasPressed = false;
   }
@@ -11,6 +12,16 @@ class StemBeadCraftUI {
     // beadGame에도 전달 (팀원 코드 연결 포인트)
     if (typeof beadGame !== 'undefined') {
       beadGame.setPalette(colors);
+    }
+  }
+
+  setPot(pot) {
+    this.currentPot = pot;
+  }
+
+  startThemedCraft() {
+    if (typeof beadGame !== 'undefined') {
+      beadGame.setTheme(normalizePotTheme(this.currentPot));
     }
   }
 
@@ -126,7 +137,15 @@ class StemBeadCraftUI {
     for (let bead of beads) {
       let scale = beadDisplayHeight / bead.h;
       let beadDisplayWidth = bead.w * scale;
-      this.#drawPreviewBead(bead, x + beadDisplayWidth / 2, rowY, scale);
+      this.#drawPreviewBeadLayer(bead, 'hole', x + beadDisplayWidth / 2, rowY, scale);
+      x += beadDisplayWidth + beadGap;
+    }
+
+    x = rowX;
+    for (let bead of beads) {
+      let scale = beadDisplayHeight / bead.h;
+      let beadDisplayWidth = bead.w * scale;
+      this.#drawPreviewBeadLayer(bead, 'body', x + beadDisplayWidth / 2, rowY, scale);
       x += beadDisplayWidth + beadGap;
     }
   }
@@ -147,24 +166,32 @@ class StemBeadCraftUI {
   }
 
   /**
-   * @param {{color: import("p5").Color, w: Number, holeH: Number, partH: Number, partOffset: Number}} bead
+   * @param {{assetId: string | null, color: import("p5").Color, w: Number, h: Number, holeH: Number, partH: Number, partOffset: Number}} bead
+   * @param {string} layer
    * @param {Number} x
    * @param {Number} y
    * @param {Number} scale
    * @returns {void}
    */
-  #drawPreviewBead(bead, x, y, scale) {
+  #drawPreviewBeadLayer(bead, layer, x, y, scale) {
+    if (bead.assetId) {
+      drawBeadAtlasLayer(bead.assetId, layer, x, y, bead.w * scale, bead.h * scale);
+      return;
+    }
+
     push();
     translate(x, y);
     rectMode(CENTER);
     noStroke();
 
-    fill(bead.color);
-    rect(0, -bead.partOffset * scale, bead.w * scale, bead.partH * scale);
-    rect(0, bead.partOffset * scale, bead.w * scale, bead.partH * scale);
-
-    fill(red(bead.color) * 0.55, green(bead.color) * 0.55, blue(bead.color) * 0.55, 220);
-    rect(0, 0, bead.w * scale, bead.holeH * scale);
+    if (layer === 'hole') {
+      fill(red(bead.color) * 0.55, green(bead.color) * 0.55, blue(bead.color) * 0.55, 220);
+      rect(0, 0, bead.w * scale, bead.holeH * scale);
+    } else {
+      fill(bead.color);
+      rect(0, -bead.partOffset * scale, bead.w * scale, bead.partH * scale);
+      rect(0, bead.partOffset * scale, bead.w * scale, bead.partH * scale);
+    }
 
     pop();
   }
@@ -291,7 +318,14 @@ class StemBeadCraftUI {
     fill(60); noStroke(); textSize(13); textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text('← 나가기', 67, 28);
-    if (isClicked(24, 14, 86, 28)) goTo(STEM_DETAIL);
+    if (isClicked(24, 14, 86, 28)) {
+      if (normalizePotTheme(this.currentPot) === POT_THEMES.LEGACY) {
+        goTo(STEM_DETAIL);
+      } else {
+        goTo(GARDEN);
+        potDetailUI.show(this.currentPot);
+      }
+    }
 
     // 페이지 타이틀
     fill(30); textStyle(BOLD); textSize(15); textAlign(CENTER, CENTER);

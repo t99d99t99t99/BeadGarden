@@ -122,14 +122,20 @@ class GardenUI {
         const bpx = lerp(bx, tx, t);
         const bpy = lerp(baseY, ty, t);
         const bead = beads[j];
-        const img  = bead ? beadImages[bead.beadId] : null;
-        if (img) {
+        const asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
+        const img = bead?.beadId ? beadImages[bead.beadId] : null;
+        if (asset) {
+          const beadH = 14;
+          const beadW = beadH * asset.source.w / asset.source.h;
+          drawBeadAtlasLayer(asset, 'hole', bpx, bpy, beadW, beadH, angle);
+          drawBeadAtlasLayer(asset, 'body', bpx, bpy, beadW, beadH, angle);
+        } else if (img) {
           imageMode(CENTER);
           image(img, bpx, bpy, 14, 14);
           imageMode(CORNER);
         } else {
           noStroke();
-          fill(190, 185, 200);
+          fill(bead?.color ?? color(190, 185, 200));
           ellipse(bpx, bpy, 13 - j * 1.5);
         }
       }
