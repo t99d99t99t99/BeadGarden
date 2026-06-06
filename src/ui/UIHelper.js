@@ -18,6 +18,13 @@ const POT_COLORS  = ['#F4A7B9','#89C4E1','#90E0AE','#D4A8E8','#F5F5F5','#CCCCCC'
 const BG_COLORS   = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
 const STEM_COLORS = ['#222222','#FFFFFF','#1A7A1A','#66FF44'];
 
+// ── 에디션별 기본 비즈 팔레트 (stemDetailUI 없이 바로 비즈 게임 진입 시 사용) ─────
+const CONCEPT_PALETTES = {
+  '식물 에디션': ['#4CAF50','#81C784','#A5D6A7','#8D6E63','#BCAAA4','#F9A825','#FFF9C4','#C8E6C9'],
+  '스타 에디션': ['#CE93D8','#F48FB1','#F8BBD0','#B39DDB','#FFD700','#FFFDE7','#E1BEE7','#C5CAE9'],
+  '바다 에디션': ['#4FC3F7','#81D4FA','#B3E5FC','#80DEEA','#4DD0E1','#FFFFFF','#B2EBF2','#E0F7FA'],
+};
+
 // ── 컨셉별 화분 에셋 매핑 ────────────────────────────────────────────────────
 // pot_setup에서 선택한 concept label → 사용 가능한 화분 파일명 목록
 const POT_ASSETS_BY_CONCEPT = {

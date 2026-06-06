@@ -136,7 +136,13 @@ class StemBeadCraftUI {
     fill(60); noStroke(); textSize(13); textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text('← 나가기', 60, 30);
-    if (isClicked(20, 14, 80, 32)) goTo(STEM_DETAIL);
+    if (isClicked(20, 14, 80, 32)) {
+      // stemDetailUI 제거 — 화분 상세 화면으로 복귀
+      if (this.currentPot) {
+        potDetailUI.show(this.currentPot);
+      }
+      goTo(GARDEN);
+    }
 
     // 페이지 타이틀
     fill(30); textStyle(BOLD); textSize(16); textAlign(CENTER);
