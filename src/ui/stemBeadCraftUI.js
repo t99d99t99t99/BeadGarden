@@ -1,6 +1,7 @@
 class StemBeadCraftUI {
   constructor() {
     this.paletteColors = []; // stemDetailUI에서 전달받음
+    this.currentPot    = null; // stemDetailUI에서 전달받은 화분 참조
     this.minBeads = 10;
   }
 

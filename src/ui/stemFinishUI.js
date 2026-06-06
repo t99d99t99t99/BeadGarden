@@ -8,31 +8,42 @@ class StemFinishUI {
   show() {
     this.isVisible = true;
 
-    // 팀원 코드에서 완성된 줄기 데이터 읽기
+    // beadGame에서 완성된 줄기 데이터 읽기
     if (typeof beadGame !== 'undefined') {
       this.beadCount  = beadGame.beadCount ?? 0;
       this.stemColors = beadGame.getBeadColors?.() ?? [];
     }
 
+    // pot 참조: stemBeadCraftUI.currentPot 우선 (potDetailUI.pot 폴백)
+    const pot = stemBeadCraftUI.currentPot
+      ?? (typeof potDetailUI !== 'undefined' ? potDetailUI.pot : null);
+
     // 완성된 줄기 데이터 구성
     const stemData = {
       beadCount:    this.beadCount,
+      beadColors:   this.stemColors,        // 꿴 비즈 색상 배열
       paletteColors: stemBeadCraftUI.paletteColors ?? [],
       stemColor:    potDecorateUI.selectedStemColor ?? 0,
       stemShape:    potDecorateUI.selectedStemShape ?? 0,
-      stemAngle:    potDecorateUI.stemAngle         ?? 135,
+      angle:        potDecorateUI.stemAngle         ?? 0,
+      baseOffset:   0,
     };
 
     // 로컬 pot 객체에 반영
-    if (typeof potDetailUI !== 'undefined' && potDetailUI.pot) {
-      potDetailUI.pot.stems = potDetailUI.pot.stems ?? [];
-      potDetailUI.pot.stems.push(stemData);
+    if (pot) {
+      pot.stems = pot.stems ?? [];
+      pot.stems.push(stemData);
 
       // Firestore에 줄기 추가
-      if (potDetailUI.pot.firestoreId) {
-        addStemToPot(potDetailUI.pot.firestoreId, stemData)
+      if (pot.firestoreId) {
+        addStemToPot(pot.firestoreId, stemData)
+          .then(() => console.log('[Firestore] 줄기 저장 완료'))
           .catch(err => console.error('[Firestore] 줄기 저장 오류:', err));
+      } else {
+        console.warn('[stemFinishUI] firestoreId 없음 — Firestore 저장 생략');
       }
+    } else {
+      console.warn('[stemFinishUI] pot 참조를 찾을 수 없음');
     }
   }
 
