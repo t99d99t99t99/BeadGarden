@@ -124,10 +124,13 @@ class PotDetailUI {
       // 새 비즈 줄기 만들기 버튼
       if (mouseX > popX + 18 && mouseX < popX + 18 + popW - 36 &&
           mouseY > btnY && mouseY < btnY + 48) {
-        stemDetailUI.selectedPalettes = [];
-        stemDetailUI.currentPot = this.pot;
+        // stemDetailUI 없이 바로 비즈 게임 진입 — 에디션별 팔레트 자동 적용
+        const concept      = this.pot.concept ?? '스타 에디션';
+        const palette      = CONCEPT_PALETTES[concept] ?? CONCEPT_PALETTES['스타 에디션'];
+        stemBeadCraftUI.currentPot = this.pot;
+        stemBeadCraftUI.setPalette(palette);
         this.hide();
-        goTo(STEM_DETAIL);
+        goTo(STEM_BEAD_CRAFT);
         return;
       }
 
@@ -147,8 +150,23 @@ class PotDetailUI {
     }
   }
 
+  // gardenUI.pots에서 최신 pot 데이터를 찾아 반환 (없으면 로컬 캐시 사용)
+  _freshPot() {
+    if (!this.pot) return null;
+    const id = this.pot.firestoreId;
+    if (id && typeof gardenUI !== 'undefined' && gardenUI.pots) {
+      const found = gardenUI.pots.find(p => p.firestoreId === id);
+      if (found) return found;
+    }
+    return this.pot;
+  }
+
   draw() {
     if (!this.isVisible || !this.pot) return;
+
+    // 항상 Firestore 최신 데이터 사용 (꾸미기 저장 직후 바로 반영)
+    const livePot = this._freshPot();
+    if (livePot !== this.pot) this.pot = livePot; // 참조 갱신
 
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;
