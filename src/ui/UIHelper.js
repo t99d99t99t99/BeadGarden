@@ -22,8 +22,8 @@ const STEM_COLORS = ['#222222','#FFFFFF','#1A7A1A','#66FF44'];
 // pot_setup에서 선택한 concept label → 사용 가능한 화분 파일명 목록
 const POT_ASSETS_BY_CONCEPT = {
   '스타 에디션': ['bootsTaddyMint', 'bootsTaddyPink', 'potPinkTaddy', 'potBlack', 'bootsBlack', 'Glass'],
-  '식물 에디션': ['ceramicGreen', 'ceramicWhite', 'ceramicBlack', 'ceramicBlue', 'potBrown', 'mushroomPink', 'mushroomYellow'],
-  '바다 에디션': ['whale', 'potSkyblue', 'bootsTaddyWhite', 'Glass', 'Rectangle 144'],
+  '식물 에디션': ['mushroomPink', 'Rectangle 144', 'ceramicWhite', 'potBrown', 'ceramicGreen', 'Glass', 'mushroomYellow'],
+  '바다 에디션': ['potBlack', 'whale', 'potSkyblue', 'ceramicBlue', 'ceramicGreen', 'Glass'],
 };
 
 // 화분 이미지 캐시 (preloadPotImages에서 채워짐)
