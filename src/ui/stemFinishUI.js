@@ -7,15 +7,32 @@ class StemFinishUI {
 
   show() {
     this.isVisible = true;
+
     // 팀원 코드에서 완성된 줄기 데이터 읽기
     if (typeof beadGame !== 'undefined') {
       this.beadCount  = beadGame.beadCount ?? 0;
       this.stemColors = beadGame.getBeadColors?.() ?? [];
     }
-    // 완성된 줄기를 현재 화분에 추가
+
+    // 완성된 줄기 데이터 구성
+    const stemData = {
+      beadCount:    this.beadCount,
+      paletteColors: stemBeadCraftUI.paletteColors ?? [],
+      stemColor:    potDecorateUI.selectedStemColor ?? 0,
+      stemShape:    potDecorateUI.selectedStemShape ?? 0,
+      stemAngle:    potDecorateUI.stemAngle         ?? 135,
+    };
+
+    // 로컬 pot 객체에 반영
     if (typeof potDetailUI !== 'undefined' && potDetailUI.pot) {
       potDetailUI.pot.stems = potDetailUI.pot.stems ?? [];
-      potDetailUI.pot.stems.push({ beadCount: this.beadCount });
+      potDetailUI.pot.stems.push(stemData);
+
+      // Firestore에 줄기 추가
+      if (potDetailUI.pot.firestoreId) {
+        addStemToPot(potDetailUI.pot.firestoreId, stemData)
+          .catch(err => console.error('[Firestore] 줄기 저장 오류:', err));
+      }
     }
   }
 
