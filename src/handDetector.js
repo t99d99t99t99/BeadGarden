@@ -10,6 +10,7 @@ class HandDetector {
         this.loading = false;
         this.error = null;
         this.pinchThreshold = 34;
+        this.inferenceWidth = 640;
     }
 
     /**
@@ -30,7 +31,10 @@ class HandDetector {
 
         try {
             this.video = createCapture(HAND_DETECTOR_GLOBAL.VIDEO || "video");
-            this.video.size(this.#canvasWidth(), this.#canvasHeight());
+            let inferenceHeight = Math.round(
+                this.inferenceWidth * this.#canvasHeight() / this.#canvasWidth()
+            );
+            this.video.size(this.inferenceWidth, inferenceHeight);
             this.video.hide();
 
             let handPose = ml5Library.handPose({

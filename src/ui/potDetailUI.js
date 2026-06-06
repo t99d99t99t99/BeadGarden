@@ -51,10 +51,25 @@ class PotDetailUI {
                     ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
         stroke(col); strokeWeight(2);
         line(cx, baseY, tx, ty);
-        noStroke(); fill(200);
-        for (let j = 1; j <= 5; j++) {
-          let t = j / 6;
-          ellipse(lerp(cx, tx, t), lerp(baseY, ty, t), 14 - j * 1.5);
+        let beads = stem.beads ?? [];
+        let beadCount = beads.length || 5;
+        for (let j = 0; j < beadCount; j++) {
+          let t = (j + 1) / (beadCount + 1);
+          let bx = lerp(cx, tx, t);
+          let by = lerp(baseY, ty, t);
+          let bead = beads[j];
+          if (bead?.assetId) {
+            let asset = getBeadAtlasEntry(bead.assetId);
+            if (asset) {
+              let previewH = 14;
+              drawBeadAtlasLayer(asset, 'hole', bx, by, previewH * asset.source.w / asset.source.h, previewH);
+              drawBeadAtlasLayer(asset, 'body', bx, by, previewH * asset.source.w / asset.source.h, previewH);
+              continue;
+            }
+          }
+          noStroke();
+          fill(bead?.color ?? 200);
+          ellipse(bx, by, 14 - Math.min(j, 4) * 1.5);
         }
       }
     }
@@ -101,10 +116,9 @@ class PotDetailUI {
       // 새 비즈 줄기 만들기 버튼
       if (mouseX > popX + 18 && mouseX < popX + 18 + popW - 36 &&
           mouseY > btnY && mouseY < btnY + 48) {
-        stemDetailUI.selectedPalettes = [];
-        stemDetailUI.currentPot = this.pot;
+        let pot = this.pot;
         this.hide();
-        goTo(STEM_DETAIL);
+        startStemCraftForPot(pot);
         return;
       }
 
