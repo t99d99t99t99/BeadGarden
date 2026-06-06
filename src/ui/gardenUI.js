@@ -56,8 +56,8 @@ class GardenUI {
     drawingContext.rect(x + 1, y + 1, w - 2, imgH - 1);
     drawingContext.clip();
     const stemBase = y + imgH - 20;
-    this._drawStems(cx, stemBase, pot);
     this._drawPotImage(cx, stemBase, pot, w);
+    this._drawStems(cx, stemBase, pot);
     drawingContext.restore();
 
     // ── 텍스트 영역 (흰 반투명 배경) ──
@@ -144,17 +144,25 @@ class GardenUI {
 
   // ── 화분 이미지 렌더링 ────────────────────────────────────────────────────
   _drawPotImage(cx, baseY, pot, cardW) {
-    const assetName = pot.potAssetName;
-    const img = assetName ? potAssetImages[assetName] : null;
     const potW = cardW * 0.5;
     const potH = potW;
+    const asset = getPotAssetForPot(pot);
+    const potSize = getPotAssetDrawSize(asset, potW, potH);
 
-    if (img) {
-      imageMode(CENTER);
-      image(img, cx, baseY + 10, potW, potH);
-      imageMode(CORNER);
+    if (drawPotAsset(
+      asset,
+      asset?.theme,
+      cx,
+      baseY + potSize.height / 2,
+      potW,
+      potH,
+      pot.colorIndex ?? 0
+    )) {
+      return;
     }
-    // fallback: 아무것도 그리지 않음 (카드 배경색 그대로)
+
+    fill(POT_COLORS[pot.colorIndex ?? 0]); noStroke();
+    drawPotShapeAt(cx, baseY, pot.shapeIndex ?? 0, 0.7);
   }
 
   // ── 전체 draw ─────────────────────────────────────────────────────────────
