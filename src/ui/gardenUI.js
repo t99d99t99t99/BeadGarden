@@ -44,11 +44,17 @@ class GardenUI {
     const isHov = (this.hoveredPot === pot);
     const cx    = x + w / 2;
 
-    // ── 카드 전체 배경 ──
+    // ── 카드 외곽 (에디션 컬러 테두리) ──
     fill(this._cardBg(pot));
     stroke(isHov ? color(60, 60, 220) : color(200));
     strokeWeight(isHov ? 2 : 1);
     rect(x, y, w, h, 12);
+
+    // ── 이미지 영역 배경 (저장된 bgIndex 색상) ──
+    const bgColors = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
+    const imgBg = bgColors[pot.bgIndex ?? 0] ?? '#F5F5F5';
+    noStroke(); fill(imgBg);
+    rect(x + 1, y + 1, w - 2, imgH - 2, 11, 11, 0, 0);
 
     // ── 줄기 (이미지 영역 안에서만 그리기) ──
     drawingContext.save();
@@ -102,7 +108,8 @@ class GardenUI {
 
     for (let i = 0; i < pot.stems.length; i++) {
       const stem    = pot.stems[i];
-      const angleDeg = stem.angle ?? defaultAngles[i % defaultAngles.length];
+      // stemAngle(구버전) 또는 angle(신버전), 둘 다 없으면 인덱스별 기본값
+      const angleDeg = stem.angle ?? stem.stemAngle ?? defaultAngles[i % defaultAngles.length];
       const offset   = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
       const bx      = cx + offset * 0.6;
       const angle   = radians(angleDeg);

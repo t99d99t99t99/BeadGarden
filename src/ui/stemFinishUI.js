@@ -17,6 +17,15 @@ class StemFinishUI {
       this.beads = beadGame.getPiercedBeadData?.() ?? [];
     }
 
+    // 이 줄기가 pot의 몇 번째 줄기인지 (각도/위치 배정용)
+    const pot = stemBeadCraftUI.currentPot
+      ?? (typeof potDetailUI !== 'undefined' ? potDetailUI.pot : null);
+    const stemIndex   = pot?.stems?.length ?? 0;
+    const DEF_ANGLES  = [340, 10, 355, 20, 345, 15, 5];
+    const DEF_OFFSETS = [-20, 20, 0, -10, 10, -15, 15];
+    const savedAngle  = potDecorateUI.stemAngle ?? DEF_ANGLES[stemIndex % DEF_ANGLES.length];
+    const savedOffset = DEF_OFFSETS[stemIndex % DEF_OFFSETS.length];
+
     // 완성된 줄기 데이터 구성
     const stemData = {
       beadCount: this.beadCount,
@@ -26,17 +35,19 @@ class StemFinishUI {
       paletteColors: stemBeadCraftUI.paletteColors ?? [],
       stemColor: potDecorateUI.selectedStemColor ?? 0,
       stemShape: potDecorateUI.selectedStemShape ?? 0,
-      stemAngle: potDecorateUI.stemAngle ?? 135,
+      angle:      savedAngle,    // gardenUI/potDetailUI가 읽는 필드명
+      baseOffset: savedOffset,
     };
 
     // 로컬 pot 객체에 반영
-    if (typeof potDetailUI !== 'undefined' && potDetailUI.pot) {
-      potDetailUI.pot.stems = potDetailUI.pot.stems ?? [];
-      potDetailUI.pot.stems.push(stemData);
+    if (pot) {
+      pot.stems = pot.stems ?? [];
+      pot.stems.push(stemData);
 
       // Firestore에 줄기 추가
-      if (potDetailUI.pot.firestoreId) {
-        addStemToPot(potDetailUI.pot.firestoreId, stemData)
+      if (pot.firestoreId) {
+        addStemToPot(pot.firestoreId, stemData)
+          .then(() => console.log('[Firestore] 줄기 저장 완료:', stemIndex + 1, '번째 줄기'))
           .catch(err => console.error('[Firestore] 줄기 저장 오류:', err));
       }
     }
