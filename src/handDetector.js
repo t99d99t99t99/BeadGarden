@@ -9,7 +9,13 @@ class HandDetector {
         this.started = false;
         this.loading = false;
         this.error = null;
-        this.pinchThreshold = 34;
+        this.pinchThresholdRatio = 0.32;
+        this.closeHandScale = 110;
+        this.closeHandThresholdBoost = 0.0015;
+        this.minimumPinchThreshold = 10;
+        this.maximumPinchThreshold = 96;
+        this.fallbackPinchThreshold = 34;
+        this.inferenceWidth = 640;
     }
 
     /**
@@ -30,7 +36,10 @@ class HandDetector {
 
         try {
             this.video = createCapture(HAND_DETECTOR_GLOBAL.VIDEO || "video");
-            this.video.size(this.#canvasWidth(), this.#canvasHeight());
+            let inferenceHeight = Math.round(
+                this.inferenceWidth * this.#canvasHeight() / this.#canvasWidth()
+            );
+            this.video.size(this.inferenceWidth, inferenceHeight);
             this.video.hide();
 
             let handPose = ml5Library.handPose({
@@ -271,14 +280,42 @@ class HandDetector {
     #dynamicPinchThreshold() {
         let hand = this.#currentHand();
         let wrist = hand ? this.#keypointByIndex(hand, 0) : null;
+        let indexBase = hand ? this.#keypointByIndex(hand, 5) : null;
         let middleBase = hand ? this.#keypointByIndex(hand, 9) : null;
-        let palmSize = this.#distance(this.#toCanvasPoint(wrist), this.#toCanvasPoint(middleBase));
+        let pinkyBase = hand ? this.#keypointByIndex(hand, 17) : null;
 
-        if (!Number.isFinite(palmSize) || palmSize <= 0) {
-            return this.pinchThreshold;
+        let palmLength = this.#distance(
+            this.#toCanvasPoint(wrist),
+            this.#toCanvasPoint(middleBase)
+        );
+        let palmWidth = this.#distance(
+            this.#toCanvasPoint(indexBase),
+            this.#toCanvasPoint(pinkyBase)
+        );
+        let validMeasurements = [palmLength, palmWidth].filter(
+            (measurement) => Number.isFinite(measurement) && measurement > 0
+        );
+
+        if (validMeasurements.length === 0) {
+            return this.fallbackPinchThreshold;
         }
 
-        return Math.max(this.pinchThreshold, palmSize * 0.55);
+        let handScale = validMeasurements.reduce(
+            (total, measurement) => total + measurement,
+            0
+        ) / validMeasurements.length;
+        let closeRangeRatioBoost = Math.max(
+            0,
+            handScale - this.closeHandScale
+        ) * this.closeHandThresholdBoost;
+
+        return Math.min(
+            this.maximumPinchThreshold,
+            Math.max(
+                this.minimumPinchThreshold,
+                handScale * (this.pinchThresholdRatio + closeRangeRatioBoost)
+            )
+        );
     }
 
     /**

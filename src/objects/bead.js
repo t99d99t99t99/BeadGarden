@@ -5,19 +5,24 @@ class Bead {
      * @param {Number} _y 
      * @param {Number} _w 
      * @param {Number} _h 
-     * @param {import("p5").Color} _color 
+     * @param {import("p5").Color | null} _color
      * @param {Matter.Engine} engine 
+     * @param {object | null} [asset]
      */
-    constructor(_x, _y, _w, _h, _color, engine) {
-        /** @type {import("p5").Color} */
+    constructor(_x, _y, _w, _h, _color, engine, asset = null) {
+        /** @type {import("p5").Color | null} */
         this.color = _color;
+        /** @type {object | null} */
+        this.asset = asset;
+        /** @type {string | null} */
+        this.assetId = asset?.id ?? null;
 
         /** @type {Number} */
-        this.w = _w;
+        this.w = asset?.gameplayWidth ?? _w;
         /** @type {Number} */
-        this.h = _h;
+        this.h = asset?.gameplayHeight ?? _h;
         /** @type {Number} */
-        this.holeH = 10;
+        this.holeH = Math.min(this.h * 0.6, asset?.holeHeight ?? 10);
         /** @type {Number} */
         this.partH = (this.h - this.holeH) / 2;
         /** @type {Number} */
@@ -36,6 +41,10 @@ class Bead {
         this.enteredHoleFromRight = false;
         /** @type {Number} */
         this.safeAreaInset = 40;
+        /** @type {Number | null} */
+        this.pierceOrder = null;
+        /** @type {{min: Number, max: Number}} */
+        this.wireTRange = { min: 0.001, max: 0.999 };
 
         let part1 = Matter.Bodies.rectangle(_x, _y - this.partOffset, this.w, this.partH);
         let part2 = Matter.Bodies.rectangle(_x, _y + this.partOffset, this.w, this.partH);
@@ -87,25 +96,65 @@ class Bead {
     /**
      * @returns {void}
      */
-    display() {
-        // 좌표축을 비즈의 위치 및 각도에 맞게 이동하기
+    displayHole() {
+        if (this.asset) {
+            drawBeadAtlasLayer(
+                this.asset,
+                'hole',
+                this.body.position.x,
+                this.body.position.y,
+                this.w,
+                this.h,
+                this.body.angle
+            );
+            return;
+        }
+
         push();
         translate(this.body.position.x, this.body.position.y);
         rotate(this.body.angle);
+        noStroke();
+        rectMode(CENTER);
+        let c = color(red(this.color) * 0.55, green(this.color) * 0.55, blue(this.color) * 0.55, 220);
+        fill(c);
+        rect(0, 0, this.w, this.holeH);
+        pop();
+    }
 
-        // 비즈의 몸체 부분 출력하기
+    /**
+     * @returns {void}
+     */
+    displayBody() {
+        if (this.asset) {
+            drawBeadAtlasLayer(
+                this.asset,
+                'body',
+                this.body.position.x,
+                this.body.position.y,
+                this.w,
+                this.h,
+                this.body.angle
+            );
+            return;
+        }
+
+        push();
+        translate(this.body.position.x, this.body.position.y);
+        rotate(this.body.angle);
         noStroke();
         rectMode(CENTER);
         fill(this.color);
         rect(0, -this.partOffset, this.w, this.partH);
         rect(0, this.partOffset, this.w, this.partH);
-
-        // 비즈의 구멍 부분 출력하기
-        let c = color(red(this.color) * 0.55, green(this.color) * 0.55, blue(this.color) * 0.55, 220);
-        fill(c);
-        rect(0, 0, this.w, this.holeH);
-
         pop();
+    }
+
+    /**
+     * @returns {void}
+     */
+    display() {
+        this.displayHole();
+        this.displayBody();
     }
 
     /**
@@ -189,7 +238,58 @@ class Bead {
 
         this.isPierced = true;
         this.currentWire = wire;
-        this.wireT = 1;
+        this.wireT = this.wireTRange.max;
+    }
+
+    /**
+     * @param {Number} order
+     * @returns {void}
+     */
+    setPierceOrder(order) {
+        if (this.pierceOrder === null) {
+            this.pierceOrder = order;
+        }
+    }
+
+    /**
+     * @param {Number} minT
+     * @param {Number} maxT
+     * @returns {void}
+     */
+    setWireTRange(minT, maxT) {
+        minT = Math.max(0.001, Math.min(0.999, minT));
+        maxT = Math.max(0.001, Math.min(0.999, maxT));
+
+        if (minT > maxT) {
+            let middle = (minT + maxT) / 2;
+            minT = middle;
+            maxT = middle;
+        }
+
+        this.wireTRange = { min: minT, max: maxT };
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {void}
+     */
+    correctWirePosition(wire) {
+        this.#clampToWire(wire);
+    }
+
+    /**
+     * @param {Wire} wire
+     * @returns {void}
+     */
+    snapToWireT(wire) {
+        this.wireT = this.#clamp(this.wireT, this.wireTRange.min, this.wireTRange.max);
+        let point = this.#pointOnWire(wire, this.wireT);
+        if (!point) {
+            return;
+        }
+
+        Matter.Body.setPosition(this.body, point);
+        this.#projectVelocityToWire(wire, this.wireT);
     }
 
     /**
@@ -227,7 +327,7 @@ class Bead {
             return;
         }
 
-        this.wireT = Math.max(0.001, Math.min(0.999, projection.t));
+        this.wireT = this.#clamp(projection.t, this.wireTRange.min, this.wireTRange.max);
         let point = this.#pointOnWire(wire, this.wireT);
         if (!point) {
             return;

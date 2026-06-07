@@ -24,66 +24,195 @@ class PotDetailUI {
   }
 
   drawPotPreview(x, y, w, h) {
-    // 배경색
-    const bgColors = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
-    const bgHex = bgColors[this.pot.bgIndex ?? 0] ?? '#F5F5F5';
-    fill(bgHex); noStroke();
+    let bgCol  = BG_COLORS[this.pot.bgIndex    ?? 0];
+    fill(bgCol); noStroke();
     rect(x, y, w, h, 8);
 
-    const cx    = x + w / 2;
-    const baseY = y + h * 0.72;
-    const hasStem = this.pot.stems && this.pot.stems.length > 0;
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(x, y, w, h);
+    drawingContext.clip();
+
+    let cx = x + w / 2;
+    let asset = getPotAssetForPot(this.pot);
+    let potMaxWidth = 120;
+    let potMaxHeight = 100;
+    let potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
+    let renderedPotHeight = potSize.height || 70;
+    let baseY = y + h - 14 - renderedPotHeight;
+    let hasStem = this.pot.stems && this.pot.stems.length > 0;
+
+    if (!drawPotAsset(
+      asset,
+      asset?.theme,
+      cx,
+      baseY + potSize.height / 2,
+      potMaxWidth,
+      potMaxHeight,
+      this.pot.colorIndex ?? 0
+    )) {
+      fill(POT_COLORS[this.pot.colorIndex ?? 0]); noStroke();
+      drawPotShapeAt(cx, baseY, this.pot.shapeIndex ?? 0, 0.75);
+    }
 
     if (!hasStem) {
-      fill(160); textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
+      fill(180); textSize(13); textStyle(NORMAL); textAlign(CENTER);
       text('아직 비즈 식물의 줄기가 없어요.\n새로운 비즈 줄기를 만들어서 식물을 심어주세요.',
-        cx, y + h * 0.42);
+        cx, y + h * 0.44);
     } else {
-      const STEM_COLORS = ['#222222','#FFFFFF','#1A7A1A','#66FF44'];
-      const defaultAngles  = [340, 0, 20, -20, 350];
-      const defaultOffsets = [-20, 0, 20, -10, 10];
-      const stemLen = min(w, h) * 0.52;
-
       for (let i = 0; i < this.pot.stems.length; i++) {
-        const stem     = this.pot.stems[i];
-        const angleDeg = stem.angle ?? defaultAngles[i % defaultAngles.length];
-        const offset   = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
-        const bx       = cx + offset * 0.6;
-        const angle    = radians(angleDeg);
-        const tx       = bx + sin(angle) * stemLen;
-        const ty       = baseY - cos(angle) * stemLen;
-        const col      = STEM_COLORS[stem.stemColor] ?? '#AAAAAA';
-
-        stroke(col); strokeWeight(1.5);
-        line(bx, baseY, tx, ty);
-
-        // 비즈 — beadColors 배열 있으면 색상 사용, 없으면 회색
-        const beadColors = stem.beadColors ?? [];
-        const count      = max(beadColors.length, 5);
-        noStroke();
-        for (let j = 0; j < count; j++) {
-          const t   = (j + 1) / (count + 1);
-          const bpx = lerp(bx, tx, t);
-          const bpy = lerp(baseY, ty, t);
-          const sz  = 13 - j * 1.2;
-          fill(beadColors[j] ?? '#C8C4CC');
-          ellipse(bpx, bpy, max(sz, 6));
+        let stem = this.pot.stems[i];
+        let angle = radians(stem.stemAngle ?? stem.angle ?? this.#defaultStemAngle(i));
+        let baseX = constrain(
+          cx + (stem.baseOffset ?? this.#defaultStemOffset(i)) * 0.65,
+          x + 24,
+          x + w - 24
+        );
+        let len = this.#boundedStemLength(
+          x,
+          y,
+          w,
+          h,
+          baseX,
+          baseY,
+          angle,
+          min(stem.stemLength ?? 210, h * 0.56)
+        );
+        let stemGeometry = {
+          baseX,
+          baseY,
+          tipX: baseX + sin(angle) * len,
+          tipY: baseY - cos(angle) * len,
+        };
+        let points = this.#stemPathPoints(stemGeometry, stem.stemShape ?? 0);
+        let col   = (stem.stemColor !== undefined)
+                    ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+        stroke(col); strokeWeight(2);
+        this.#drawStemPath(points);
+        let beads = stem.beads ?? [];
+        let beadCount = beads.length || stem.beadCount || 5;
+        for (let j = 0; j < beadCount; j++) {
+          let t = (j + 1) / (beadCount + 1);
+          let point = this.#pointOnStemPath(points, t);
+          let bead = beads[j];
+          if (bead?.assetId) {
+            let asset = getBeadAtlasEntry(bead.assetId);
+            if (asset) {
+              let previewH = 14;
+              let tangent = this.#stemTangentAt(points, t);
+              let beadAngle = atan2(tangent.y, tangent.x);
+              let previewW = previewH * asset.source.w / asset.source.h;
+              drawBeadAtlasLayer(asset, 'hole', point.x, point.y, previewW, previewH, beadAngle);
+              drawBeadAtlasLayer(asset, 'body', point.x, point.y, previewW, previewH, beadAngle);
+              continue;
+            }
+          }
+          noStroke();
+          fill(bead?.color ?? 200);
+          ellipse(point.x, point.y, 14 - Math.min(j, 4) * 1.5);
         }
       }
     }
 
-    // 화분 이미지
-    const assetName = this.pot.potAssetName;
-    const img = assetName ? potAssetImages[assetName] : null;
-    if (img) {
-      imageMode(CENTER);
-      image(img, cx, baseY + 20, w * 0.38, w * 0.38);
-      imageMode(CORNER);
-    } else {
-      // 폴백: 단순 사각형
-      fill(200, 195, 210); noStroke();
-      rect(cx - 32, baseY, 64, 52, 4);
+    drawingContext.restore();
+  }
+
+  #defaultStemAngle(index) {
+    return [340, 0, 20, 330, 30][index % 5];
+  }
+
+  #defaultStemOffset(index) {
+    return [-48, 0, 48, -24, 24][index % 5];
+  }
+
+  #boundedStemLength(x, y, w, h, baseX, baseY, angle, desiredLength) {
+    let dx = sin(angle);
+    let dy = -cos(angle);
+    let margin = 22;
+    let maxLength = desiredLength;
+
+    if (dx > 0.001) maxLength = min(maxLength, (x + w - margin - baseX) / dx);
+    if (dx < -0.001) maxLength = min(maxLength, (x + margin - baseX) / dx);
+    if (dy > 0.001) maxLength = min(maxLength, (y + h - margin - baseY) / dy);
+    if (dy < -0.001) maxLength = min(maxLength, (y + margin - baseY) / dy);
+
+    return max(24, maxLength);
+  }
+
+  #stemPathPoints(stem, shapeIdx) {
+    if (shapeIdx === 1) {
+      let points = [];
+      let control = {
+        x: stem.baseX,
+        y: stem.baseY - dist(stem.baseX, stem.baseY, stem.tipX, stem.tipY) * 0.55,
+      };
+      for (let i = 0; i <= 28; i++) {
+        let t = i / 28;
+        let u = 1 - t;
+        points.push({
+          x: u * u * stem.baseX + 2 * u * t * control.x + t * t * stem.tipX,
+          y: u * u * stem.baseY + 2 * u * t * control.y + t * t * stem.tipY,
+        });
+      }
+      return points;
     }
+
+    if (shapeIdx === 2 || shapeIdx === 3) {
+      let points = [];
+      let dx = stem.tipX - stem.baseX;
+      let dy = stem.tipY - stem.baseY;
+      let length = sqrt(dx * dx + dy * dy);
+      let normalX = length > 0 ? -dy / length : 0;
+      let normalY = length > 0 ? dx / length : 0;
+      let cycles = shapeIdx === 2 ? 5 : 3;
+      let samples = cycles * 12;
+      for (let i = 0; i <= samples; i++) {
+        let t = i / samples;
+        let wave;
+        if (shapeIdx === 2) {
+          let phase = t * cycles - floor(t * cycles);
+          wave = 1 - 4 * abs(phase - 0.5);
+        } else {
+          wave = sin(t * cycles * TWO_PI);
+        }
+        points.push({
+          x: lerp(stem.baseX, stem.tipX, t) + normalX * 10 * wave,
+          y: lerp(stem.baseY, stem.tipY, t) + normalY * 10 * wave,
+        });
+      }
+      return points;
+    }
+
+    return [
+      { x: stem.baseX, y: stem.baseY },
+      { x: stem.tipX, y: stem.tipY },
+    ];
+  }
+
+  #drawStemPath(points) {
+    noFill();
+    beginShape();
+    for (let point of points) vertex(point.x, point.y);
+    endShape();
+  }
+
+  #pointOnStemPath(points, t) {
+    let scaled = constrain(t, 0, 1) * (points.length - 1);
+    let index = min(floor(scaled), points.length - 2);
+    let localT = scaled - index;
+    return {
+      x: lerp(points[index].x, points[index + 1].x, localT),
+      y: lerp(points[index].y, points[index + 1].y, localT),
+    };
+  }
+
+  #stemTangentAt(points, t) {
+    let scaled = constrain(t, 0, 1) * (points.length - 1);
+    let index = min(floor(scaled), points.length - 2);
+    return {
+      x: points[index + 1].x - points[index].x,
+      y: points[index + 1].y - points[index].y,
+    };
   }
 
   onMousePressed() {
@@ -115,8 +244,9 @@ class PotDetailUI {
       let decorBtnY = imgY + 12;
       if (mouseX > decorX && mouseX < decorX + decorW &&
           mouseY > decorBtnY && mouseY < decorBtnY + decorH) {
+        let pot = this.pot;
         this.hide();
-        potDecorateUI.show('edit', this.pot);
+        potDecorateUI.show('edit', pot);
         goTo(POT_DECORATE);
         return;
       }
@@ -124,13 +254,9 @@ class PotDetailUI {
       // 새 비즈 줄기 만들기 버튼
       if (mouseX > popX + 18 && mouseX < popX + 18 + popW - 36 &&
           mouseY > btnY && mouseY < btnY + 48) {
-        // stemDetailUI 없이 바로 비즈 게임 진입 — 에디션별 팔레트 자동 적용
-        const concept      = this.pot.concept ?? '스타 에디션';
-        const palette      = CONCEPT_PALETTES[concept] ?? CONCEPT_PALETTES['스타 에디션'];
-        stemBeadCraftUI.currentPot = this.pot;
-        stemBeadCraftUI.setPalette(palette);
+        let pot = this.pot;
         this.hide();
-        goTo(STEM_BEAD_CRAFT);
+        startStemCraftForPot(pot);
         return;
       }
 
@@ -150,23 +276,8 @@ class PotDetailUI {
     }
   }
 
-  // gardenUI.pots에서 최신 pot 데이터를 찾아 반환 (없으면 로컬 캐시 사용)
-  _freshPot() {
-    if (!this.pot) return null;
-    const id = this.pot.firestoreId;
-    if (id && typeof gardenUI !== 'undefined' && gardenUI.pots) {
-      const found = gardenUI.pots.find(p => p.firestoreId === id);
-      if (found) return found;
-    }
-    return this.pot;
-  }
-
   draw() {
     if (!this.isVisible || !this.pot) return;
-
-    // 항상 Firestore 최신 데이터 사용 (꾸미기 저장 직후 바로 반영)
-    const livePot = this._freshPot();
-    if (livePot !== this.pot) this.pot = livePot; // 참조 갱신
 
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;

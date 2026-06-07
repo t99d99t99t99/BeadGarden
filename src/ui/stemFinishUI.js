@@ -1,49 +1,44 @@
 class StemFinishUI {
   constructor() {
-    this.isVisible  = false;
-    this.beadCount  = 0;
+    this.isVisible = false;
+    this.beadCount = 0;
     this.stemColors = []; // 완성된 줄기 색상 (미리보기용)
+    this.beads = [];
   }
 
   show() {
+    if (this.isVisible) return;
     this.isVisible = true;
 
-    // beadGame에서 완성된 줄기 데이터 읽기
+    // 팀원 코드에서 완성된 줄기 데이터 읽기
     if (typeof beadGame !== 'undefined') {
-      this.beadCount  = beadGame.beadCount ?? 0;
+      this.beadCount = beadGame.beadCount ?? 0;
       this.stemColors = beadGame.getBeadColors?.() ?? [];
+      this.beads = beadGame.getPiercedBeadData?.() ?? [];
     }
-
-    // pot 참조: stemBeadCraftUI.currentPot 우선 (potDetailUI.pot 폴백)
-    const pot = stemBeadCraftUI.currentPot
-      ?? (typeof potDetailUI !== 'undefined' ? potDetailUI.pot : null);
 
     // 완성된 줄기 데이터 구성
     const stemData = {
-      beadCount:    this.beadCount,
-      beadColors:   this.stemColors,        // 꿴 비즈 색상 배열
+      beadCount: this.beadCount,
+      beads: this.beads,
+      theme: normalizePotTheme(potDetailUI?.pot),
+      beadAtlasVersion: BEAD_ATLAS_VERSION,
       paletteColors: stemBeadCraftUI.paletteColors ?? [],
-      stemColor:    potDecorateUI.selectedStemColor ?? 0,
-      stemShape:    potDecorateUI.selectedStemShape ?? 0,
-      angle:        potDecorateUI.stemAngle         ?? 0,
-      baseOffset:   0,
+      stemColor: potDecorateUI.selectedStemColor ?? 0,
+      stemShape: potDecorateUI.selectedStemShape ?? 0,
+      stemAngle: potDecorateUI.stemAngle ?? 135,
     };
 
     // 로컬 pot 객체에 반영
-    if (pot) {
-      pot.stems = pot.stems ?? [];
-      pot.stems.push(stemData);
+    if (typeof potDetailUI !== 'undefined' && potDetailUI.pot) {
+      potDetailUI.pot.stems = potDetailUI.pot.stems ?? [];
+      potDetailUI.pot.stems.push(stemData);
 
       // Firestore에 줄기 추가
-      if (pot.firestoreId) {
-        addStemToPot(pot.firestoreId, stemData)
-          .then(() => console.log('[Firestore] 줄기 저장 완료'))
+      if (potDetailUI.pot.firestoreId) {
+        addStemToPot(potDetailUI.pot.firestoreId, stemData)
           .catch(err => console.error('[Firestore] 줄기 저장 오류:', err));
-      } else {
-        console.warn('[stemFinishUI] firestoreId 없음 — Firestore 저장 생략');
       }
-    } else {
-      console.warn('[stemFinishUI] pot 참조를 찾을 수 없음');
     }
   }
 
@@ -56,30 +51,56 @@ class StemFinishUI {
     fill(248); stroke(220); strokeWeight(1);
     rect(x, y, w, h, 8);
 
-    // 철사 (대각선)
     let sx = x + w * 0.3, sy = y + h * 0.25;
     let ex = x + w * 0.85, ey = y + h * 0.88;
+    let count = this.beads.length > 0 ? this.beads.length : max(this.beadCount, 8);
+
+    for (let i = 0; i < count; i++) {
+      let bead = this.beads[i];
+      if (!bead?.assetId) continue;
+
+      let asset = getBeadAtlasEntry(bead.assetId);
+      if (!asset) continue;
+
+      let t = i / Math.max(1, count - 1);
+      let bx = lerp(sx, ex, t);
+      let by = lerp(sy, ey, t);
+      let beadH = map(t, 0, 1, 18, 10);
+      let beadW = beadH * asset.source.w / asset.source.h;
+      let angle = atan2(ey - sy, ex - sx);
+      drawBeadAtlasLayer(asset, 'hole', bx, by, beadW, beadH, angle);
+    }
+
     stroke(100); strokeWeight(2);
     line(sx, sy, ex, ey);
 
-    // 비즈들 (팔레트 색상 or 임시 회색)
-    let count = max(this.beadCount, 8); // 최소 8개 표시
-    noStroke();
     for (let i = 0; i < count; i++) {
-      let t  = i / (count - 1);
+      let t = i / Math.max(1, count - 1);
       let bx = lerp(sx, ex, t);
       let by = lerp(sy, ey, t);
       let sz = map(t, 0, 1, 18, 10); // 위쪽 비즈가 더 큼
-      let c  = this.stemColors.length > 0
+      let bead = this.beads[i];
+      if (bead?.assetId) {
+        let asset = getBeadAtlasEntry(bead.assetId);
+        if (asset) {
+          let beadH = map(t, 0, 1, 18, 10);
+          let beadW = beadH * asset.source.w / asset.source.h;
+          let angle = atan2(ey - sy, ex - sx);
+          drawBeadAtlasLayer(asset, 'body', bx, by, beadW, beadH, angle);
+          continue;
+        }
+      }
+      let c = this.stemColors.length > 0
         ? this.stemColors[i % this.stemColors.length]
         : lerpColor(color(80), color(200), t);
+      noStroke();
       fill(c);
       ellipse(bx, by, sz);
     }
 
     // 플레이스홀더 텍스트
     fill(100, 100, 200);
-    textSize(12); textStyle(NORMAL); textAlign(CENTER, CENTER);
+    textSize(12); noStroke(); textStyle(NORMAL); textAlign(CENTER, CENTER);
     text('(완성된 줄기 미리보기)', x + w / 2, y + h * 0.88);
   }
 
@@ -92,7 +113,7 @@ class StemFinishUI {
 
     // 팝업 박스
     let popW = 490, popH = 460;
-    let popX = width  / 2 - popW / 2;
+    let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
     fill(255); stroke(220); strokeWeight(1);
     rect(popX, popY, popW, popH, 14);
@@ -133,8 +154,7 @@ class StemFinishUI {
     text('내 화분에서 새로운 줄기 만들기', btn1X + btn1W / 2, btn1Y + btn1H / 2);
     if (isClicked(btn1X, btn1Y, btn1W, btn1H)) {
       this.hide();
-      stemDetailUI.selectedPalettes = []; // 팔레트 초기화
-      goTo(STEM_DETAIL); // POT_DETAIL 거쳐서 새 줄기
+      startStemCraftForPot(potDetailUI.pot);
     }
 
     // ── 비즈 가든으로 가기 버튼 ──

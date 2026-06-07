@@ -56,8 +56,8 @@ class GardenUI {
     drawingContext.rect(x + 1, y + 1, w - 2, imgH - 1);
     drawingContext.clip();
     const stemBase = y + imgH - 20;
-    this._drawStems(cx, stemBase, pot);
     this._drawPotImage(cx, stemBase, pot, w);
+    this._drawStems(cx, stemBase, pot);
     drawingContext.restore();
 
     // ── 텍스트 영역 (흰 반투명 배경) ──
@@ -115,26 +115,28 @@ class GardenUI {
       line(bx, baseY, tx, ty);
 
       // 비즈 (저장된 beadId 있으면 이미지, 없으면 원형 fallback)
-      const beads      = stem.beads ?? [];
-      const beadColors = stem.beadColors ?? [];
-      const count      = beads.length > 0 ? beads.length
-                       : beadColors.length > 0 ? beadColors.length : 5;
+      const beads = stem.beads ?? [];
+      const count = beads.length > 0 ? beads.length : 4;
       for (let j = 0; j < count; j++) {
         const t   = (j + 1) / (count + 1);
         const bpx = lerp(bx, tx, t);
         const bpy = lerp(baseY, ty, t);
-        // beadId 이미지 → beadColors 색상 → 회색 순으로 폴백
-        const bead    = beads[j];
-        const img     = bead?.beadId ? beadImages[bead.beadId] : null;
-        const beadCol = stem.beadColors?.[j] ?? null;
-        if (img) {
+        const bead = beads[j];
+        const asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
+        const img = bead?.beadId ? beadImages[bead.beadId] : null;
+        if (asset) {
+          const beadH = 14;
+          const beadW = beadH * asset.source.w / asset.source.h;
+          drawBeadAtlasLayer(asset, 'hole', bpx, bpy, beadW, beadH, angle);
+          drawBeadAtlasLayer(asset, 'body', bpx, bpy, beadW, beadH, angle);
+        } else if (img) {
           imageMode(CENTER);
           image(img, bpx, bpy, 14, 14);
           imageMode(CORNER);
         } else {
           noStroke();
-          fill(beadCol ?? '#BEB9C8');
-          ellipse(bpx, bpy, max(13 - j * 1.5, 5));
+          fill(bead?.color ?? color(190, 185, 200));
+          ellipse(bpx, bpy, 13 - j * 1.5);
         }
       }
     }
@@ -142,17 +144,25 @@ class GardenUI {
 
   // ── 화분 이미지 렌더링 ────────────────────────────────────────────────────
   _drawPotImage(cx, baseY, pot, cardW) {
-    const assetName = pot.potAssetName;
-    const img = assetName ? potAssetImages[assetName] : null;
     const potW = cardW * 0.5;
     const potH = potW;
+    const asset = getPotAssetForPot(pot);
+    const potSize = getPotAssetDrawSize(asset, potW, potH);
 
-    if (img) {
-      imageMode(CENTER);
-      image(img, cx, baseY + 10, potW, potH);
-      imageMode(CORNER);
+    if (drawPotAsset(
+      asset,
+      asset?.theme,
+      cx,
+      baseY + potSize.height / 2,
+      potW,
+      potH,
+      pot.colorIndex ?? 0
+    )) {
+      return;
     }
-    // fallback: 아무것도 그리지 않음 (카드 배경색 그대로)
+
+    fill(POT_COLORS[pot.colorIndex ?? 0]); noStroke();
+    drawPotShapeAt(cx, baseY, pot.shapeIndex ?? 0, 0.7);
   }
 
   // ── 전체 draw ─────────────────────────────────────────────────────────────
