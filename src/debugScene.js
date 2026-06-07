@@ -295,13 +295,18 @@ function debugSceneDrawHandMarkers(thumbPosition) {
     push();
     noStroke();
 
+    let pointerColor = color(255, 0, 0, 80);
+    if (handDetector.pinched()) {
+        pointerColor = color(0, 0, 255, 80);
+    }
+
     if (gumjiPosition) {
-        fill(255, 0, 0, 80);
+        fill(pointerColor);
         circle(gumjiPosition.x, gumjiPosition.y, 9);
     }
 
     if (thumbPosition) {
-        fill(255, 0, 0);
+        fill(red(pointerColor), green(pointerColor), blue(pointerColor), 255);
         circle(thumbPosition.x, thumbPosition.y, 14);
         fill(255, 255, 255, 180);
         circle(thumbPosition.x, thumbPosition.y, 5);

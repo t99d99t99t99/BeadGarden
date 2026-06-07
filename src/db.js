@@ -52,6 +52,9 @@ function listenPots(onUpdate) {
       const pots = snapshot.docs.map(doc => ({
         firestoreId: doc.id,
         ...doc.data(),
+      })).map(pot => ({
+        ...pot,
+        theme: normalizePotTheme(pot),
       }));
       onUpdate(pots);
     }, err => {
@@ -68,6 +71,7 @@ async function createPot(data) {
     name:       data.name,
     desc:       data.desc       ?? '',
     concept:    data.concept    ?? '',
+    theme:      normalizePotTheme(data.theme),
     cardY:      data.cardY,       // 카드 세로 위치 (픽셀, 고정 저장)
     colorIndex: 0,
     bgIndex:    0,
@@ -84,7 +88,9 @@ async function updatePotDecor(potId, decorData) {
   await db.collection('pots').doc(potId).update({
     potAssetIndex: decorData.potAssetIndex,
     potAssetName:  decorData.potAssetName,
+    colorIndex:    decorData.colorIndex,
     bgIndex:       decorData.bgIndex,
+    stems:         decorData.stems,
   });
 }
 

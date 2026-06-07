@@ -2,7 +2,7 @@
  * Firestore 비즈 메타데이터 등록 스크립트 (Firebase Storage 불필요)
  * 이미지는 assets/ 폴더에서 상대 경로로 직접 서빙
  *
- * 실행: node scripts/uploadAssets.js
+ * 실행: node src/tools/uploadAssets.js
  */
 
 const admin = require('firebase-admin');
@@ -10,7 +10,7 @@ const fs    = require('fs');
 const path  = require('path');
 
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'beadgarden-51b72-firebase-adminsdk-fbsvc-6ba2924bff.json');
-const ASSET_DIR = path.join(__dirname, '../assets');
+const ASSET_DIR = path.join(__dirname, '../../assets');
 
 admin.initializeApp({
   credential: admin.credential.cert(require(SERVICE_ACCOUNT_PATH)),

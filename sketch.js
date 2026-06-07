@@ -41,14 +41,37 @@ function isClicked(x, y, w, h) {
     mouseY > y && mouseY < y + h;
 }
 
-async function preload() {
-  await loadBeadCatalog();
-  preloadBeadImages();
+function preload() {
+  preloadBeadSpriteSheets();
   preloadPotImages();
+}
+
+function startStemCraftForPot(pot) {
+  if (!pot) return;
+
+  pot.theme = normalizePotTheme(pot);
+  potDetailUI.pot = pot;
+  stemDetailUI.currentPot = pot;
+  stemBeadCraftUI.setPot(pot);
+
+  if (pot.theme === POT_THEMES.LEGACY) {
+    stemDetailUI.selectedPalettes = [];
+    goTo(STEM_DETAIL);
+    return;
+  }
+
+  stemBeadCraftUI.startThemedCraft();
+  goTo(STEM_BEAD_CRAFT);
 }
 
 function setup() {
   createCanvas(1440, 990);
+  initializeBeadAtlasSprites();
+  initializePotAtlasSprites();
+  loadBeadCatalog()
+    .then(() => preloadBeadImages())
+    .catch(err => console.error('[Firestore] 비즈 카탈로그 로드 오류:', err));
+
   introUI = new IntroUI();
   tutorialUI = new TutorialUI();
   gardenUI = new GardenUI();

@@ -8,9 +8,11 @@ class PotDecorateUI {
     this.pendingOptionClick = null;
 
     // 화분 설정
+    this.potColors = POT_COLORS;
     this.bgColors  = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
     this.availablePots   = [];
     this.selectedPotAsset = 0;
+    this.selectedPotColor = 0;
     this.selectedBgColor  = 0;
 
     // 줄기 세부 설정
@@ -19,15 +21,13 @@ class PotDecorateUI {
     this.stemShapes = ['직선형', '곡선형', '지그재그형', '물결형'];
     this.selectedStemColor = 0;
     this.selectedStemShape = 0;
-    this.stemAngles = [340, 0, 20]; // 0 = 위쪽, 90 = 오른쪽
-    this.stemAngle = this.stemAngles[0];
+    this.stemAngle = 0;
+    this.workingStems = [];
 
     // 드래그용
     this.isDraggingAngle = false;
     this.isDraggingStem = false;
     this.draggingStemIndex = -1;
-    this.stemBaseOffsets = [-24, 0, 24];
-
     // 임시 저장 (건너뛰기용)
     this._savedState = null;
     this.currentPot = null;
@@ -45,22 +45,32 @@ class PotDecorateUI {
     this.isDraggingAngle = false;
     this.isDraggingStem = false;
     this.draggingStemIndex = -1;
+    this.workingStems = (pot?.stems ?? []).map((stem, index) => this.#normalizeStem(stem, index));
 
     // 컨셉에 따라 사용 가능한 화분 에셋 목록 결정
-    const concept = pot?.concept ?? '스타 에디션';
-    this.availablePots = POT_ASSETS_BY_CONCEPT[concept] ?? Object.values(POT_ASSETS_BY_CONCEPT)[0];
+    let theme = normalizePotTheme(pot);
+    if (theme === POT_THEMES.LEGACY) {
+      theme = themeForConcept(pot?.concept);
+    }
+    this.availablePots = getPotAssetsForTheme(theme).map((asset) => asset.id);
 
     if (mode === 'new') {
       this.selectedPotAsset = 0;
+      this.selectedPotColor = 0;
       this.selectedBgColor  = floor(random(this.bgColors.length));
     } else {
-      this.selectedPotAsset = pot?.potAssetIndex ?? 0;
+      let savedAssetIndex = this.availablePots.indexOf(pot?.potAssetName);
+      this.selectedPotAsset = savedAssetIndex >= 0 ? savedAssetIndex : pot?.potAssetIndex ?? 0;
+      this.selectedPotAsset = constrain(this.selectedPotAsset, 0, Math.max(0, this.availablePots.length - 1));
+      this.selectedPotColor = pot?.colorIndex ?? 0;
       this.selectedBgColor  = pot?.bgIndex ?? 0;
     }
 
     this._savedState = {
       potAsset: this.selectedPotAsset,
+      potColor: this.selectedPotColor,
       bgColor:  this.selectedBgColor,
+      stems:    this.workingStems.map((stem) => this.#cloneStem(stem)),
     };
   }
 
@@ -72,8 +82,10 @@ class PotDecorateUI {
     return {
       potAssetIndex: this.selectedPotAsset,
       potAssetName:  this.availablePots?.[this.selectedPotAsset] ?? '',
+      colorIndex:    this.selectedPotColor,
       bgIndex:       this.selectedBgColor,
       bgColor:       this.bgColors[this.selectedBgColor],
+      stems:         this.workingStems.map((stem) => this.#cloneStem(stem)),
     };
   }
 
@@ -83,64 +95,63 @@ class PotDecorateUI {
     noStroke();
     rect(x, y, w, h, 8);
 
-    let cx    = x + w / 2;
-    let baseY = y + h * 0.72;
-    let stems = this._previewStems(cx, baseY);
+    let layout = this.#previewLayout(x, y, w, h);
+    let stems = this._previewStems(layout.cx, layout.baseY, 1.2);
 
-    for (let i = 0; i < stems.length; i++) {
-      let s        = stems[i];
-      let shapeIdx = (this.selectedStemIndex === i) ? this.selectedStemShape : 0;
-      let points   = this._stemPathPoints(s, shapeIdx);
-      let isSel    = (this.selectedStemIndex === i);
-      let isHov    = this._isStemHovered(s.baseX, s.baseY, s.tipX, s.tipY, i);
-
-      if (isSel) { stroke(100, 100, 220, 80); strokeWeight(14); this._drawStemPath(points); }
-      else if (isHov) { stroke(180, 180, 220, 60); strokeWeight(10); this._drawStemPath(points); }
-
-      stroke(isSel ? this.stemColors[this.selectedStemColor] : '#AAAAAA');
-      strokeWeight(2);
-      this._drawStemPath(points);
-
-      noStroke(); fill(200);
-      for (let j = 1; j <= 5; j++) {
-        let bp = this._pointOnStemPath(points, j / 6);
-        ellipse(bp.x, bp.y, 14 - j * 1.5);
-      }
+    // Draw the pot first so stems remain visible all the way to their pivot.
+    if (!drawPotAsset(
+      layout.asset,
+      layout.asset?.theme,
+      layout.cx,
+      layout.baseY + layout.potSize.height / 2,
+      layout.potMaxWidth,
+      layout.potMaxHeight,
+      this.selectedPotColor
+    )) {
+      fill(200); noStroke();
+      rect(layout.cx - 55, layout.baseY, 110, 96, 4);
     }
 
-    // 화분 이미지
-    const assetName = this.availablePots?.[this.selectedPotAsset];
-    const img = assetName ? potAssetImages[assetName] : null;
-    if (img) {
-      imageMode(CENTER);
-      image(img, cx, baseY + 30, 130, 130);
-      imageMode(CORNER);
-    } else {
-      fill(200); noStroke();
-      rect(cx - 45, baseY - 10, 90, 80, 4);
+    for (let stem of stems) {
+      if (stem.isSelected) {
+        stroke(100, 100, 220, 80); strokeWeight(14); this._drawStemPath(stem.points);
+      } else if (stem.isHovered) {
+        stroke(180, 180, 220, 60); strokeWeight(10); this._drawStemPath(stem.points);
+      }
+      this.#drawStemBeads(stem, 'hole');
+    }
+
+    for (let stem of stems) {
+      stroke(this.stemColors[stem.data.stemColor] ?? '#AAAAAA');
+      strokeWeight(2);
+      this._drawStemPath(stem.points);
+    }
+
+    for (let stem of stems) {
+      this.#drawStemBeads(stem, 'body');
     }
 
     fill(100, 100, 200); noStroke();
     textSize(12); textAlign(CENTER); textStyle(NORMAL);
-    text('(화분 미리보기)', cx, y + h * 0.95);
+    text('(화분 미리보기)', layout.cx, y + h * 0.95);
   }
 
-  _previewStems(cx, baseY) {
-    let baseStems = [
-      { len: 210 },
-      { len: 240 },
-      { len: 210 },
-    ];
-
-    return baseStems.map((stem, i) => {
-      let baseX = cx + (this.stemBaseOffsets[i] ?? 0);
-      let angle = radians(this.stemAngles[i] ?? 0);
-      return {
+  _previewStems(cx, baseY, lengthScale = 1) {
+    return this.workingStems.map((data, i) => {
+      let baseX = cx + data.baseOffset;
+      let angle = radians(data.stemAngle);
+      let stemLength = data.stemLength * lengthScale;
+      let stem = {
+        data,
         baseX,
         baseY,
-        tipX: baseX + sin(angle) * stem.len,
-        tipY: baseY - cos(angle) * stem.len
+        tipX: baseX + sin(angle) * stemLength,
+        tipY: baseY - cos(angle) * stemLength,
       };
+      stem.points = this._stemPathPoints(stem, data.stemShape);
+      stem.isSelected = this.selectedStemIndex === i;
+      stem.isHovered = this._distToPath(mouseX, mouseY, stem.points) < 15;
+      return stem;
     });
   }
 
@@ -361,6 +372,24 @@ class PotDecorateUI {
     return dist(px, py, x1 + t * dx, y1 + t * dy);
   }
 
+  _distToPath(px, py, points) {
+    let closest = Infinity;
+    for (let i = 0; i < points.length - 1; i++) {
+      closest = min(
+        closest,
+        this._distToSegment(
+          px,
+          py,
+          points[i].x,
+          points[i].y,
+          points[i + 1].x,
+          points[i + 1].y
+        )
+      );
+    }
+    return closest;
+  }
+
   // ── 색상 팔레트 그리기 ──
   _drawColorPalette(label, colors, selected, x, y, onSelect) {
     fill(30); noStroke();
@@ -406,7 +435,8 @@ class PotDecorateUI {
       let a = degrees(atan2(mouseY - y, mouseX - x)) + 90;
       this.stemAngle = (floor(a) + 360) % 360;
       if (this.selectedStemIndex >= 0) {
-        this.stemAngles[this.selectedStemIndex] = this.stemAngle;
+        this.workingStems[this.selectedStemIndex].stemAngle = this.stemAngle;
+        this.workingStems[this.selectedStemIndex].angle = this.stemAngle;
       }
     }
     if (this.#consumeOptionClick(x - r, y - r, r * 2, r * 2)) {
@@ -492,12 +522,8 @@ class PotDecorateUI {
       rect(sx, sy, cellW, cellH, 8);
 
       // 화분 이미지
-      const img = potAssetImages[pots[i]];
-      if (img) {
-        imageMode(CENTER);
-        image(img, sx + cellW / 2, sy + cellH / 2, cellW - 12, cellH - 12);
-        imageMode(CORNER);
-      }
+      const asset = this.#potAssetAt(i);
+      drawPotAsset(asset, asset?.theme, sx + cellW / 2, sy + cellH / 2, cellW - 16, cellH - 16, this.selectedPotColor);
 
       // 선택 체크
       if (isSel) {
@@ -512,35 +538,52 @@ class PotDecorateUI {
       textSize(10); textStyle(NORMAL); textAlign(CENTER);
       text(pots[i], sx + cellW / 2, sy + cellH + 12);
 
-      if (isClicked(sx, sy, cellW, cellH)) this.selectedPotAsset = i;
+      if (this.#consumeOptionClick(sx, sy, cellW, cellH)) this.selectedPotAsset = i;
     }
 
     const potGridRows = Math.ceil(pots.length / cols);
     const potGridBottom = panY + 34 + potGridRows * (cellH + rowGap + 16);
+    let nextOptionY = potGridBottom + 16;
+
+    if (this.#selectedPotAsset()?.tintable) {
+      this._drawColorPalette(
+        '화분 색상', this.potColors, this.selectedPotColor,
+        panX, nextOptionY,
+        (i) => { this.selectedPotColor = i; }
+      );
+      nextOptionY += 88;
+    }
 
     // 배경 색상
     this._drawColorPalette(
       '배경 색상', this.bgColors, this.selectedBgColor,
-      panX, potGridBottom + 16,
+      panX, nextOptionY,
       (i) => { this.selectedBgColor = i; }
     );
 
     // 줄기 세부 설정
-    const pots2 = this.availablePots ?? [];
-    const potGridRows2 = Math.ceil(pots2.length / 3);
-    let stemSecY = panY + 34 + potGridRows2 * (90 + 18 + 16) + 16 + 100;
+    let stemSecY = nextOptionY + 100;
     fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
     text('줄기 세부 설정', panX, stemSecY);
 
     if (this.selectedStemIndex === -1) {
       fill(160); textStyle(NORMAL); textSize(12);
-      text('미리보기 속 줄기를 선택하면 세부 설정이 열려요.', panX, stemSecY + 20);
+      text(
+        this.workingStems.length > 0
+          ? '미리보기 속 줄기를 선택하면 세부 설정이 열려요.'
+          : '아직 꾸밀 수 있는 줄기가 없어요.',
+        panX,
+        stemSecY + 20
+      );
     } else {
       // 줄기 색상
       this._drawColorPalette(
         '줄기 색상', this.stemColors, this.selectedStemColor,
         panX, stemSecY + 28,
-        (i) => { this.selectedStemColor = i; }
+        (i) => {
+          this.selectedStemColor = i;
+          this.workingStems[this.selectedStemIndex].stemColor = i;
+        }
       );
 
       // 줄기 형태
@@ -558,7 +601,10 @@ class PotDecorateUI {
         noStroke(); fill(100);
         textSize(11); textAlign(CENTER);
         text(this.stemShapes[i], sx + 41, sy + 64);
-        if (this.#consumeOptionClick(sx, sy, 82, 52)) this.selectedStemShape = i;
+        if (this.#consumeOptionClick(sx, sy, 82, 52)) {
+          this.selectedStemShape = i;
+          this.workingStems[this.selectedStemIndex].stemShape = i;
+        }
       }
 
       // 각도 다이얼
@@ -575,7 +621,8 @@ class PotDecorateUI {
       text('미리보기 속 줄기를 좌우로 드래그하여 줄기의 배치를 바꾸세요.', panX + 70, stemSecY + 440);
     }
 
-    let contentBottomOffset = this.selectedStemIndex === -1 ? 410 : 820;
+    let potColorOffset = this.#selectedPotAsset()?.tintable ? 88 : 0;
+    let contentBottomOffset = (this.selectedStemIndex === -1 ? 510 : 920) + potColorOffset;
     let visibleContentH = popH - 132;
     this.maxScrollY = max(0, contentBottomOffset - visibleContentH);
     this.targetScrollY = constrain(this.targetScrollY, 0, this.maxScrollY);
@@ -630,22 +677,19 @@ class PotDecorateUI {
     let saveX = popX + popW - 168, saveY = popY + popH - 62;
     if (mouseX > saveX && mouseX < saveX + 140 &&
       mouseY > saveY && mouseY < saveY + 44) {
-      this.#applyCurrentData();
-      this.#returnToPotDetail();
+      this.#saveAndReturn();
       return;
     }
 
-    let cx = popX + 20 + 200; // 미리보기 중앙
-    let baseY = popY + 62 + 520 * 0.72;
-
-    let stems = this._previewStems(cx, baseY);
+    let layout = this.#previewLayout(popX + 20, popY + 62, 400, 520);
+    let stems = this._previewStems(layout.cx, layout.baseY, 1.2);
 
     for (let i = 0; i < stems.length; i++) {
       let s = stems[i];
-      let d = this._distToSegment(mouseX, mouseY, s.baseX, s.baseY, s.tipX, s.tipY);
+      let d = this._distToPath(mouseX, mouseY, s.points);
       if (d < 15) {
         this.selectedStemIndex = i;
-        this.stemAngle = this.stemAngles[i] ?? 0;
+        this.#loadSelectedStemControls();
         this.isDraggingStem = true;
         this.draggingStemIndex = i;
         return;
@@ -663,7 +707,8 @@ class PotDecorateUI {
     let popW = 1060;
     let popX = width / 2 - popW / 2;
     let previewCenterX = popX + 20 + 200;
-    this.stemBaseOffsets[this.draggingStemIndex] = constrain(mouseX - previewCenterX, -120, 120);
+    this.workingStems[this.draggingStemIndex].baseOffset =
+      constrain(mouseX - previewCenterX, -120, 120);
   }
 
   onMouseReleased() {
@@ -694,7 +739,9 @@ class PotDecorateUI {
   #restoreSavedState() {
     if (!this._savedState) return;
     this.selectedPotAsset = this._savedState.potAsset;
+    this.selectedPotColor = this._savedState.potColor;
     this.selectedBgColor  = this._savedState.bgColor;
+    this.workingStems = this._savedState.stems.map((stem) => this.#cloneStem(stem));
   }
 
   #applyCurrentData() {
@@ -705,11 +752,21 @@ class PotDecorateUI {
     let data = this.getData();
     this.currentPot.potAssetIndex = data.potAssetIndex;
     this.currentPot.potAssetName  = data.potAssetName;
+    this.currentPot.colorIndex    = data.colorIndex;
     this.currentPot.bgIndex       = data.bgIndex;
+    this.currentPot.stems         = data.stems;
 
-    if (this.currentPot.firestoreId) {
-      updatePotDecor(this.currentPot.firestoreId, data)
-        .catch(err => console.error('[Firestore] 꾸미기 저장 오류:', err));
+    return this.currentPot.firestoreId
+      ? updatePotDecor(this.currentPot.firestoreId, data)
+      : Promise.resolve();
+  }
+
+  async #saveAndReturn() {
+    try {
+      await this.#applyCurrentData();
+      this.#returnToPotDetail();
+    } catch (err) {
+      console.error('[Firestore] 꾸미기 저장 오류:', err);
     }
   }
 
@@ -717,5 +774,112 @@ class PotDecorateUI {
     this.hide();
     potDetailUI.show(this.currentPot);
     goTo(GARDEN);
+  }
+
+  #potTheme() {
+    let theme = normalizePotTheme(this.currentPot);
+    return theme === POT_THEMES.LEGACY ? themeForConcept(this.currentPot?.concept) : theme;
+  }
+
+  #potAssetAt(index) {
+    return getPotAsset(this.availablePots?.[index], this.#potTheme());
+  }
+
+  #selectedPotAsset() {
+    return this.#potAssetAt(this.selectedPotAsset);
+  }
+
+  #previewLayout(x, y, w, h) {
+    const asset = this.#selectedPotAsset();
+    const potMaxWidth = 220;
+    const potMaxHeight = 190;
+    const potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
+    const bottomMargin = 45;
+    return {
+      asset,
+      potMaxWidth,
+      potMaxHeight,
+      potSize,
+      cx: x + w / 2,
+      baseY: y + h - bottomMargin - potSize.height,
+    };
+  }
+
+  #normalizeStem(stem, index) {
+    const defaultAngles = [340, 0, 20, 330, 30];
+    const defaultOffsets = [-48, 0, 48, -24, 24];
+    return {
+      ...this.#cloneStem(stem),
+      stemColor: stem?.stemColor ?? 0,
+      stemShape: stem?.stemShape ?? 0,
+      stemAngle: stem?.stemAngle ?? stem?.angle ?? defaultAngles[index % defaultAngles.length],
+      angle: stem?.stemAngle ?? stem?.angle ?? defaultAngles[index % defaultAngles.length],
+      baseOffset: stem?.baseOffset ?? defaultOffsets[index % defaultOffsets.length],
+      stemLength: stem?.stemLength ?? 210,
+      beads: (stem?.beads ?? []).map((bead) => ({ ...bead })),
+    };
+  }
+
+  #cloneStem(stem) {
+    return JSON.parse(JSON.stringify(stem ?? {}));
+  }
+
+  #loadSelectedStemControls() {
+    let stem = this.workingStems[this.selectedStemIndex];
+    if (!stem) return;
+
+    this.selectedStemColor = stem.stemColor;
+    this.selectedStemShape = stem.stemShape;
+    this.stemAngle = stem.stemAngle;
+  }
+
+  #drawStemBeads(stem, layer) {
+    let beads = stem.data.beads ?? [];
+    let count = beads.length || stem.data.beadCount || 0;
+
+    for (let i = 0; i < count; i++) {
+      let t = (i + 1) / (count + 1);
+      let point = this._pointOnStemPath(stem.points, t);
+      let tangent = this.#stemTangentAt(stem.points, t);
+      let bead = beads[i];
+      let asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
+      let imageAsset = bead?.beadId ? beadImages[bead.beadId] : null;
+
+      if (asset) {
+        let beadHeight = 18;
+        let beadWidth = beadHeight * asset.source.w / asset.source.h;
+        drawBeadAtlasLayer(
+          asset,
+          layer,
+          point.x,
+          point.y,
+          beadWidth,
+          beadHeight,
+          atan2(tangent.y, tangent.x)
+        );
+      } else if (imageAsset && layer === 'body') {
+        push();
+        translate(point.x, point.y);
+        rotate(atan2(tangent.y, tangent.x));
+        imageMode(CENTER);
+        image(imageAsset, 0, 0, 18, 18);
+        pop();
+      } else if (layer === 'body') {
+        noStroke();
+        fill(bead?.color ?? 200);
+        ellipse(point.x, point.y, 14);
+      }
+    }
+  }
+
+  #stemTangentAt(points, t) {
+    if (points.length < 2) return { x: 0, y: -1 };
+
+    let scaled = constrain(t, 0, 1) * (points.length - 1);
+    let index = min(floor(scaled), points.length - 2);
+    return {
+      x: points[index + 1].x - points[index].x,
+      y: points[index + 1].y - points[index].y,
+    };
   }
 }
