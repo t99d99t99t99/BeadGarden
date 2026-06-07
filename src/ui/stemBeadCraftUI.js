@@ -1,12 +1,11 @@
 class StemBeadCraftUI {
   constructor() {
-    this.paletteColors = []; // stemDetailUI에서 전달받음
+    this.paletteColors = [];
     this.currentPot = null;
     this.minBeads = 10;
     this.newBeadButtonWasPressed = false;
   }
 
-  // stemDetailUI에서 호출
   setPalette(colors) {
     this.paletteColors = colors;
     // beadGame에도 전달 (팀원 코드 연결 포인트)
@@ -319,12 +318,8 @@ class StemBeadCraftUI {
     textAlign(CENTER, CENTER);
     text('← 나가기', 67, 28);
     if (isClicked(24, 14, 86, 28)) {
-      if (normalizePotTheme(this.currentPot) === POT_THEMES.LEGACY) {
-        goTo(STEM_DETAIL);
-      } else {
-        goTo(GARDEN);
-        potDetailUI.show(this.currentPot);
-      }
+      potDetailUI.show(this.currentPot);
+      goTo(GARDEN);
     }
 
     // 페이지 타이틀
