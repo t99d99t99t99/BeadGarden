@@ -48,6 +48,7 @@ function startStemCraftForPot(pot) {
   if (!pot) return;
   pot.theme = normalizePotTheme(pot);
   potDetailUI.pot = pot;
+  potDetailUI.hide(); // 가든으로 돌아올 때 팝업이 남지 않도록
   stemBeadCraftUI.setPot(pot);
   stemBeadCraftUI.startThemedCraft();
   goTo(STEM_BEAD_CRAFT);

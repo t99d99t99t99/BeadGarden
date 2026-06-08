@@ -56,6 +56,7 @@ function listenPots(onUpdate) {
         ...pot,
         theme: normalizePotTheme(pot),
       }));
+      console.log('[Firestore] 화분 목록 업데이트:', pots.length, '개');
       onUpdate(pots);
     }, err => {
       console.error('[Firestore] 구독 오류:', err);

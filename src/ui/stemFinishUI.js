@@ -187,6 +187,7 @@ class StemFinishUI {
     text('비즈 가든으로 가기', btn2X + btn2W / 2, btn2Y + btn2H / 2);
     if (isClicked(btn2X, btn2Y, btn2W, btn2H)) {
       this.hide();
+      potDetailUI.hide();  // 팝업 닫고 가든 카드가 보이도록
       goTo(GARDEN);
     }
   }
