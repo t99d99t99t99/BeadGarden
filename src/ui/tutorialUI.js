@@ -129,7 +129,7 @@ class TutorialUI {
     // ── 타이틀 ──
     noStroke();
     fill(160, 80, 200);
-    textFont('monospace');
+    
     textStyle(BOLD);
     textSize(22);
     textAlign(LEFT, CENTER);
@@ -144,7 +144,7 @@ class TutorialUI {
       : (prevState === STEM_BEAD_CRAFT ? '돌아가기' : '건너뛰기');
     fill(skipHov ? 100 : 130); noStroke();
     rect(skipX, skipY, 140, 48, 10);
-    fill(255); textFont('sans-serif'); textStyle(NORMAL);
+    fill(255);  textStyle(NORMAL);
     textSize(15); textAlign(CENTER, CENTER);
     text(skipLabel, skipX + 70, skipY + 24);
 
@@ -158,7 +158,7 @@ class TutorialUI {
     } else {
       // 플레이스홀더 안내
       fill(160); noStroke();
-      textFont('sans-serif'); textSize(14); textAlign(CENTER, CENTER); textStyle(NORMAL);
+       textSize(14); textAlign(CENTER, CENTER); textStyle(NORMAL);
       text('assets/tutorial.mp4 를 추가하면\n영상이 여기에 재생됩니다.', width / 2, vidY + vidH * 0.4);
     }
 

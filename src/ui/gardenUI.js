@@ -44,11 +44,17 @@ class GardenUI {
     const isHov = (this.hoveredPot === pot);
     const cx    = x + w / 2;
 
-    // ── 카드 전체 배경 ──
+    // ── 카드 외곽 (에디션 컬러 테두리) ──
     fill(this._cardBg(pot));
     stroke(isHov ? color(60, 60, 220) : color(200));
     strokeWeight(isHov ? 2 : 1);
     rect(x, y, w, h, 12);
+
+    // ── 이미지 영역 배경 (저장된 bgIndex 색상) ──
+    const bgColors = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
+    const imgBg = bgColors[pot.bgIndex ?? 0] ?? '#F5F5F5';
+    noStroke(); fill(imgBg);
+    rect(x + 1, y + 1, w - 2, imgH - 2, 11, 11, 0, 0);
 
     // ── 줄기 (이미지 영역 안에서만 그리기) ──
     drawingContext.save();
@@ -72,7 +78,7 @@ class GardenUI {
     // 화분 이름 + 잠금
     noStroke();
     fill(40);
-    textFont('sans-serif');
+    
     textSize(13);
     textStyle(BOLD);
     textAlign(LEFT);
@@ -102,7 +108,8 @@ class GardenUI {
 
     for (let i = 0; i < pot.stems.length; i++) {
       const stem    = pot.stems[i];
-      const angleDeg = stem.angle ?? defaultAngles[i % defaultAngles.length];
+      // stemAngle(구버전) 또는 angle(신버전), 둘 다 없으면 인덱스별 기본값
+      const angleDeg = stem.angle ?? stem.stemAngle ?? defaultAngles[i % defaultAngles.length];
       const offset   = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
       const bx      = cx + offset * 0.6;
       const angle   = radians(angleDeg);
@@ -177,14 +184,14 @@ class GardenUI {
     // 타이틀
     noStroke();
     fill(180, 80, 200);
-    textFont('monospace');
+    
     textStyle(BOLD);
     textSize(13);
     textAlign(LEFT);
     text('BEAD  GARDEN', 60, 52);
 
     fill(60, 60, 60);
-    textFont('sans-serif');
+    
     textSize(22);
     textStyle(BOLD);
     textAlign(LEFT);
@@ -214,6 +221,51 @@ class GardenUI {
     // 부드러운 스크롤
     this.scrollX = lerp(this.scrollX, this.targetScrollX, 0.12);
 
+    // ── 좌우 스크롤 화살표 ──
+    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+    const arrowY = height / 2 - 26;
+    const arrowW = 44, arrowH = 52;
+
+    // 왼쪽 화살표
+    if (this.targetScrollX > 0) {
+      const lx = 48;
+      const lHov = isHovered(lx, arrowY, arrowW, arrowH);
+      fill(lHov ? color(255, 255, 255, 230) : color(255, 255, 255, 160)); noStroke();
+      rect(lx, arrowY, arrowW, arrowH, 8);
+      fill(60); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
+      text('‹', lx + arrowW / 2, arrowY + arrowH / 2);
+      if (lHov) cursor(HAND);
+    }
+
+    // 오른쪽 화살표
+    if (this.targetScrollX < maxScroll) {
+      const rx = width - 92;
+      const rHov = isHovered(rx, arrowY, arrowW, arrowH);
+      fill(rHov ? color(255, 255, 255, 230) : color(255, 255, 255, 160)); noStroke();
+      rect(rx, arrowY, arrowW, arrowH, 8);
+      fill(60); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
+      text('›', rx + arrowW / 2, arrowY + arrowH / 2);
+      if (rHov) cursor(HAND);
+    }
+
+    // 스크롤 위치 점 인디케이터 (화분이 화면보다 많을 때)
+    if (maxScroll > 0) {
+      const totalCards = this.pots.length;
+      const visibleCount = floor((width - 120) / (this.cardW + this.cardGap));
+      const dotCount = min(totalCards, 12); // 최대 12개 점
+      const dotSpacing = 14;
+      const dotsW = dotCount * dotSpacing;
+      const dotStartX = width / 2 - dotsW / 2;
+      const dotY = height - 110;
+      for (let i = 0; i < dotCount; i++) {
+        const dotRatio = i / max(1, dotCount - 1);
+        const scrollRatio = this.scrollX / max(1, maxScroll);
+        const isActive = abs(dotRatio - scrollRatio) < (1 / max(1, dotCount - 1)) * 0.6;
+        fill(isActive ? color(150, 50, 180) : color(200, 180, 210)); noStroke();
+        ellipse(dotStartX + i * dotSpacing, dotY, isActive ? 8 : 6);
+      }
+    }
+
     // 새 화분 만들기 버튼
     const btnW = 320, btnH = 52;
     const btnX = width / 2 - btnW / 2;
@@ -223,7 +275,7 @@ class GardenUI {
     noStroke();
     rect(btnX, btnY, btnW, btnH, 26);
     fill(255);
-    textFont('sans-serif');
+    
     textSize(16);
     textStyle(BOLD);
     textAlign(CENTER, CENTER);
@@ -241,6 +293,25 @@ class GardenUI {
       return;
     }
     if (potSetupUI.isVisible || potDetailUI.isVisible) return;
+
+    // 좌우 화살표 버튼 클릭
+    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+    const arrowY = height / 2 - 26;
+    const arrowW = 44, arrowH = 52;
+    const scrollStep = this.cardW + this.cardGap; // 카드 1칸씩 이동
+
+    // 왼쪽 화살표
+    if (mouseX > 48 && mouseX < 48 + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
+      this.targetScrollX = constrain(this.targetScrollX - scrollStep, 0, maxScroll);
+      return;
+    }
+    // 오른쪽 화살표
+    const rx = width - 92;
+    if (mouseX > rx && mouseX < rx + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
+      this.targetScrollX = constrain(this.targetScrollX + scrollStep, 0, maxScroll);
+      return;
+    }
+
     this.isDragging  = true;
     this.dragStartX  = mouseX;
     this.dragScrollX = this.targetScrollX;
