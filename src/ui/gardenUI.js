@@ -166,13 +166,13 @@ class GardenUI {
     text('오늘은 어떤 비즈 식물을 심어볼까요?', width / 2, 80);
 
     // ── 우상단 데코 (별) ──
-    this._drawDeco('starPink', width - 80,  68, 52, 52,  0.15);
-    this._drawDeco('starLine', width - 44,  90, 36, 36, -0.1);
+    this._drawDeco('starPink', width - 80,  68, 28, 28,  0.15);
+    this._drawDeco('starLine', width - 50,  92, 20, 20, -0.1);
 
     // ── 좌하단 데코 (잎/꽃) ──
-    this._drawDeco('leaf',    68,  height - 180, 44, 44, -0.3);
-    this._drawDeco('leafTop', 120, height - 150, 32, 32,  0.2);
-    this._drawDeco('leaf',    152, height - 120, 36, 36, -0.1);
+    this._drawDeco('leaf',    62,  height - 175, 22, 22, -0.3);
+    this._drawDeco('leafTop', 104, height - 152, 18, 18,  0.2);
+    this._drawDeco('leaf',    140, height - 128, 20, 20, -0.1);
 
     // ── 화분 카드 (박스 없이 떠있는 형태) ──
     this.hoveredPot = null;
