@@ -78,7 +78,7 @@ class GardenUI {
     // 화분 이름 + 잠금
     noStroke();
     fill(40);
-    textFont('sans-serif');
+    
     textSize(13);
     textStyle(BOLD);
     textAlign(LEFT);
@@ -184,14 +184,14 @@ class GardenUI {
     // 타이틀
     noStroke();
     fill(180, 80, 200);
-    textFont('monospace');
+    
     textStyle(BOLD);
     textSize(13);
     textAlign(LEFT);
     text('BEAD  GARDEN', 60, 52);
 
     fill(60, 60, 60);
-    textFont('sans-serif');
+    
     textSize(22);
     textStyle(BOLD);
     textAlign(LEFT);
@@ -275,7 +275,7 @@ class GardenUI {
     noStroke();
     rect(btnX, btnY, btnW, btnH, 26);
     fill(255);
-    textFont('sans-serif');
+    
     textSize(16);
     textStyle(BOLD);
     textAlign(CENTER, CENTER);
