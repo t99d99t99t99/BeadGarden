@@ -16,7 +16,7 @@ class PotLockUI {
 
   onMousePressed() {
     if (!this.isVisible) return;
-    let popW = 380, popH = 260;
+    let popW = 420, popH = 320;
     let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
     let btnY    = popY + popH - 68;
@@ -29,24 +29,26 @@ class PotLockUI {
     // 잠금 확정
     if (mouseX > confirmX && mouseX < confirmX + confirmW &&
         mouseY > btnY && mouseY < btnY + btnH) {
-      if (this.pot) {
-        this.pot.locked = true;
-        if (this.pot.firestoreId) {
-          lockPot(this.pot.firestoreId)
+      const pot = this.pot;
+      if (pot) {
+        pot.locked = true;
+        if (pot.firestoreId) {
+          lockPot(pot.firestoreId)
             .catch(err => console.error('[Firestore] 잠금 저장 오류:', err));
         }
       }
       this.hide();
-      potDetailUI.show(this.pot);
+      potDetailUI.show(pot);
       goTo(GARDEN);
       return;
     }
 
-    // 취소
+    // 취소 — hide() 전에 pot 저장
     if (mouseX > cancelX && mouseX < cancelX + cancelW &&
         mouseY > btnY && mouseY < btnY + btnH) {
+      const pot = this.pot;
       this.hide();
-      potDetailUI.show(this.pot);
+      potDetailUI.show(pot);
       goTo(GARDEN);
     }
   }
@@ -59,7 +61,7 @@ class PotLockUI {
     rect(0, 0, width, height);
 
     // 팝업 박스
-    let popW = 380, popH = 260;
+    let popW = 420, popH = 320;
     let popX = width  / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
 
@@ -72,21 +74,21 @@ class PotLockUI {
 
     // 자물쇠 이모지
     textSize(28); textAlign(CENTER, BASELINE); noStroke();
-    text('🔒', width / 2, popY + 50);
+    text('🔒', width / 2, popY + 52);
 
     // 타이틀
     fill(22);
     textStyle(BOLD); textSize(17);
-    text('화분을 잠글까요?', width / 2, popY + 82);
+    text('화분을 잠글까요?', width / 2, popY + 86);
 
-    // 안내 문구 박스
-    let warnX = popX + 20, warnY = popY + 96;
-    let warnW = popW - 40, warnH = 52;
+    // 안내 문구 박스 (높이 넉넉하게)
+    let warnX = popX + 20, warnY = popY + 102;
+    let warnW = popW - 40, warnH = 72;
     fill(255, 242, 245); noStroke();
     rect(warnX, warnY, warnW, warnH, 8);
     fill(150, 50, 75);
     textStyle(NORMAL); textSize(12); textAlign(CENTER, CENTER);
-    text('잠금 후에는 모든 사람이 이 화분에 줄기를 추가하거나 꾸밀 수 없어요.',
+    text('잠금 후에는 모든 사람이\n이 화분에 줄기를 추가하거나 꾸밀 수 없어요.',
       warnX + warnW / 2, warnY + warnH / 2);
 
     // 구분선
