@@ -76,6 +76,50 @@ class GardenUI {
     }
   }
 
+  // ── 줄기 경로 포인트 계산 (potDecorateUI와 동일한 로직) ─────────────────────
+  _stemPoints(bx, baseY, tx, ty, shapeIdx) {
+    switch (shapeIdx) {
+      case 1: { // 곡선
+        const pts = [];
+        const ctrl = { x: bx, y: baseY - dist(bx, baseY, tx, ty) * 0.55 };
+        for (let k = 0; k <= 28; k++) {
+          const t = k / 28, u = 1 - t;
+          pts.push({
+            x: u*u*bx + 2*u*t*ctrl.x + t*t*tx,
+            y: u*u*baseY + 2*u*t*ctrl.y + t*t*ty,
+          });
+        }
+        return pts;
+      }
+      case 2: { // 지그재그
+        const pts = [], samples = 5 * 12;
+        const dx = tx - bx, dy = ty - baseY;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const nx = -dy/len, ny = dx/len;
+        for (let k = 0; k <= samples; k++) {
+          const t = k / samples;
+          const phase = t * 5 - Math.floor(t * 5);
+          const wave  = 1 - 4 * Math.abs(phase - 0.5);
+          pts.push({ x: lerp(bx,tx,t) + nx*13*wave, y: lerp(baseY,ty,t) + ny*13*wave });
+        }
+        return pts;
+      }
+      case 3: { // 물결
+        const pts = [], samples = 3 * 12;
+        const dx = tx - bx, dy = ty - baseY;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const nx = -dy/len, ny = dx/len;
+        for (let k = 0; k <= samples; k++) {
+          const t = k / samples;
+          pts.push({ x: lerp(bx,tx,t) + nx*12*Math.sin(t*3*TWO_PI), y: lerp(baseY,ty,t) + ny*12*Math.sin(t*3*TWO_PI) });
+        }
+        return pts;
+      }
+      default: // 직선
+        return [{ x: bx, y: baseY }, { x: tx, y: ty }];
+    }
+  }
+
   // ── 줄기 렌더링 ──────────────────────────────────────────────────────────────
   _drawStems(cx, baseY, pot) {
     if (!pot.stems || pot.stems.length === 0) return;
@@ -85,32 +129,40 @@ class GardenUI {
     const stemLen        = 130;
 
     for (let i = 0; i < pot.stems.length; i++) {
-      const stem     = pot.stems[i];
-      const angleDeg = stem.angle ?? stem.stemAngle ?? defaultAngles[i % defaultAngles.length];
-      const offset   = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
-      const bx       = cx + offset * 0.6;
-      const angle    = radians(angleDeg);
-      const tx       = bx + sin(angle) * stemLen;
-      const ty       = baseY - cos(angle) * stemLen;
-      const col      = (stem.stemColor !== undefined) ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+      const stem      = pot.stems[i];
+      const angleDeg  = stem.angle ?? stem.stemAngle ?? defaultAngles[i % defaultAngles.length];
+      const offset    = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
+      const shapeIdx  = stem.stemShape ?? 0;
+      const bx        = cx + offset * 0.6;
+      const angleRad  = radians(angleDeg);
+      const tx        = bx + sin(angleRad) * stemLen;
+      const ty        = baseY - cos(angleRad) * stemLen;
+      const col       = (stem.stemColor !== undefined) ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+      const pts       = this._stemPoints(bx, baseY, tx, ty, shapeIdx);
 
-      stroke(col); strokeWeight(1.5);
-      line(bx, baseY, tx, ty);
+      // 줄기 선 그리기
+      stroke(col); strokeWeight(1.5); noFill();
+      beginShape();
+      for (const p of pts) vertex(p.x, p.y);
+      endShape();
 
+      // 비즈 그리기
       const beads = stem.beads ?? [];
       const count = beads.length > 0 ? beads.length : 4;
       for (let j = 0; j < count; j++) {
-        const t    = (j + 1) / (count + 1);
-        const bpx  = lerp(bx, tx, t);
-        const bpy  = lerp(baseY, ty, t);
-        const bead = beads[j];
+        const t   = (j + 1) / (count + 1);
+        const idx = constrain(floor(t * (pts.length - 1)), 0, pts.length - 2);
+        const bpx = lerp(pts[idx].x, pts[idx+1].x, t * (pts.length-1) - idx);
+        const bpy = lerp(pts[idx].y, pts[idx+1].y, t * (pts.length-1) - idx);
+        const tangentAngle = atan2(pts[idx+1].y - pts[idx].y, pts[idx+1].x - pts[idx].x);
+
+        const bead  = beads[j];
         const asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
         const img   = bead?.beadId  ? beadImages[bead.beadId] : null;
         if (asset) {
-          const beadH = 14;
-          const beadW = beadH * asset.source.w / asset.source.h;
-          drawBeadAtlasLayer(asset, 'hole', bpx, bpy, beadW, beadH, angle);
-          drawBeadAtlasLayer(asset, 'body', bpx, bpy, beadW, beadH, angle);
+          const beadH = 14, beadW = beadH * asset.source.w / asset.source.h;
+          drawBeadAtlasLayer(asset, 'hole', bpx, bpy, beadW, beadH, tangentAngle);
+          drawBeadAtlasLayer(asset, 'body', bpx, bpy, beadW, beadH, tangentAngle);
         } else if (img) {
           imageMode(CENTER); image(img, bpx, bpy, 14, 14); imageMode(CORNER);
         } else {
