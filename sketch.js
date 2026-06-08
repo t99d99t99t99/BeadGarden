@@ -138,6 +138,9 @@ function mousePressed() {
     case POT_DECORATE:
       potDecorateUI.onMousePressed();
       break;
+    case POT_LOCK:
+      potLockUI.onMousePressed();
+      break;
     case DEBUG:
       debugSceneMousePressed();
       break;

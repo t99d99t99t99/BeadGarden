@@ -57,9 +57,18 @@ class StemFinishUI {
     this.isVisible = false;
   }
 
+  // 테마별 미리보기 배경색
+  _previewBg() {
+    const theme = normalizePotTheme(stemBeadCraftUI.currentPot);
+    if (theme === POT_THEMES.PLANT)  return color(220, 240, 215); // 연두
+    if (theme === POT_THEMES.OCEAN)  return color(210, 235, 248); // 하늘
+    if (theme === POT_THEMES.STAR)   return color(250, 220, 230); // 핑크
+    return color(240, 240, 240);
+  }
+
   // 완성된 줄기 미리보기
   drawStemPreview(x, y, w, h) {
-    fill(248); stroke(220); strokeWeight(1);
+    fill(this._previewBg()); noStroke();
     rect(x, y, w, h, 8);
 
     let sx = x + w * 0.3, sy = y + h * 0.25;
