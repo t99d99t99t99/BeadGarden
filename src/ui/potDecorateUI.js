@@ -545,15 +545,6 @@ class PotDecorateUI {
     const potGridBottom = panY + 34 + potGridRows * (cellH + rowGap + 16);
     let nextOptionY = potGridBottom + 16;
 
-    if (this.#selectedPotAsset()?.tintable) {
-      this._drawColorPalette(
-        '화분 색상', this.potColors, this.selectedPotColor,
-        panX, nextOptionY,
-        (i) => { this.selectedPotColor = i; }
-      );
-      nextOptionY += 88;
-    }
-
     // 배경 색상
     this._drawColorPalette(
       '배경 색상', this.bgColors, this.selectedBgColor,
@@ -621,8 +612,7 @@ class PotDecorateUI {
       text('미리보기 속 줄기를 좌우로 드래그하여 줄기의 배치를 바꾸세요.', panX + 70, stemSecY + 440);
     }
 
-    let potColorOffset = this.#selectedPotAsset()?.tintable ? 88 : 0;
-    let contentBottomOffset = (this.selectedStemIndex === -1 ? 510 : 920) + potColorOffset;
+    let contentBottomOffset = (this.selectedStemIndex === -1 ? 510 : 920);
     let visibleContentH = popH - 132;
     this.maxScrollY = max(0, contentBottomOffset - visibleContentH);
     this.targetScrollY = constrain(this.targetScrollY, 0, this.maxScrollY);

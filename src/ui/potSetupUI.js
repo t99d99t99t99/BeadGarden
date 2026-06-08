@@ -6,10 +6,18 @@ class PotSetupUI {
     this.descInput       = null;
 
     this.concepts = [
-      { label: '식물 에디션', theme: POT_THEMES.PLANT },
-      { label: '스타 에디션', theme: POT_THEMES.STAR },
-      { label: '바다 에디션', theme: POT_THEMES.OCEAN },
+      { label: '식물 에디션', theme: POT_THEMES.PLANT, imgPath: 'assets/concept_plant.png' },
+      { label: '스타 에디션', theme: POT_THEMES.STAR,  imgPath: 'assets/concept_star.png'  },
+      { label: '바다 에디션', theme: POT_THEMES.OCEAN, imgPath: 'assets/concept_ocean.png' },
     ];
+
+    // 컨셉 프리뷰 이미지 로드
+    this.conceptImgs = [null, null, null];
+    this.concepts.forEach((c, i) => {
+      loadImage(c.imgPath, img => { this.conceptImgs[i] = img; }, err => {
+        console.warn('[PotSetupUI] 이미지 로드 실패:', c.imgPath, err);
+      });
+    });
   }
 
   show() {
@@ -190,10 +198,30 @@ class PotSetupUI {
       let cx = startX + i * (cardW + cardGap);
       let isSelected = (this.selectedConcept === i);
 
+      // 카드 테두리
       fill(isSelected ? color(230, 232, 255) : 245);
       stroke(isSelected ? color(60, 60, 220) : 210);
       strokeWeight(isSelected ? 2 : 1);
       rect(cx, cardY, cardW, cardH, 8);
+
+      // 컨셉 이미지 (클리핑)
+      const img = this.conceptImgs[i];
+      if (img) {
+        drawingContext.save();
+        drawingContext.beginPath();
+        drawingContext.roundRect(cx, cardY, cardW, cardH, 8);
+        drawingContext.clip();
+        imageMode(CORNER);
+        image(img, cx, cardY, cardW, cardH);
+        imageMode(CENTER);
+        drawingContext.restore();
+      }
+
+      // 선택된 카드 반투명 오버레이
+      if (isSelected) {
+        fill(60, 60, 220, 35); noStroke();
+        rect(cx, cardY, cardW, cardH, 8);
+      }
 
       // 체크 표시
       if (isSelected) {

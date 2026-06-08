@@ -48,6 +48,7 @@ function startStemCraftForPot(pot) {
   if (!pot) return;
   pot.theme = normalizePotTheme(pot);
   potDetailUI.pot = pot;
+  potDetailUI.hide(); // 가든으로 돌아올 때 팝업이 남지 않도록
   stemBeadCraftUI.setPot(pot);
   stemBeadCraftUI.startThemedCraft();
   goTo(STEM_BEAD_CRAFT);
@@ -55,6 +56,8 @@ function startStemCraftForPot(pot) {
 
 function setup() {
   createCanvas(1440, 990);
+  // 전역 폰트: DungGeunMo (CDN 로드, 한글 픽셀 폰트)
+  textFont('DungGeunMo');
   initializeBeadAtlasSprites();
   initializePotAtlasSprites();
   loadBeadCatalog()
@@ -137,6 +140,9 @@ function mousePressed() {
       break;
     case POT_DECORATE:
       potDecorateUI.onMousePressed();
+      break;
+    case POT_LOCK:
+      potLockUI.onMousePressed();
       break;
     case DEBUG:
       debugSceneMousePressed();
