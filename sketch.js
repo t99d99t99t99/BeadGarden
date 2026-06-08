@@ -56,6 +56,8 @@ function startStemCraftForPot(pot) {
 
 function setup() {
   createCanvas(1440, 990);
+  // 전역 폰트: DungGeunMo (CDN 로드, 한글 픽셀 폰트)
+  textFont('DungGeunMo');
   initializeBeadAtlasSprites();
   initializePotAtlasSprites();
   loadBeadCatalog()
