@@ -46,27 +46,33 @@ class GardenUI {
     this._drawStems(cx, potBaseY, pot);
     this._drawPotImage(cx, potBaseY, pot);
 
+    // 화분 이미지 실제 높이 계산
+    const potW    = this.cardW * 0.5;
+    const asset   = getPotAssetForPot(pot);
+    const potSize = getPotAssetDrawSize(asset, potW, potW);
+    const potBottom = potBaseY + potSize.height + 10; // 화분 하단 + 여백
+
     // 호버 시 글로우 효과
     if (isHov) {
       noFill(); stroke(180, 80, 200, 40); strokeWeight(30);
-      ellipse(cx, potBaseY, 80, 30);
+      ellipse(cx, potBaseY + potSize.height / 2, 80, 30);
       noStroke();
     }
 
-    // 화분 이름 (아래)
+    // 화분 이름 (화분 아래)
     noStroke();
     fill(isHov ? color(60, 60, 200) : color(50));
     textSize(13); textStyle(BOLD); textAlign(CENTER);
-    text(pot.name + (pot.locked ? ' 🔒' : ''), cx, potBaseY + 30);
+    text(pot.name + (pot.locked ? ' 🔒' : ''), cx, potBottom + 14);
 
     // 줄기 수 + 에디션
     fill(130); textStyle(NORMAL); textSize(11);
-    text(`줄기 ${(pot.stems ?? []).length}개 (${this._editionLabel(pot)})`, cx, potBaseY + 48);
+    text(`줄기 ${(pot.stems ?? []).length}개 (${this._editionLabel(pot)})`, cx, potBottom + 30);
 
     // 호버 시 "클릭하여 열기 →"
     if (isHov) {
       fill(150, 80, 200); textSize(11);
-      text('클릭하여 열기 →', cx, potBaseY + 64);
+      text('클릭하여 열기 →', cx, potBottom + 46);
     }
   }
 
@@ -179,10 +185,10 @@ class GardenUI {
 
       this.drawCard(pot, x);
 
-      // 호버 감지: 화분 + 텍스트 영역
+      // 호버 감지: 줄기 위 ~ 텍스트 아래
       const cx = x + this.cardW / 2;
       if (mouseX > cx - 70 && mouseX < cx + 70 &&
-          mouseY > potBaseY - 160 && mouseY < potBaseY + 70) {
+          mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
         this.hoveredPot = pot;
         cursor(HAND);
       }
@@ -294,7 +300,7 @@ class GardenUI {
         const cx       = x + this.cardW / 2;
         const potBaseY = pot.cardY ?? height * 0.55;
         if (mouseX > cx - 70 && mouseX < cx + 70 &&
-            mouseY > potBaseY - 160 && mouseY < potBaseY + 70) {
+            mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
           potSetupUI.hide();
           potDetailUI.show(pot);
         }
