@@ -1,22 +1,33 @@
 class GardenUI {
   constructor() {
-    this.pots         = []; // Firestore listenPots() 콜백에서 채워짐
-    this.scrollX      = 0;
+    this.pots          = [];
+    this.scrollX       = 0;
     this.targetScrollX = 0;
-    this.cardW        = 200;
-    this.cardGap      = 80;
-    this.hoveredPot   = null;
-    this.isDragging   = false;
-    this.dragStartX   = 0;
-    this.dragScrollX  = 0;
+    this.cardW         = 200;
+    this.cardGap       = 80;
+    this.hoveredPot    = null;
+    this.isDragging    = false;
+    this.dragStartX    = 0;
+    this.dragScrollX   = 0;
+
+    // 데코 이미지
+    this.decoImgs = {};
+    const decoList = {
+      starPink:   'assets/star/star-1.png',
+      starLine:   'assets/star/starLine.png',
+      leaf:       'assets/plant/leafbottom.png',
+      leafTop:    'assets/plant/leaftop.png',
+    };
+    for (const [key, path] of Object.entries(decoList)) {
+      loadImage(path, img => { this.decoImgs[key] = img; }, () => {});
+    }
   }
 
-  // 카드 x 위치 — 왼→오른쪽 순서, 스크롤 반영
+  // 카드 x 위치
   _cardX(index) {
     return 60 + index * (this.cardW + this.cardGap) - this.scrollX;
   }
 
-  // 에디션 라벨 (pot.concept 값 기반)
   _editionLabel(pot) {
     const c = pot.concept ?? '';
     if (c.includes('식물')) return '식물 에디션';
@@ -25,192 +36,153 @@ class GardenUI {
     return c;
   }
 
-  // 에디션별 카드 배경색
-  _cardBg(pot) {
-    const c = pot.concept ?? '';
-    if (c.includes('식물')) return color(225, 240, 220);
-    if (c.includes('스타')) return color(250, 240, 210);
-    if (c.includes('바다')) return color(215, 235, 248);
-    return color(245, 245, 245);
-  }
-
-  // ── 화분 카드 그리기 ────────────────────────────────────────────────────────
+  // ── 화분 카드 (박스 없이 떠 있는 형태) ──────────────────────────────────────
   drawCard(pot, x) {
-    const y     = pot.cardY ?? height * 0.25;
-    const w     = this.cardW;
-    const imgH  = 200;  // 이미지/줄기 영역
-    const infoH = 76;   // 텍스트 영역
-    const h     = imgH + infoH;
-    const isHov = (this.hoveredPot === pot);
-    const cx    = x + w / 2;
+    const potBaseY = pot.cardY ?? height * 0.55;
+    const cx       = x + this.cardW / 2;
+    const isHov    = (this.hoveredPot === pot);
 
-    // ── 카드 외곽 (에디션 컬러 테두리) ──
-    fill(this._cardBg(pot));
-    stroke(isHov ? color(60, 60, 220) : color(200));
-    strokeWeight(isHov ? 2 : 1);
-    rect(x, y, w, h, 12);
+    // 줄기 + 화분 그리기
+    this._drawStems(cx, potBaseY, pot);
+    this._drawPotImage(cx, potBaseY, pot);
 
-    // ── 이미지 영역 배경 (저장된 bgIndex 색상) ──
-    const bgColors = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
-    const imgBg = bgColors[pot.bgIndex ?? 0] ?? '#F5F5F5';
-    noStroke(); fill(imgBg);
-    rect(x + 1, y + 1, w - 2, imgH - 2, 11, 11, 0, 0);
+    // 호버 시 글로우 효과
+    if (isHov) {
+      noFill(); stroke(180, 80, 200, 40); strokeWeight(30);
+      ellipse(cx, potBaseY, 80, 30);
+      noStroke();
+    }
 
-    // ── 줄기 (이미지 영역 안에서만 그리기) ──
-    drawingContext.save();
-    drawingContext.beginPath();
-    drawingContext.rect(x + 1, y + 1, w - 2, imgH - 1);
-    drawingContext.clip();
-    const stemBase = y + imgH - 20;
-    this._drawPotImage(cx, stemBase, pot, w);
-    this._drawStems(cx, stemBase, pot);
-    drawingContext.restore();
-
-    // ── 텍스트 영역 (흰 반투명 배경) ──
+    // 화분 이름 (아래)
     noStroke();
-    fill(255, 255, 255, 200);
-    rect(x, y + imgH, w, infoH, 0, 0, 12, 12);
+    fill(isHov ? color(60, 60, 200) : color(50));
+    textSize(13); textStyle(BOLD); textAlign(CENTER);
+    text(pot.name + (pot.locked ? ' 🔒' : ''), cx, potBaseY + 30);
 
-    // 구분선
-    stroke(200); strokeWeight(1);
-    line(x + 14, y + imgH, x + w - 14, y + imgH);
+    // 줄기 수 + 에디션
+    fill(130); textStyle(NORMAL); textSize(11);
+    text(`줄기 ${(pot.stems ?? []).length}개 (${this._editionLabel(pot)})`, cx, potBaseY + 48);
 
-    // 화분 이름 + 잠금
-    noStroke();
-    fill(40);
-    
-    textSize(13);
-    textStyle(BOLD);
-    textAlign(LEFT);
-    text(pot.name + (pot.locked ? ' 🔒' : ''), x + 14, y + imgH + 20);
-
-    // 줄기 개수 + 에디션
-    fill(120);
-    textStyle(NORMAL);
-    textSize(11);
-    const stemCount = pot.stems ? pot.stems.length : 0;
-    text(`줄기 ${stemCount}개 (${this._editionLabel(pot)})`, x + 14, y + imgH + 38);
-
-    // 클릭하여 열기
-    fill(isHov ? color(60, 60, 200) : 150);
-    textSize(11);
-    text('클릭하여 열기 →', x + 14, y + imgH + 56);
+    // 호버 시 "클릭하여 열기 →"
+    if (isHov) {
+      fill(150, 80, 200); textSize(11);
+      text('클릭하여 열기 →', cx, potBaseY + 64);
+    }
   }
 
-  // ── 줄기 렌더링 (저장된 stem 데이터 기반) ───────────────────────────────────
+  // ── 줄기 렌더링 ──────────────────────────────────────────────────────────────
   _drawStems(cx, baseY, pot) {
     if (!pot.stems || pot.stems.length === 0) return;
 
-    // 저장된 stemAngles 또는 기본 배치
-    const defaultAngles = [340, 0, 20, -20, 350];
+    const defaultAngles  = [340, 0, 20, -20, 350];
     const defaultOffsets = [-20, 0, 20, -10, 10];
-    const stemLen = 120;
+    const stemLen        = 130;
 
     for (let i = 0; i < pot.stems.length; i++) {
-      const stem    = pot.stems[i];
-      // stemAngle(구버전) 또는 angle(신버전), 둘 다 없으면 인덱스별 기본값
+      const stem     = pot.stems[i];
       const angleDeg = stem.angle ?? stem.stemAngle ?? defaultAngles[i % defaultAngles.length];
       const offset   = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
-      const bx      = cx + offset * 0.6;
-      const angle   = radians(angleDeg);
-      const tx      = bx + sin(angle) * stemLen;
-      const ty      = baseY - cos(angle) * stemLen;
-      const col     = (stem.stemColor !== undefined) ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+      const bx       = cx + offset * 0.6;
+      const angle    = radians(angleDeg);
+      const tx       = bx + sin(angle) * stemLen;
+      const ty       = baseY - cos(angle) * stemLen;
+      const col      = (stem.stemColor !== undefined) ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
 
-      // 줄기 선
       stroke(col); strokeWeight(1.5);
       line(bx, baseY, tx, ty);
 
-      // 비즈 (저장된 beadId 있으면 이미지, 없으면 원형 fallback)
       const beads = stem.beads ?? [];
       const count = beads.length > 0 ? beads.length : 4;
       for (let j = 0; j < count; j++) {
-        const t   = (j + 1) / (count + 1);
-        const bpx = lerp(bx, tx, t);
-        const bpy = lerp(baseY, ty, t);
+        const t    = (j + 1) / (count + 1);
+        const bpx  = lerp(bx, tx, t);
+        const bpy  = lerp(baseY, ty, t);
         const bead = beads[j];
         const asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
-        const img = bead?.beadId ? beadImages[bead.beadId] : null;
+        const img   = bead?.beadId  ? beadImages[bead.beadId] : null;
         if (asset) {
           const beadH = 14;
           const beadW = beadH * asset.source.w / asset.source.h;
           drawBeadAtlasLayer(asset, 'hole', bpx, bpy, beadW, beadH, angle);
           drawBeadAtlasLayer(asset, 'body', bpx, bpy, beadW, beadH, angle);
         } else if (img) {
-          imageMode(CENTER);
-          image(img, bpx, bpy, 14, 14);
-          imageMode(CORNER);
+          imageMode(CENTER); image(img, bpx, bpy, 14, 14); imageMode(CORNER);
         } else {
-          noStroke();
-          fill(bead?.color ?? color(190, 185, 200));
+          noStroke(); fill(bead?.color ?? color(190, 185, 200));
           ellipse(bpx, bpy, 13 - j * 1.5);
         }
       }
     }
   }
 
-  // ── 화분 이미지 렌더링 ────────────────────────────────────────────────────
-  _drawPotImage(cx, baseY, pot, cardW) {
-    const potW = cardW * 0.5;
-    const potH = potW;
+  // ── 화분 이미지 렌더링 ────────────────────────────────────────────────────────
+  _drawPotImage(cx, baseY, pot) {
+    const potW  = this.cardW * 0.5;
+    const potH  = potW;
     const asset = getPotAssetForPot(pot);
     const potSize = getPotAssetDrawSize(asset, potW, potH);
 
-    if (drawPotAsset(
-      asset,
-      asset?.theme,
-      cx,
-      baseY + potSize.height / 2,
-      potW,
-      potH,
-      pot.colorIndex ?? 0
-    )) {
-      return;
-    }
+    if (drawPotAsset(asset, asset?.theme, cx, baseY + potSize.height / 2, potW, potH, pot.colorIndex ?? 0)) return;
 
     fill(POT_COLORS[pot.colorIndex ?? 0]); noStroke();
     drawPotShapeAt(cx, baseY, pot.shapeIndex ?? 0, 0.7);
   }
 
-  // ── 전체 draw ─────────────────────────────────────────────────────────────
+  // ── 데코 이미지 그리기 헬퍼 ──────────────────────────────────────────────────
+  _drawDeco(key, x, y, w, h, rot = 0) {
+    const img = this.decoImgs[key];
+    if (!img) return;
+    push();
+    translate(x, y); rotate(rot);
+    imageMode(CENTER);
+    image(img, 0, 0, w, h);
+    pop();
+  }
+
+  // ── 전체 draw ─────────────────────────────────────────────────────────────────
   draw() {
-    background(237, 242, 226); // 연초록
-
-    // 배경 영역
+    // ── 배경: 초록 그라데이션 (밝은 중앙 → 살짝 어두운 가장자리) ──
+    background(220, 232, 210);
     noStroke();
-    fill(235, 240, 228);
-    rect(40, 70, width - 80, height - 150, 16);
+    for (let i = 12; i >= 1; i--) {
+      let alpha = map(i, 12, 1, 3, 28);
+      fill(240, 248, 230, alpha);
+      ellipse(width / 2, height * 0.46, width * 0.9 * (i / 12), height * 0.9 * (i / 12));
+    }
 
-    // 타이틀
-    noStroke();
-    fill(180, 80, 200);
-    
-    textStyle(BOLD);
-    textSize(13);
-    textAlign(LEFT);
-    text('BEAD  GARDEN', 60, 52);
+    // ── 헤더 ──
+    fill(220, 40, 180);
+    textStyle(BOLD); textSize(12); textAlign(CENTER);
+    text('BEAD  GARDEN', width / 2, 42);
 
-    fill(60, 60, 60);
-    
-    textSize(22);
-    textStyle(BOLD);
-    textAlign(LEFT);
-    text('오늘은 어떤 비즈 식물을 심어볼까요?', 60, 82);
+    fill(220, 40, 180);
+    textSize(24); textStyle(BOLD); textAlign(CENTER);
+    text('오늘은 어떤 비즈 식물을 심어볼까요?', width / 2, 80);
 
-    // 화분 카드들
+    // ── 우상단 데코 (별) ──
+    this._drawDeco('starPink', width - 80,  68, 52, 52,  0.15);
+    this._drawDeco('starLine', width - 44,  90, 36, 36, -0.1);
+
+    // ── 좌하단 데코 (잎/꽃) ──
+    this._drawDeco('leaf',    68,  height - 180, 44, 44, -0.3);
+    this._drawDeco('leafTop', 120, height - 150, 32, 32,  0.2);
+    this._drawDeco('leaf',    152, height - 120, 36, 36, -0.1);
+
+    // ── 화분 카드 (박스 없이 떠있는 형태) ──
     this.hoveredPot = null;
     for (let i = 0; i < this.pots.length; i++) {
-      const pot = this.pots[i];
-      const x   = this._cardX(i);
-      const y   = pot.cardY ?? height * 0.25;
-      const h   = 260;
+      const pot      = this.pots[i];
+      const x        = this._cardX(i);
+      const potBaseY = pot.cardY ?? height * 0.55;
 
       if (x + this.cardW < 40 || x > width - 40) continue;
 
       this.drawCard(pot, x);
 
-      if (mouseX > x && mouseX < x + this.cardW &&
-          mouseY > y && mouseY < y + 276) {
+      // 호버 감지: 화분 + 텍스트 영역
+      const cx = x + this.cardW / 2;
+      if (mouseX > cx - 70 && mouseX < cx + 70 &&
+          mouseY > potBaseY - 160 && mouseY < potBaseY + 70) {
         this.hoveredPot = pot;
         cursor(HAND);
       }
@@ -226,59 +198,49 @@ class GardenUI {
     const arrowY = height / 2 - 26;
     const arrowW = 44, arrowH = 52;
 
-    // 왼쪽 화살표
     if (this.targetScrollX > 0) {
       const lx = 48;
       const lHov = isHovered(lx, arrowY, arrowW, arrowH);
-      fill(lHov ? color(255, 255, 255, 230) : color(255, 255, 255, 160)); noStroke();
+      fill(lHov ? color(255,255,255,220) : color(255,255,255,140)); noStroke();
       rect(lx, arrowY, arrowW, arrowH, 8);
-      fill(60); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
+      fill(80); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
       text('‹', lx + arrowW / 2, arrowY + arrowH / 2);
       if (lHov) cursor(HAND);
     }
 
-    // 오른쪽 화살표
     if (this.targetScrollX < maxScroll) {
       const rx = width - 92;
       const rHov = isHovered(rx, arrowY, arrowW, arrowH);
-      fill(rHov ? color(255, 255, 255, 230) : color(255, 255, 255, 160)); noStroke();
+      fill(rHov ? color(255,255,255,220) : color(255,255,255,140)); noStroke();
       rect(rx, arrowY, arrowW, arrowH, 8);
-      fill(60); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
+      fill(80); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
       text('›', rx + arrowW / 2, arrowY + arrowH / 2);
       if (rHov) cursor(HAND);
     }
 
-    // 스크롤 위치 점 인디케이터 (화분이 화면보다 많을 때)
+    // 스크롤 점 인디케이터
     if (maxScroll > 0) {
-      const totalCards = this.pots.length;
-      const visibleCount = floor((width - 120) / (this.cardW + this.cardGap));
-      const dotCount = min(totalCards, 12); // 최대 12개 점
+      const dotCount = min(this.pots.length, 12);
       const dotSpacing = 14;
-      const dotsW = dotCount * dotSpacing;
-      const dotStartX = width / 2 - dotsW / 2;
-      const dotY = height - 110;
+      const dotStartX = width / 2 - (dotCount * dotSpacing) / 2;
+      const dotY = height - 108;
       for (let i = 0; i < dotCount; i++) {
-        const dotRatio = i / max(1, dotCount - 1);
+        const dotRatio    = i / max(1, dotCount - 1);
         const scrollRatio = this.scrollX / max(1, maxScroll);
-        const isActive = abs(dotRatio - scrollRatio) < (1 / max(1, dotCount - 1)) * 0.6;
-        fill(isActive ? color(150, 50, 180) : color(200, 180, 210)); noStroke();
+        const isActive    = abs(dotRatio - scrollRatio) < (1 / max(1, dotCount - 1)) * 0.6;
+        fill(isActive ? color(200, 40, 180) : color(200, 180, 210)); noStroke();
         ellipse(dotStartX + i * dotSpacing, dotY, isActive ? 8 : 6);
       }
     }
 
-    // 새 화분 만들기 버튼
+    // ── 새 화분 만들기 버튼 ──
     const btnW = 320, btnH = 52;
     const btnX = width / 2 - btnW / 2;
     const btnY = height - 72;
     const btnHov = isHovered(btnX, btnY, btnW, btnH);
-    fill(btnHov ? color(200, 0, 200) : color(220, 30, 220));
-    noStroke();
+    fill(btnHov ? color(200, 0, 200) : color(220, 30, 220)); noStroke();
     rect(btnX, btnY, btnW, btnH, 26);
-    fill(255);
-    
-    textSize(16);
-    textStyle(BOLD);
-    textAlign(CENTER, CENTER);
+    fill(255); textSize(16); textStyle(BOLD); textAlign(CENTER, CENTER);
     text('+ 새 화분 만들기', btnX + btnW / 2, btnY + btnH / 2);
     if (btnHov) cursor(HAND);
   }
@@ -294,18 +256,16 @@ class GardenUI {
     }
     if (potSetupUI.isVisible || potDetailUI.isVisible) return;
 
-    // 좌우 화살표 버튼 클릭
-    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
-    const arrowY = height / 2 - 26;
-    const arrowW = 44, arrowH = 52;
-    const scrollStep = this.cardW + this.cardGap; // 카드 1칸씩 이동
+    // 화살표 버튼
+    const maxScroll  = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+    const arrowY     = height / 2 - 26;
+    const arrowW     = 44, arrowH = 52;
+    const scrollStep = this.cardW + this.cardGap;
 
-    // 왼쪽 화살표
     if (mouseX > 48 && mouseX < 48 + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
       this.targetScrollX = constrain(this.targetScrollX - scrollStep, 0, maxScroll);
       return;
     }
-    // 오른쪽 화살표
     const rx = width - 92;
     if (mouseX > rx && mouseX < rx + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
       this.targetScrollX = constrain(this.targetScrollX + scrollStep, 0, maxScroll);
@@ -319,23 +279,22 @@ class GardenUI {
 
   onMouseDragged() {
     if (!this.isDragging) return;
-    this.targetScrollX = this.dragScrollX - (mouseX - this.dragStartX);
     const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
-    this.targetScrollX = constrain(this.targetScrollX, 0, maxScroll);
+    this.targetScrollX = constrain(this.dragScrollX - (mouseX - this.dragStartX), 0, maxScroll);
   }
 
   onMouseReleased() {
     if (potSetupUI.isVisible || potDetailUI.isVisible) {
-      this.isDragging = false;
-      return;
+      this.isDragging = false; return;
     }
     if (abs(mouseX - this.dragStartX) < 5) {
       for (let i = 0; i < this.pots.length; i++) {
-        const pot = this.pots[i];
-        const x   = this._cardX(i);
-        const y   = pot.cardY ?? height * 0.25;
-        if (mouseX > x && mouseX < x + this.cardW &&
-            mouseY > y && mouseY < y + 276) {
+        const pot      = this.pots[i];
+        const x        = this._cardX(i);
+        const cx       = x + this.cardW / 2;
+        const potBaseY = pot.cardY ?? height * 0.55;
+        if (mouseX > cx - 70 && mouseX < cx + 70 &&
+            mouseY > potBaseY - 160 && mouseY < potBaseY + 70) {
           potSetupUI.hide();
           potDetailUI.show(pot);
         }
