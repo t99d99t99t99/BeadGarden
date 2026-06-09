@@ -209,13 +209,16 @@ class GardenUI {
     }
 
     // ── 헤더 ──
+    // BEAD GARDEN — Dot Matrix 폰트
+    textFont('Dot Matrix');
     fill(220, 40, 180);
-    textStyle(BOLD); textSize(12); textAlign(CENTER);
-    text('BEAD  GARDEN', width / 2, 42);
+    textStyle(NORMAL); textSize(22); textAlign(CENTER);
+    text('BEAD  GARDEN', width / 2, 46);
+    textFont('DungGeunMo');
 
     fill(220, 40, 180);
     textSize(24); textStyle(BOLD); textAlign(CENTER);
-    text('오늘은 어떤 비즈 식물을 심어볼까요?', width / 2, 80);
+    text('오늘은 어떤 비즈 식물을 심어볼까요?', width / 2, 82);
 
     // ── 우상단 데코 (별) ──
     this._drawDeco('starPink', width - 80,  68, 28, 28,  0.15);

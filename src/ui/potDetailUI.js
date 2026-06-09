@@ -350,21 +350,23 @@ class PotDetailUI {
     let _hoveredBtn = false;
 
     if (canEdit) {
-      // 화분 꾸미기 버튼
+      // 화분 꾸미기 버튼 — 회색 배경, 호버 시 보라 테두리
       let decorW = 110, decorH = 36;
       let decorX = imgX + imgW - decorW - 8;
       let decorBtnY = imgY + 12;
       let decorHov = isHovered(decorX, decorBtnY, decorW, decorH);
-      fill(decorHov ? 230 : 255); stroke(200); strokeWeight(1);
+      fill(decorHov ? color(235, 235, 245) : 238);
+      stroke(decorHov ? color(100, 80, 220) : 215);
+      strokeWeight(decorHov ? 2 : 1);
       rect(decorX, decorBtnY, decorW, decorH, 18);
-      fill(40); noStroke(); textSize(13); textStyle(NORMAL);
-      textAlign(CENTER, CENTER);
+      fill(decorHov ? color(80, 60, 200) : 60); noStroke();
+      textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
       text('화분 꾸미기', decorX + decorW / 2, decorBtnY + decorH / 2);
       if (decorHov) _hoveredBtn = true;
 
-      // 새 비즈 줄기 만들기 버튼
+      // 새 비즈 줄기 만들기 버튼 — 핑크 마젠타, 호버 시 어두워짐
       let stemBtnHov = isHovered(popX + 18, btnY, popW - 36, 48);
-      fill(stemBtnHov ? 55 : 30); noStroke();
+      fill(stemBtnHov ? color(180, 0, 180) : color(255, 0, 255)); noStroke();
       rect(popX + 18, btnY, popW - 36, 48, 24);
       fill(255); textSize(15); textStyle(BOLD);
       textAlign(CENTER, CENTER);
@@ -383,9 +385,10 @@ class PotDetailUI {
         let lockBtnW = 110, lockBtnH = 36;
         let lockBtnX = popX + popW - lockBtnW - 18;
         let lockHov = isHovered(lockBtnX, lockY, lockBtnW, lockBtnH);
-        fill(lockHov ? 230 : 255); stroke(200); strokeWeight(1);
+        // 화분 잠그기 — 검정 배경, 호버 시 살짝 밝아짐
+        fill(lockHov ? color(50, 50, 50) : color(20, 20, 20)); noStroke();
         rect(lockBtnX, lockY, lockBtnW, lockBtnH, 18);
-        fill(40); noStroke(); textSize(13); textStyle(NORMAL);
+        fill(255); textSize(13); textStyle(NORMAL);
         textAlign(CENTER, CENTER);
         text('화분 잠그기', lockBtnX + lockBtnW / 2, lockY + lockBtnH / 2);
         if (lockHov) _hoveredBtn = true;
