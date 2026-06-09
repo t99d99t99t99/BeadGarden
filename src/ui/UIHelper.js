@@ -15,7 +15,7 @@ function isHovered(x, y, w, h) {
 
 // ── 공유 색상/모양 상수 ────────────────────────────────────────────────────────
 const POT_COLORS  = ['#F4A7B9','#89C4E1','#90E0AE','#D4A8E8','#F5F5F5','#CCCCCC','#888888','#333333'];
-const BG_COLORS   = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
+const BG_COLORS   = ['#EEEEF5','#E8F4F8','#F0F8F0','#FDFDE6','#F5EEF8','#F8F8F8','#BABABA','#1C1C1C'];
 const STEM_COLORS = ['#222222','#FFFFFF','#1A7A1A','#66FF44','#AAAAAA'];
 
 // 테마별 줄기 색상 팔레트 (potDetailUI, gardenUI 공용)
