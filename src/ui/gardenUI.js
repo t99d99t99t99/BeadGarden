@@ -52,7 +52,7 @@ class GardenUI {
     const asset   = getPotAssetForPot(pot);
     const potSize = getPotAssetDrawSize(asset, potW, potW);
     const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
-    const stemBaseY = potBaseY + stemYOffset;
+    const stemBaseY = potBaseY - stemYOffset;
 
     // 줄기 + 화분 그리기
     this._drawStems(cx, stemBaseY, pot);
