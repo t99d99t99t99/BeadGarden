@@ -517,7 +517,7 @@ class PotDecorateUI {
     // 화분 이미지 그리드 (3열)
     const pots = this.availablePots ?? [];
     const cellW = 90, cellH = 90, colGap = 14, rowGap = 18;
-    const cols  = 3;
+    const cols  = 4;
     for (let i = 0; i < pots.length; i++) {
       let col = i % cols;
       let row = Math.floor(i / cols);

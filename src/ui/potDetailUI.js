@@ -85,8 +85,7 @@ class PotDetailUI {
           tipY: baseY - cos(angle) * len,
         };
         let points = this.#stemPathPoints(stemGeometry, stem.stemShape ?? 0);
-        let col   = (stem.stemColor !== undefined)
-                    ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+        let col   = getStemColor(this.pot, stem.stemColor);
         stroke(col); strokeWeight(2);
         this.#drawStemPath(points);
         let beads = stem.beads ?? [];
