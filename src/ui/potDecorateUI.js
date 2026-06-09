@@ -9,7 +9,7 @@ class PotDecorateUI {
 
     // 화분 설정
     this.potColors = POT_COLORS;
-    this.bgColors  = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
+    this.bgColors  = ['#EEEEF5','#E8F4F8','#F0F8F0','#FDFDE6','#F5EEF8','#F8F8F8','#BABABA','#1C1C1C'];
     this.availablePots   = [];
     this.selectedPotAsset = 0;
     this.selectedPotColor = 0;
