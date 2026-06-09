@@ -9,7 +9,7 @@ class PotDecorateUI {
 
     // 화분 설정
     this.potColors = POT_COLORS;
-    this.bgColors  = ['#EDE8F5','#D6EAF8','#D5F5E3','#FEF9E7','#F9E4F0','#F5F5F5','#CCCCCC','#111111'];
+    this.bgColors  = ['#EEEEF5','#E8F4F8','#F0F8F0','#FDFDE6','#F5EEF8','#F8F8F8','#BABABA','#1C1C1C'];
     this.availablePots   = [];
     this.selectedPotAsset = 0;
     this.selectedPotColor = 0;
@@ -17,7 +17,7 @@ class PotDecorateUI {
 
     // 줄기 세부 설정
     this.selectedStemIndex = -1; // -1 = 선택 안 됨
-    this.stemColors = ['#222222', '#FFFFFF', '#1A7A1A', '#66FF44'];
+    this.stemColors = ['#222222', '#FFFFFF', '#1A7A1A', '#66FF44', '#AAAAAA'];
     this.stemShapes = ['직선형', '곡선형', '지그재그형', '물결형'];
     this.selectedStemColor = 0;
     this.selectedStemShape = 0;
@@ -53,6 +53,16 @@ class PotDecorateUI {
       theme = themeForConcept(pot?.concept);
     }
     this.availablePots = getPotAssetsForTheme(theme).map((asset) => asset.id);
+
+    // 테마별 줄기 색상 팔레트
+    if (theme === POT_THEMES.OCEAN) {
+      this.stemColors = ['#222222', '#FFFFFF', '#1B3FA0', '#7BE8F5', '#AAAAAA'];
+    } else if (theme === POT_THEMES.STAR) {
+      this.stemColors = ['#222222', '#FFFFFF', '#CC00CC', '#00CCBB', '#AAAAAA'];
+    } else {
+      // PLANT (기본)
+      this.stemColors = ['#222222', '#FFFFFF', '#1A7A1A', '#66FF44', '#AAAAAA'];
+    }
 
     if (mode === 'new') {
       this.selectedPotAsset = 0;
@@ -401,7 +411,7 @@ class PotDecorateUI {
       let cy = y + 12;
       fill(colors[i]);
       if (i === selected) {
-        stroke(30); strokeWeight(2.5);
+        stroke(47, 134, 255); strokeWeight(2.5);
       } else {
         stroke(200); strokeWeight(1);
       }
@@ -507,7 +517,7 @@ class PotDecorateUI {
     // 화분 이미지 그리드 (3열)
     const pots = this.availablePots ?? [];
     const cellW = 90, cellH = 90, colGap = 14, rowGap = 18;
-    const cols  = 3;
+    const cols  = 4;
     for (let i = 0; i < pots.length; i++) {
       let col = i % cols;
       let row = Math.floor(i / cols);
@@ -785,13 +795,14 @@ class PotDecorateUI {
     const potMaxHeight = 190;
     const potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
     const bottomMargin = 45;
+    const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
     return {
       asset,
       potMaxWidth,
       potMaxHeight,
       potSize,
       cx: x + w / 2,
-      baseY: y + h - bottomMargin - potSize.height,
+      baseY: y + h - bottomMargin - potSize.height - stemYOffset,
     };
   }
 
