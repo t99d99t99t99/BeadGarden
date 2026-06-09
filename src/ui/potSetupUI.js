@@ -169,7 +169,7 @@ class PotSetupUI {
     line(popX, popY + 80, popX + popW, popY + 80);
 
     // 화분 이름 라벨
-    noStroke(); fill(60, 60, 200);
+    noStroke(); fill(255, 0, 255);
     textSize(13); textStyle(BOLD); textAlign(LEFT);
     text('화분의 이름*', popX + 28, popY + 100);
 
@@ -179,11 +179,11 @@ class PotSetupUI {
     text(`${nameLen} / 20`, popX + popW - 28, popY + 100);
 
     // 한 줄 설명 라벨
-    fill(60, 60, 200); textStyle(BOLD); textAlign(LEFT);
+    fill(255, 0, 255); textStyle(BOLD); textAlign(LEFT);
     text('한 줄 설명 (선택)', popX + 28, popY + 176);
 
     // 비즈 식물 컨셉 라벨
-    fill(60, 60, 200); textStyle(BOLD);
+    fill(255, 0, 255); textStyle(BOLD);
     text('비즈 식물 컨셉', popX + 28, popY + 258);
     fill(120); textStyle(NORMAL); textSize(12);
     text('줄기에 꿰어질 비즈와 화분의 디자인을 결정해요.', popX + 28, popY + 276);
@@ -199,9 +199,9 @@ class PotSetupUI {
       let isSelected = (this.selectedConcept === i);
 
       // 카드 테두리
-      fill(isSelected ? color(230, 232, 255) : 245);
-      stroke(isSelected ? color(60, 60, 220) : 210);
-      strokeWeight(isSelected ? 2 : 1);
+      fill(245);
+      stroke(isSelected ? color(255, 0, 255) : 210);
+      strokeWeight(isSelected ? 2.5 : 1);
       rect(cx, cardY, cardW, cardH, 8);
 
       // 컨셉 이미지 (클리핑)
@@ -219,13 +219,13 @@ class PotSetupUI {
 
       // 선택된 카드 반투명 오버레이
       if (isSelected) {
-        fill(60, 60, 220, 35); noStroke();
+        fill(255, 0, 255, 25); noStroke();
         rect(cx, cardY, cardW, cardH, 8);
       }
 
       // 체크 표시
       if (isSelected) {
-        fill(60, 60, 220); noStroke();
+        fill(255, 0, 255); noStroke();
         rect(cx + cardW - 26, cardY + 8, 18, 18, 4);
         fill(255); textSize(11); textAlign(CENTER, CENTER);
         text('✓', cx + cardW - 17, cardY + 17);
@@ -233,7 +233,7 @@ class PotSetupUI {
 
       // 카드 라벨
       noStroke();
-      fill(isSelected ? color(60, 60, 200) : 100);
+      fill(isSelected ? color(255, 0, 255) : 100);
       textSize(12);
       textStyle(isSelected ? BOLD : NORMAL);
       textAlign(CENTER);
@@ -257,7 +257,7 @@ class PotSetupUI {
     let confirmX = popX + 196, confirmY = popY + 464;
     let canConfirm = this.nameInput && this.nameInput.value().trim().length > 0;
     let confirmHov = canConfirm && isHovered(confirmX, confirmY, 296, 48);
-    fill(canConfirm ? (confirmHov ? color(40, 40, 200) : color(60, 60, 220)) : 160); noStroke();
+    fill(canConfirm ? (confirmHov ? color(180, 0, 180) : color(255, 0, 255)) : 160); noStroke();
     rect(confirmX, confirmY, 296, 48, 24);
     fill(255); textSize(15); textStyle(NORMAL);
     textAlign(CENTER, CENTER);
