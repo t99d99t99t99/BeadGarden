@@ -38,7 +38,7 @@ class GardenUI {
 
   // ── 화분 카드 (박스 없이 떠 있는 형태) ──────────────────────────────────────
   drawCard(pot, x) {
-    const potBaseY = pot.cardY ?? height * 0.55;
+    const potBaseY = constrain(pot.cardY ?? height * 0.55, height * 0.35, height * 0.72);
     const cx       = x + this.cardW / 2;
     const isHov    = (this.hoveredPot === pot);
 
@@ -231,7 +231,7 @@ class GardenUI {
     for (let i = 0; i < this.pots.length; i++) {
       const pot      = this.pots[i];
       const x        = this._cardX(i);
-      const potBaseY = pot.cardY ?? height * 0.55;
+      const potBaseY = constrain(pot.cardY ?? height * 0.55, height * 0.35, height * 0.72);
 
       if (x + this.cardW < 40 || x > width - 40) continue;
 
@@ -350,7 +350,7 @@ class GardenUI {
         const pot      = this.pots[i];
         const x        = this._cardX(i);
         const cx       = x + this.cardW / 2;
-        const potBaseY = pot.cardY ?? height * 0.55;
+        const potBaseY = constrain(pot.cardY ?? height * 0.55, height * 0.35, height * 0.72);
         if (mouseX > cx - 70 && mouseX < cx + 70 &&
             mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
           potSetupUI.hide();
