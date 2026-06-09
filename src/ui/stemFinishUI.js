@@ -167,14 +167,16 @@ class StemFinishUI {
     // ── 내 화분에서 새로운 줄기 만들기 버튼 ──
     let btn1X = popX + 20, btn1Y = popY + 278;
     let btn1W = popW - 40, btn1H = 52;
-    fill(30); noStroke();
+    let btn1Hov = isHovered(btn1X, btn1Y, btn1W, btn1H);
+    fill(btn1Hov ? color(180, 0, 180) : color(255, 0, 255)); noStroke();
     rect(btn1X, btn1Y, btn1W, btn1H, 26);
     fill(255); textSize(15); textStyle(BOLD);
     textAlign(CENTER, CENTER);
     text('내 화분에서 새로운 줄기 만들기', btn1X + btn1W / 2, btn1Y + btn1H / 2);
     if (isClicked(btn1X, btn1Y, btn1W, btn1H)) {
+      const pot = stemBeadCraftUI.currentPot ?? potDetailUI.pot;
       this.hide();
-      startStemCraftForPot(potDetailUI.pot);
+      startStemCraftForPot(pot);
     }
 
     // ── 비즈 가든으로 가기 버튼 ──
@@ -190,5 +192,7 @@ class StemFinishUI {
       potDetailUI.hide();  // 팝업 닫고 가든 카드가 보이도록
       goTo(GARDEN);
     }
+
+    if (btn1Hov || isHovered(btn2X, btn2Y, btn2W, btn2H)) cursor(HAND); else cursor(ARROW);
   }
 }
