@@ -142,7 +142,7 @@ class GardenUI {
       const angleRad  = radians(angleDeg);
       const tx        = bx + sin(angleRad) * stemLen;
       const ty        = baseY - cos(angleRad) * stemLen;
-      const col       = (stem.stemColor !== undefined) ? STEM_COLORS[stem.stemColor] : '#AAAAAA';
+      const col       = getStemColor(pot, stem.stemColor);
       const pts       = this._stemPoints(bx, baseY, tx, ty, shapeIdx);
 
       // 줄기 선 그리기
