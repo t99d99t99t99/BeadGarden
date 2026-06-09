@@ -38,7 +38,7 @@ const POT_ATLAS = Object.freeze([
   potAtlasEntry('ceramicBlack', POT_THEMES.OCEAN, 1367, 1038, 163, 244, true),
   potAtlasEntry('ceramicGreen', POT_THEMES.OCEAN, 1583, 1107, 253, 175),
   potAtlasEntry('ceramicBlue', POT_THEMES.OCEAN, 1889, 1107, 253, 175),
-  potAtlasEntry('whale', POT_THEMES.OCEAN, 2196, 1055, 337, 227, false, 0.25),
+  potAtlasEntry('whale', POT_THEMES.OCEAN, 2196, 1055, 337, 227, false, 0.5),
 ]);
 
 const POT_ASSETS_BY_THEME = Object.freeze({
