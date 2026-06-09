@@ -21,6 +21,11 @@ class GardenUI {
     for (const [key, path] of Object.entries(decoList)) {
       loadImage(path, img => { this.decoImgs[key] = img; }, () => {});
     }
+
+    // 배경 이미지
+    this.bgImg = null;
+    loadImage('assets/garden_bg.png', img => { this.bgImg = img; }, () => {});
+
   }
 
   // 카드 x 위치
@@ -199,13 +204,12 @@ class GardenUI {
 
   // ── 전체 draw ─────────────────────────────────────────────────────────────────
   draw() {
-    // ── 배경: 초록 그라데이션 (밝은 중앙 → 살짝 어두운 가장자리) ──
-    background(220, 232, 210);
-    noStroke();
-    for (let i = 12; i >= 1; i--) {
-      let alpha = map(i, 12, 1, 3, 28);
-      fill(240, 248, 230, alpha);
-      ellipse(width / 2, height * 0.46, width * 0.9 * (i / 12), height * 0.9 * (i / 12));
+    // ── 배경 이미지 ──
+    if (this.bgImg) {
+      imageMode(CORNER);
+      image(this.bgImg, 0, 0, width, height);
+    } else {
+      background(220, 232, 210);
     }
 
     // ── 헤더 ──
