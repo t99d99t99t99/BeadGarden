@@ -39,7 +39,8 @@ class PotDetailUI {
     let potMaxHeight = 100;
     let potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
     let renderedPotHeight = potSize.height || 70;
-    let baseY = y + h - 14 - renderedPotHeight;
+    let stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
+    let baseY = y + h - 14 - renderedPotHeight + stemYOffset;
     let hasStem = this.pot.stems && this.pot.stems.length > 0;
 
     if (!drawPotAsset(

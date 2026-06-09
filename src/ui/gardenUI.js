@@ -47,14 +47,16 @@ class GardenUI {
     const cx       = x + this.cardW / 2;
     const isHov    = (this.hoveredPot === pot);
 
-    // 줄기 + 화분 그리기
-    this._drawStems(cx, potBaseY, pot);
-    this._drawPotImage(cx, potBaseY, pot);
-
     // 화분 이미지 실제 높이 계산
     const potW    = this.cardW * 0.5;
     const asset   = getPotAssetForPot(pot);
     const potSize = getPotAssetDrawSize(asset, potW, potW);
+    const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
+    const stemBaseY = potBaseY + stemYOffset;
+
+    // 줄기 + 화분 그리기
+    this._drawStems(cx, stemBaseY, pot);
+    this._drawPotImage(cx, potBaseY, pot);
     const potBottom = potBaseY + potSize.height + 10; // 화분 하단 + 여백
 
     // 호버 시 글로우 효과
