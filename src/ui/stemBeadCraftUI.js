@@ -4,6 +4,12 @@ class StemBeadCraftUI {
     this.currentPot = null;
     this.minBeads = 10;
     this.newBeadButtonWasPressed = false;
+
+    // 테마별 배경 이미지 로드
+    this.bgImgs = {};
+    loadImage('assets/stemBeadCraft_plant_bg.png', img => { this.bgImgs[POT_THEMES.PLANT] = img; }, () => {});
+    loadImage('assets/stemBeadCraft_star_bg.png',  img => { this.bgImgs[POT_THEMES.STAR]  = img; }, () => {});
+    loadImage('assets/stemBeadCraft_ocean_bg.png', img => { this.bgImgs[POT_THEMES.OCEAN] = img; }, () => {});
   }
 
   setPalette(colors) {
@@ -294,7 +300,14 @@ class StemBeadCraftUI {
   }
 
   draw() {
-    background(255);
+    const theme = normalizePotTheme(this.currentPot);
+    const bgImg = this.bgImgs[theme];
+    if (bgImg) {
+      imageMode(CORNER);
+      image(bgImg, 0, 0, width, height);
+    } else {
+      background(255);
+    }
 
     // beadGame: 비즈 배치, 철사, 손가락 표시기 전부 여기서 그려줌
     if (typeof beadGame !== 'undefined') {
