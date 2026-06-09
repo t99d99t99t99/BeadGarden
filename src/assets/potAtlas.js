@@ -3,12 +3,13 @@ const POT_ATLAS_VERSION = 1;
 let potSpriteSheet = null;
 const potAssetImages = {};
 
-function potAtlasEntry(id, theme, x, y, w, h, tintable = false) {
+function potAtlasEntry(id, theme, x, y, w, h, tintable = false, stemYRatio = 0) {
   return Object.freeze({
     id,
     theme,
     source: Object.freeze({ x, y, w, h }),
     tintable,
+    stemYRatio, // 0 = 이미지 최상단, 0.3 = 이미지 높이의 30% 아래에서 줄기 시작
   });
 }
 
@@ -37,7 +38,7 @@ const POT_ATLAS = Object.freeze([
   potAtlasEntry('ceramicBlack', POT_THEMES.OCEAN, 1367, 1038, 163, 244, true),
   potAtlasEntry('ceramicGreen', POT_THEMES.OCEAN, 1583, 1107, 253, 175),
   potAtlasEntry('ceramicBlue', POT_THEMES.OCEAN, 1889, 1107, 253, 175),
-  potAtlasEntry('whale', POT_THEMES.OCEAN, 2196, 1055, 337, 227),
+  potAtlasEntry('whale', POT_THEMES.OCEAN, 2196, 1055, 337, 227, false, 0.25),
 ]);
 
 const POT_ASSETS_BY_THEME = Object.freeze({

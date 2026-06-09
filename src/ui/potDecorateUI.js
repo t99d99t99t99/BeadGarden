@@ -795,13 +795,14 @@ class PotDecorateUI {
     const potMaxHeight = 190;
     const potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
     const bottomMargin = 45;
+    const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
     return {
       asset,
       potMaxWidth,
       potMaxHeight,
       potSize,
       cx: x + w / 2,
-      baseY: y + h - bottomMargin - potSize.height,
+      baseY: y + h - bottomMargin - potSize.height + stemYOffset,
     };
   }
 
