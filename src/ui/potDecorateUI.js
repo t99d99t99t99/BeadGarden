@@ -17,7 +17,7 @@ class PotDecorateUI {
 
     // 줄기 세부 설정
     this.selectedStemIndex = -1; // -1 = 선택 안 됨
-    this.stemColors = ['#222222', '#FFFFFF', '#1A7A1A', '#66FF44'];
+    this.stemColors = ['#222222', '#FFFFFF', '#1A7A1A', '#66FF44', '#AAAAAA'];
     this.stemShapes = ['직선형', '곡선형', '지그재그형', '물결형'];
     this.selectedStemColor = 0;
     this.selectedStemShape = 0;
@@ -53,6 +53,16 @@ class PotDecorateUI {
       theme = themeForConcept(pot?.concept);
     }
     this.availablePots = getPotAssetsForTheme(theme).map((asset) => asset.id);
+
+    // 테마별 줄기 색상 팔레트
+    if (theme === POT_THEMES.OCEAN) {
+      this.stemColors = ['#222222', '#FFFFFF', '#1B3FA0', '#7BE8F5', '#AAAAAA'];
+    } else if (theme === POT_THEMES.STAR) {
+      this.stemColors = ['#222222', '#FFFFFF', '#CC00CC', '#00CCBB', '#AAAAAA'];
+    } else {
+      // PLANT (기본)
+      this.stemColors = ['#222222', '#FFFFFF', '#1A7A1A', '#66FF44', '#AAAAAA'];
+    }
 
     if (mode === 'new') {
       this.selectedPotAsset = 0;
@@ -401,7 +411,7 @@ class PotDecorateUI {
       let cy = y + 12;
       fill(colors[i]);
       if (i === selected) {
-        stroke(30); strokeWeight(2.5);
+        stroke(47, 134, 255); strokeWeight(2.5);
       } else {
         stroke(200); strokeWeight(1);
       }
