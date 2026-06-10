@@ -44,6 +44,8 @@ class BeadGame {
         this.paletteColors = [];
         this.theme = POT_THEMES.LEGACY;
         this.beadSpawnCount = 50;
+        this.beadSpawnGap = 12;
+        this.beadSpawnAttempts = 120;
         this.nextPierceOrder = 0;
 
     }
@@ -78,10 +80,6 @@ class BeadGame {
 
 
     display() {
-        for (let bead of this.beads) {
-            bead.displayHole();
-        }
-
         for (let wire of this.wires) {
             wire.display();
         }
@@ -144,10 +142,7 @@ class BeadGame {
                 assetId: bead.assetId,
                 color: bead.color,
                 w: bead.w,
-                h: bead.h,
-                holeH: bead.holeH,
-                partH: bead.partH,
-                partOffset: bead.partOffset
+                h: bead.h
             }));
     }
 
@@ -194,18 +189,27 @@ class BeadGame {
 
         for (let i = 0; i < count; ++i) {
             let beadAsset = this.#randomBeadAsset();
+            if (beadAsset) {
+                getBeadAtlasSprite(beadAsset);
+            }
             let beadWidth = beadAsset?.gameplayWidth ?? 12;
             let beadHeight = beadAsset?.gameplayHeight ?? 12;
             let beadColor = beadAsset ? null : this.#randomBeadColor();
             let horizontalMargin = wire.safeMargin + 40 + beadWidth / 2;
             let verticalMargin = wire.safeMargin + 40 + beadHeight / 2;
             let maxY = Math.max(verticalMargin, wire.reachableHeldEndMaxY());
-            let x = random(horizontalMargin, width - horizontalMargin);
-            let y = random(verticalMargin, maxY);
+            let position = this.#separatedSpawnPosition(
+                horizontalMargin,
+                width - horizontalMargin,
+                verticalMargin,
+                maxY,
+                beadWidth,
+                beadHeight
+            );
 
             this.beads.push(new Bead(
-                x,
-                y,
+                position.x,
+                position.y,
                 beadWidth,
                 beadHeight,
                 beadColor,
@@ -345,14 +349,29 @@ class BeadGame {
             return;
         }
 
-        let minSpacingT = this.#beadSpacingT(wire, piercedBeads);
         let minT = 0.001;
         let maxT = 0.999;
+        let pairSpacing = [];
+        for (let i = 1; i < piercedBeads.length; ++i) {
+            pairSpacing.push(
+                this.#beadPairSpacingT(wire, piercedBeads[i - 1], piercedBeads[i])
+            );
+        }
+
+        let spacingBefore = [0];
+        for (let spacing of pairSpacing) {
+            spacingBefore.push(spacingBefore[spacingBefore.length - 1] + spacing);
+        }
+
+        let spacingAfter = new Array(piercedBeads.length).fill(0);
+        for (let i = piercedBeads.length - 2; i >= 0; --i) {
+            spacingAfter[i] = spacingAfter[i + 1] + pairSpacing[i];
+        }
 
         for (let i = 0; i < piercedBeads.length; ++i) {
             let bead = piercedBeads[i];
-            let slotMin = minT + minSpacingT * i;
-            let slotMax = maxT - minSpacingT * (piercedBeads.length - 1 - i);
+            let slotMin = minT + spacingBefore[i];
+            let slotMax = maxT - spacingAfter[i];
 
             bead.setWireTRange(slotMin, slotMax);
             bead.wireT = this.#clamp(bead.wireT, slotMin, slotMax);
@@ -361,14 +380,14 @@ class BeadGame {
         for (let i = 1; i < piercedBeads.length; ++i) {
             piercedBeads[i].wireT = Math.max(
                 piercedBeads[i].wireT,
-                piercedBeads[i - 1].wireT + minSpacingT
+                piercedBeads[i - 1].wireT + pairSpacing[i - 1]
             );
         }
 
         for (let i = piercedBeads.length - 2; i >= 0; --i) {
             piercedBeads[i].wireT = Math.min(
                 piercedBeads[i].wireT,
-                piercedBeads[i + 1].wireT - minSpacingT
+                piercedBeads[i + 1].wireT - pairSpacing[i]
             );
         }
 
@@ -380,17 +399,16 @@ class BeadGame {
 
     /**
      * @param {Wire} wire
-     * @param {Bead[]} beads
+     * @param {Bead} first
+     * @param {Bead} second
      * @returns {Number}
      */
-    #beadSpacingT(wire, beads) {
-        let maxBeadSize = 1;
-        for (let bead of beads) {
-            maxBeadSize = Math.max(maxBeadSize, bead.w, bead.h);
-        }
-
+    #beadPairSpacingT(wire, first, second) {
         let wireLength = typeof wire.wireLength === "number" && wire.wireLength > 0 ? wire.wireLength : 760;
-        return Math.min(0.08, maxBeadSize * 1.15 / wireLength);
+        let firstWidth = first.collisionWidth ?? first.w;
+        let secondWidth = second.collisionWidth ?? second.w;
+        let requiredDistance = (firstWidth + secondWidth) / 2 + 0.5;
+        return Math.min(0.08, requiredDistance / wireLength);
     }
 
     /**
@@ -422,6 +440,64 @@ class BeadGame {
 
         let pool = getBeadAtlasPool(this.theme);
         return pool.length > 0 ? random(pool) : null;
+    }
+
+    /**
+     * @param {Number} minX
+     * @param {Number} maxX
+     * @param {Number} minY
+     * @param {Number} maxY
+     * @param {Number} beadWidth
+     * @param {Number} beadHeight
+     * @returns {Matter.Vector}
+     */
+    #separatedSpawnPosition(minX, maxX, minY, maxY, beadWidth, beadHeight) {
+        let bestPosition = { x: random(minX, maxX), y: random(minY, maxY) };
+        let bestClearance = -Infinity;
+
+        for (let attempt = 0; attempt < this.beadSpawnAttempts; ++attempt) {
+            let candidate = {
+                x: random(minX, maxX),
+                y: random(minY, maxY)
+            };
+            let clearance = this.#spawnClearance(candidate, beadWidth, beadHeight);
+            if (clearance >= this.beadSpawnGap) {
+                return candidate;
+            }
+            if (clearance > bestClearance) {
+                bestClearance = clearance;
+                bestPosition = candidate;
+            }
+        }
+
+        return bestPosition;
+    }
+
+    /**
+     * @param {Matter.Vector} candidate
+     * @param {Number} beadWidth
+     * @param {Number} beadHeight
+     * @returns {Number}
+     */
+    #spawnClearance(candidate, beadWidth, beadHeight) {
+        if (this.beads.length === 0) {
+            return Infinity;
+        }
+
+        let minimumClearance = Infinity;
+        for (let bead of this.beads) {
+            let horizontalGap = Math.abs(candidate.x - bead.body.position.x)
+                - (beadWidth + bead.w) / 2;
+            let verticalGap = Math.abs(candidate.y - bead.body.position.y)
+                - (beadHeight + bead.h) / 2;
+
+            // Rectangles are separated when either axis has enough clearance.
+            minimumClearance = Math.min(
+                minimumClearance,
+                Math.max(horizontalGap, verticalGap)
+            );
+        }
+        return minimumClearance;
     }
 
     /**

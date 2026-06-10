@@ -1,2 +1,3 @@
-- `assets/ocean/`, `assets/plant/`, `assets/pots/` and `assets/star/` contains the image as a single file for each bead. Directly using them may cause performance issues.
-- If you need a single sprite image, use sprite sheet files like `assets/beads.png`, `assets/holes.png`, `assets/pots.png` instead.
+- `assets/ocean/`, `assets/plant/`, and `assets/star/` contain the source image for each bead.
+- Gameplay uses the original high-resolution `assets/beads.png` sprite sheet. Rebuild its complete crop manifest with `python3 src/tools/buildBeadAtlas.py`.
+- Pot rendering uses `assets/pots.png`.

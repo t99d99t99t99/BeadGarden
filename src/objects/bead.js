@@ -22,7 +22,7 @@ class Bead {
         /** @type {Number} */
         this.h = asset?.gameplayHeight ?? _h;
         /** @type {Number} */
-        this.holeH = Math.min(this.h * 0.6, asset?.holeHeight ?? 10);
+        this.holeH = 10;
         /** @type {Number} */
         this.partH = (this.h - this.holeH) / 2;
         /** @type {Number} */
@@ -46,12 +46,29 @@ class Bead {
         /** @type {{min: Number, max: Number}} */
         this.wireTRange = { min: 0.001, max: 0.999 };
 
-        let part1 = Matter.Bodies.rectangle(_x, _y - this.partOffset, this.w, this.partH);
-        let part2 = Matter.Bodies.rectangle(_x, _y + this.partOffset, this.w, this.partH);
+        let collisionWidth = asset?.collisionWidth ?? this.w;
+        let collisionHeight = asset?.collisionHeight ?? this.h;
+        /** @type {Number} */
+        this.collisionWidth = collisionWidth;
+        /** @type {Number} */
+        this.collisionHeight = collisionHeight;
+        this.holeH = 10;
+        this.partH = Math.max(1, (collisionHeight - this.holeH) / 2);
+        this.partOffset = (this.partH + this.holeH) / 2;
 
-        this.body = Matter.Body.create({
-            parts: [part1, part2]
-        });
+        let part1 = Matter.Bodies.rectangle(
+            _x,
+            _y - this.partOffset,
+            collisionWidth,
+            this.partH
+        );
+        let part2 = Matter.Bodies.rectangle(
+            _x,
+            _y + this.partOffset,
+            collisionWidth,
+            this.partH
+        );
+        this.body = Matter.Body.create({ parts: [part1, part2] });
 
         this.body.friction = 0.001;
         this.#clampUnpiercedPosition();
@@ -96,44 +113,17 @@ class Bead {
     /**
      * @returns {void}
      */
-    displayHole() {
-        if (this.asset) {
-            drawBeadAtlasLayer(
-                this.asset,
-                'hole',
-                this.body.position.x,
-                this.body.position.y,
-                this.w,
-                this.h,
-                this.body.angle
-            );
-            return;
-        }
-
-        push();
-        translate(this.body.position.x, this.body.position.y);
-        rotate(this.body.angle);
-        noStroke();
-        rectMode(CENTER);
-        let c = color(red(this.color) * 0.55, green(this.color) * 0.55, blue(this.color) * 0.55, 220);
-        fill(c);
-        rect(0, 0, this.w, this.holeH);
-        pop();
-    }
-
-    /**
-     * @returns {void}
-     */
     displayBody() {
         if (this.asset) {
-            drawBeadAtlasLayer(
+            drawBeadAtlas(
                 this.asset,
-                'body',
                 this.body.position.x,
                 this.body.position.y,
                 this.w,
                 this.h,
-                this.body.angle
+                this.body.angle,
+                this.asset.renderOffsetX,
+                this.asset.renderOffsetY
             );
             return;
         }
@@ -144,8 +134,7 @@ class Bead {
         noStroke();
         rectMode(CENTER);
         fill(this.color);
-        rect(0, -this.partOffset, this.w, this.partH);
-        rect(0, this.partOffset, this.w, this.partH);
+        rect(0, 0, this.w, this.h);
         pop();
     }
 
@@ -153,7 +142,6 @@ class Bead {
      * @returns {void}
      */
     display() {
-        this.displayHole();
         this.displayBody();
     }
 

@@ -156,25 +156,31 @@ class GardenUI {
       // 비즈 그리기
       const beads = stem.beads ?? [];
       const count = beads.length > 0 ? beads.length : 4;
+      const placements = beadPathPlacements(pts, beads, count, 14);
       for (let j = 0; j < count; j++) {
-        const t   = (j + 1) / (count + 1);
-        const idx = constrain(floor(t * (pts.length - 1)), 0, pts.length - 2);
-        const bpx = lerp(pts[idx].x, pts[idx+1].x, t * (pts.length-1) - idx);
-        const bpy = lerp(pts[idx].y, pts[idx+1].y, t * (pts.length-1) - idx);
-        const tangentAngle = atan2(pts[idx+1].y - pts[idx].y, pts[idx+1].x - pts[idx].x);
-
+        const placement = placements[j];
         const bead  = beads[j];
         const asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
         const img   = bead?.beadId  ? beadImages[bead.beadId] : null;
         if (asset) {
-          const beadH = 14, beadW = beadH * asset.source.w / asset.source.h;
-          drawBeadAtlasLayer(asset, 'hole', bpx, bpy, beadW, beadH, tangentAngle);
-          drawBeadAtlasLayer(asset, 'body', bpx, bpy, beadW, beadH, tangentAngle);
+          drawBeadAtlas(
+            asset,
+            placement.x,
+            placement.y,
+            placement.width,
+            placement.height,
+            placement.angle
+          );
         } else if (img) {
-          imageMode(CENTER); image(img, bpx, bpy, 14, 14); imageMode(CORNER);
+          push();
+          translate(placement.x, placement.y);
+          rotate(placement.angle);
+          imageMode(CENTER);
+          image(img, 0, 0, placement.width, placement.height);
+          pop();
         } else {
           noStroke(); fill(bead?.color ?? color(190, 185, 200));
-          ellipse(bpx, bpy, 13 - j * 1.5);
+          ellipse(placement.x, placement.y, placement.height);
         }
       }
     }

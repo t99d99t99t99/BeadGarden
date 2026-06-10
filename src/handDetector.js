@@ -15,7 +15,21 @@ class HandDetector {
         this.minimumPinchThreshold = 10;
         this.maximumPinchThreshold = 96;
         this.fallbackPinchThreshold = 34;
-        this.inferenceWidth = 640;
+        this.inferenceWidth = 320;
+        this.trackedTips = {
+            thumb: this.#emptyTrackedPoint(),
+            indexFinger: this.#emptyTrackedPoint()
+        };
+        this.lastTrackingFrame = -1;
+        this.trackingResponse = 0.72;
+        this.maximumPredictionMs = 120;
+        this.snapshotFrame = -1;
+        this.snapshot = {
+            thumb: null,
+            index: null,
+            pointer: null,
+            pinched: false
+        };
     }
 
     /**
@@ -55,6 +69,7 @@ class HandDetector {
                     this.loading = false;
                     this.handPose.detectStart(this.video, (results) => {
                         this.hands = results || [];
+                        this.#recordInferenceResult();
                     });
                 })
                 .catch((error) => {
@@ -87,40 +102,35 @@ class HandDetector {
         this.ready = false;
         this.started = false;
         this.loading = false;
+        this.trackedTips = {
+            thumb: this.#emptyTrackedPoint(),
+            indexFinger: this.#emptyTrackedPoint()
+        };
+        this.lastTrackingFrame = -1;
+        this.snapshotFrame = -1;
     }
 
     /**
      * @returns {Matter.Vector | null}
      */
     thumbPosition() {
-        // 엄지 위치
-        this.#ensureStarted();
-        return this.#tipPosition("thumb");
+        let snapshot = this.#frameSnapshot();
+        return snapshot.thumb ? { ...snapshot.thumb } : null;
     }
 
     /**
      * @returns {Matter.Vector | null}
      */
     gumjiPosition() {
-        // 검지 위치
-        this.#ensureStarted();
-        return this.#tipPosition("indexFinger");
+        let snapshot = this.#frameSnapshot();
+        return snapshot.index ? { ...snapshot.index } : null;
     }
 
     /**
      * @returns {boolean}
      */
     pinched() {
-        // 엄지와 검지가 맞닿아 있는지를 반환
-        this.#ensureStarted();
-
-        let thumb = this.thumbPosition();
-        let index = this.gumjiPosition();
-        if (!thumb || !index) {
-            return false;
-        }
-
-        return this.#distance(thumb, index) <= this.#dynamicPinchThreshold();
+        return this.#frameSnapshot().pinched;
     }
 
     /**
@@ -134,19 +144,8 @@ class HandDetector {
      * @returns {Matter.Vector | null}
      */
     pointerPosition() {
-        // 엄지 위치와 검지 위치의 중간점을 반환
-        this.#ensureStarted();
-
-        let thumb = this.thumbPosition();
-        let index = this.gumjiPosition();
-        if (!thumb || !index) {
-            return null;
-        }
-
-        return {
-            x: (thumb.x + index.x) / 2,
-            y: (thumb.y + index.y) / 2
-        };
+        let pointer = this.#frameSnapshot().pointer;
+        return pointer ? { ...pointer } : null;
     }
 
     /**
@@ -169,12 +168,45 @@ class HandDetector {
      * @param {"thumb" | "indexFinger"} finger
      * @returns {Matter.Vector | null}
      */
-    #tipPosition(finger) {
-        let hand = this.#currentHand();
-        if (!hand) {
-            return null;
+    #frameSnapshot() {
+        this.#ensureStarted();
+        let currentFrame = typeof frameCount === "number"
+            ? frameCount
+            : Math.floor(performance.now() / 16);
+        if (currentFrame === this.snapshotFrame) {
+            return this.snapshot;
         }
 
+        this.snapshotFrame = currentFrame;
+        this.#advanceTrackedTips();
+        let thumb = this.trackedTips.thumb.display;
+        let index = this.trackedTips.indexFinger.display;
+        let pointer = thumb && index
+            ? {
+                x: (thumb.x + index.x) / 2,
+                y: (thumb.y + index.y) / 2
+            }
+            : null;
+        this.snapshot = {
+            thumb: thumb ? { ...thumb } : null,
+            index: index ? { ...index } : null,
+            pointer,
+            pinched: Boolean(
+                thumb &&
+                index &&
+                this.#distance(thumb, index) <= this.#dynamicPinchThreshold()
+            )
+        };
+        return this.snapshot;
+    }
+
+    /**
+     * @param {"thumb" | "indexFinger"} finger
+     * @returns {Matter.Vector | null}
+     */
+    #rawTipPosition(finger) {
+        let hand = this.#currentHand();
+        if (!hand) return null;
         let point = null;
         if (finger === "thumb") {
             point = hand.thumb_tip ||
@@ -189,6 +221,74 @@ class HandDetector {
         }
 
         return this.#toCanvasPoint(point);
+    }
+
+    /**
+     * @returns {{display: Matter.Vector | null, target: Matter.Vector | null, velocity: Matter.Vector, updatedAt: Number}}
+     */
+    #emptyTrackedPoint() {
+        return {
+            display: null,
+            target: null,
+            velocity: { x: 0, y: 0 },
+            updatedAt: 0
+        };
+    }
+
+    /**
+     * @returns {void}
+     */
+    #recordInferenceResult() {
+        let now = performance.now();
+        for (let finger of ["thumb", "indexFinger"]) {
+            let position = this.#rawTipPosition(finger);
+            let tracked = this.trackedTips[finger];
+            if (!position) {
+                tracked.target = null;
+                tracked.display = null;
+                tracked.velocity = { x: 0, y: 0 };
+                tracked.updatedAt = now;
+                continue;
+            }
+
+            if (tracked.target && tracked.updatedAt > 0) {
+                let elapsed = Math.max(1, now - tracked.updatedAt);
+                tracked.velocity = {
+                    x: (position.x - tracked.target.x) / elapsed,
+                    y: (position.y - tracked.target.y) / elapsed
+                };
+            }
+            tracked.target = position;
+            tracked.display = tracked.display || { ...position };
+            tracked.updatedAt = now;
+        }
+    }
+
+    /**
+     * @returns {void}
+     */
+    #advanceTrackedTips() {
+        let currentFrame = typeof frameCount === "number"
+            ? frameCount
+            : Math.floor(performance.now() / 16);
+        if (currentFrame === this.lastTrackingFrame) return;
+        this.lastTrackingFrame = currentFrame;
+
+        let now = performance.now();
+        for (let tracked of Object.values(this.trackedTips)) {
+            if (!tracked.target || !tracked.display) continue;
+
+            let predictionMs = Math.min(
+                this.maximumPredictionMs,
+                Math.max(0, now - tracked.updatedAt)
+            );
+            let predicted = {
+                x: tracked.target.x + tracked.velocity.x * predictionMs,
+                y: tracked.target.y + tracked.velocity.y * predictionMs
+            };
+            tracked.display.x += (predicted.x - tracked.display.x) * this.trackingResponse;
+            tracked.display.y += (predicted.y - tracked.display.y) * this.trackingResponse;
+        }
     }
 
     /**

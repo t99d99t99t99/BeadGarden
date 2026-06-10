@@ -75,22 +75,6 @@ class StemFinishUI {
     let ex = x + w * 0.85, ey = y + h * 0.88;
     let count = this.beads.length > 0 ? this.beads.length : max(this.beadCount, 8);
 
-    for (let i = 0; i < count; i++) {
-      let bead = this.beads[i];
-      if (!bead?.assetId) continue;
-
-      let asset = getBeadAtlasEntry(bead.assetId);
-      if (!asset) continue;
-
-      let t = i / Math.max(1, count - 1);
-      let bx = lerp(sx, ex, t);
-      let by = lerp(sy, ey, t);
-      let beadH = map(t, 0, 1, 18, 10);
-      let beadW = beadH * asset.source.w / asset.source.h;
-      let angle = atan2(ey - sy, ex - sx);
-      drawBeadAtlasLayer(asset, 'hole', bx, by, beadW, beadH, angle);
-    }
-
     stroke(100); strokeWeight(2);
     line(sx, sy, ex, ey);
 
@@ -106,7 +90,7 @@ class StemFinishUI {
           let beadH = map(t, 0, 1, 18, 10);
           let beadW = beadH * asset.source.w / asset.source.h;
           let angle = atan2(ey - sy, ex - sx);
-          drawBeadAtlasLayer(asset, 'body', bx, by, beadW, beadH, angle);
+          drawBeadAtlas(asset, bx, by, beadW, beadH, angle);
           continue;
         }
       }
