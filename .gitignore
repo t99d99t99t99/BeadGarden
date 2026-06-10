@@ -3,7 +3,6 @@
 
 node_modules/
 
-# Firebase Admin service-account credentials
 **/*firebase-adminsdk*.json
 
 .bkit/
