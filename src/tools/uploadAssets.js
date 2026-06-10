@@ -9,7 +9,7 @@ const admin = require('firebase-admin');
 const fs    = require('fs');
 const path  = require('path');
 
-const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'beadgarden-51b72-firebase-adminsdk-fbsvc-6ba2924bff.json');
+const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'beadgardenv2-70a63f21b602.json');
 const ASSET_DIR = path.join(__dirname, '../../assets');
 
 admin.initializeApp({
