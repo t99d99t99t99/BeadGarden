@@ -39,17 +39,11 @@ class StemFinishUI {
       baseOffset: savedOffset,
     };
 
-    // 로컬 pot 객체에 반영
-    if (pot) {
-      pot.stems = pot.stems ?? [];
-      pot.stems.push(stemData);
-
-      // Firestore에 줄기 추가
-      if (pot.firestoreId) {
-        addStemToPot(pot.firestoreId, stemData)
-          .then(() => console.log('[Firestore] 줄기 저장 완료:', stemIndex + 1, '번째 줄기'))
-          .catch(err => console.error('[Firestore] 줄기 저장 오류:', err));
-      }
+    // Firestore에 줄기 추가 (리스너가 gardenUI.pots를 자동 갱신)
+    if (pot?.firestoreId) {
+      addStemToPot(pot.firestoreId, stemData)
+        .then(() => console.log('[Firestore] 줄기 저장 완료:', stemIndex + 1, '번째 줄기'))
+        .catch(err => console.error('[Firestore] 줄기 저장 오류:', err));
     }
   }
 
