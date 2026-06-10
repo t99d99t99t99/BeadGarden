@@ -15,6 +15,11 @@ class HandDetector {
         this.minimumPinchThreshold = 10;
         this.maximumPinchThreshold = 96;
         this.fallbackPinchThreshold = 34;
+        this.pinchCloseAngle = 18;
+        this.pinchOpenAngle = 32;
+        this.pinchReleaseDistanceMultiplier = 1.35;
+        this.pinchState = false;
+        this.previousPinchAngle = 90;
         this.inferenceWidth = 320;
         this.trackedTips = {
             thumb: this.#emptyTrackedPoint(),
@@ -108,6 +113,8 @@ class HandDetector {
         };
         this.lastTrackingFrame = -1;
         this.snapshotFrame = -1;
+        this.pinchState = false;
+        this.previousPinchAngle = 90;
     }
 
     /**
@@ -191,11 +198,7 @@ class HandDetector {
             thumb: thumb ? { ...thumb } : null,
             index: index ? { ...index } : null,
             pointer,
-            pinched: Boolean(
-                thumb &&
-                index &&
-                this.#distance(thumb, index) <= this.#dynamicPinchThreshold()
-            )
+            pinched: this.pinchState
         };
         return this.snapshot;
     }
@@ -262,6 +265,87 @@ class HandDetector {
             tracked.display = tracked.display || { ...position };
             tracked.updatedAt = now;
         }
+        this.#updatePinchState();
+    }
+
+    /**
+     * @returns {void}
+     */
+    #updatePinchState() {
+        let hand = this.#currentHand();
+        if (!hand) {
+            this.pinchState = false;
+            this.previousPinchAngle = 90;
+            return;
+        }
+
+        let thumbBase = this.#toCanvasPoint(this.#keypointByIndex(hand, 2));
+        let indexBase = this.#toCanvasPoint(this.#keypointByIndex(hand, 5));
+        let thumbTip = this.#rawTipPosition("thumb");
+        let indexTip = this.#rawTipPosition("indexFinger");
+        if (!thumbBase || !indexBase || !thumbTip || !indexTip) {
+            this.pinchState = false;
+            this.previousPinchAngle = 90;
+            return;
+        }
+
+        let pivot = {
+            x: (thumbBase.x + indexBase.x) / 2,
+            y: (thumbBase.y + indexBase.y) / 2
+        };
+        let angle = this.#angleBetweenRays(pivot, thumbTip, indexTip);
+        let tipDistance = this.#distance(thumbTip, indexTip);
+        let closeDistance = this.#dynamicPinchThreshold();
+        let releaseDistance = closeDistance * this.pinchReleaseDistanceMultiplier;
+
+        if (!this.pinchState) {
+            let crossedCloseAngle =
+                this.previousPinchAngle > this.pinchCloseAngle &&
+                angle <= this.pinchCloseAngle;
+            if (
+                (crossedCloseAngle || angle <= this.pinchCloseAngle) &&
+                tipDistance <= closeDistance
+            ) {
+                this.pinchState = true;
+            }
+        } else {
+            let crossedOpenAngle =
+                this.previousPinchAngle < this.pinchOpenAngle &&
+                angle >= this.pinchOpenAngle;
+            if (
+                crossedOpenAngle ||
+                angle >= this.pinchOpenAngle ||
+                tipDistance >= releaseDistance
+            ) {
+                this.pinchState = false;
+            }
+        }
+
+        this.previousPinchAngle = angle;
+    }
+
+    /**
+     * @param {Matter.Vector} pivot
+     * @param {Matter.Vector} first
+     * @param {Matter.Vector} second
+     * @returns {Number}
+     */
+    #angleBetweenRays(pivot, first, second) {
+        let firstX = first.x - pivot.x;
+        let firstY = first.y - pivot.y;
+        let secondX = second.x - pivot.x;
+        let secondY = second.y - pivot.y;
+        let firstLength = Math.sqrt(firstX * firstX + firstY * firstY);
+        let secondLength = Math.sqrt(secondX * secondX + secondY * secondY);
+        if (firstLength === 0 || secondLength === 0) {
+            return 90;
+        }
+
+        let cosine = (firstX * secondX + firstY * secondY)
+            / (firstLength * secondLength);
+        cosine = Math.max(-1, Math.min(1, cosine));
+        let angle = Math.acos(cosine) * 180 / Math.PI;
+        return angle > 90 ? 180 - angle : angle;
     }
 
     /**
