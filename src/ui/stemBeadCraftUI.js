@@ -56,13 +56,22 @@ class StemBeadCraftUI {
     return false;
   }
 
+  isWireFull() {
+    return typeof beadGame !== 'undefined' &&
+      typeof beadGame.isWireFull === 'function' &&
+      beadGame.isWireFull();
+  }
+
   // ── 상단 안내 메시지 ──
   drawGuide() {
     let isPinching = this.isPinching();
     let isHoldingWire = this.isHoldingWire();
+    let isWireFull = this.isWireFull();
     let msg = '👌손가락을 모아 O 부분의 철사를 잡으세요.';
 
-    if (isPinching && !isHoldingWire) {
+    if (isWireFull) {
+      msg = '비즈가 너무 많아요! 철사가 가득 찼어요.';
+    } else if (isPinching && !isHoldingWire) {
       msg = '👌 철사를 잡지 못했어요! 손가락을 뗀 뒤 다시 철사를 잡아 보세요.';
     } else if (isHoldingWire) {
       msg = '👆 철사를 잡았어요! 비즈 구멍에 통과시켜 보세요.';
@@ -77,10 +86,10 @@ class StemBeadCraftUI {
     rect(guideX, guideY, guideW, guideH, 6);
     noStroke(); textSize(13); textStyle(NORMAL);
 
-    if (!isPinching && !isHoldingWire) {
+    if (!isWireFull && !isPinching && !isHoldingWire) {
       this.#drawIdleGuideMessage(width / 2, guideY + guideH / 2);
     } else {
-      fill(120);
+      fill(isWireFull ? color(220, 60, 60) : 120);
       textAlign(CENTER, CENTER);
       text(msg, width / 2, guideY + guideH / 2);
     }

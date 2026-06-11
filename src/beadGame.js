@@ -19,6 +19,7 @@ const GLASS = 1;
 const STRAIGHT = 0;
 const WAVE = 1;
 const CURVE_STEM = 2;
+const MAX_PIERCED_BEAD_WIDTH = 600;
 
 // 이 뒤에는 실제 게임 과정이 들어옴
 class BeadGame {
@@ -68,7 +69,7 @@ class BeadGame {
         let wire = this.wires[0];
         for (let bead of this.beads) {
             let wasPierced = bead.isPierced;
-            bead.update(wire);
+            bead.update(wire, this.#canPierceBead(bead));
             if (!wasPierced && bead.isPierced) {
                 bead.setPierceOrder(this.nextPierceOrder);
                 this.nextPierceOrder += 1;
@@ -98,6 +99,20 @@ class BeadGame {
      */
     get beadCount() {
         return this.beads.filter((bead) => bead.isPierced).length;
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    isWireFull() {
+        let occupiedWidth = this.beads
+            .filter((bead) => bead.isPierced)
+            .reduce((total, bead) => total + bead.w, 0);
+        let remainingWidth = MAX_PIERCED_BEAD_WIDTH - occupiedWidth;
+        let unpiercedBeads = this.beads.filter((bead) => !bead.isPierced);
+
+        return unpiercedBeads.length > 0
+            && !unpiercedBeads.some((bead) => bead.w <= remainingWidth);
     }
 
     /**
@@ -439,6 +454,21 @@ class BeadGame {
         let secondWidth = second.collisionWidth ?? second.w;
         let requiredDistance = (firstWidth + secondWidth) / 2 + 0.5;
         return Math.min(0.08, requiredDistance / wireLength);
+    }
+
+    /**
+     * @param {Bead} candidate
+     * @returns {boolean}
+     */
+    #canPierceBead(candidate) {
+        if (candidate.isPierced) {
+            return true;
+        }
+
+        let occupiedWidth = this.beads
+            .filter((bead) => bead.isPierced)
+            .reduce((total, bead) => total + bead.w, candidate.w);
+        return occupiedWidth <= MAX_PIERCED_BEAD_WIDTH;
     }
 
     /**

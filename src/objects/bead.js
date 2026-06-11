@@ -80,9 +80,10 @@ class Bead {
     /**
      * 
      * @param {Wire} [wire]
+     * @param {boolean} [allowPiercing]
      * @returns {void}
      */
-    update(wire) {
+    update(wire, allowPiercing = true) {
         let targetWire = wire || this.currentWire;
         if (!targetWire) {
             if (!this.isPierced) {
@@ -93,8 +94,11 @@ class Bead {
             return;
         }
 
-        if (!this.isPierced) {
+        if (!this.isPierced && allowPiercing) {
             this.#tryPierce(targetWire);
+        } else if (!this.isPierced) {
+            this.previousHeldEndPosition = null;
+            this.enteredHoleFromRight = false;
         }
 
         if (!this.isPierced) {
