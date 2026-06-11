@@ -9,6 +9,7 @@ class GardenUI {
     this.isDragging    = false;
     this.dragStartX    = 0;
     this.dragScrollX   = 0;
+    this._potCardY     = new Map();
 
     // 데코 이미지
     this.decoImgs = {};
@@ -33,6 +34,17 @@ class GardenUI {
     return 60 + index * (this.cardW + this.cardGap) - this.scrollX;
   }
 
+  // 카드 y 위치 — 한 번 정해지면 고정
+  _cardY(pot) {
+    const id = pot.firestoreId ?? pot.localId;
+    if (!this._potCardY.has(id)) {
+      const minY = height * 0.38;
+      const maxY = height * 0.62;
+      this._potCardY.set(id, minY + Math.random() * (maxY - minY));
+    }
+    return this._potCardY.get(id);
+  }
+
   _editionLabel(pot) {
     const c = pot.concept ?? '';
     if (c.includes('식물')) return '식물 에디션';
@@ -43,7 +55,7 @@ class GardenUI {
 
   // ── 화분 카드 (박스 없이 떠 있는 형태) ──────────────────────────────────────
   drawCard(pot, x) {
-    const potBaseY = constrain(pot.cardY ?? height * 0.55, height * 0.35, height * 0.72);
+    const potBaseY = this._cardY(pot);
     const cx       = x + this.cardW / 2;
     const isHov    = (this.hoveredPot === pot);
 
@@ -295,7 +307,7 @@ class GardenUI {
     for (let i = 0; i < this.pots.length; i++) {
       const pot      = this.pots[i];
       const x        = this._cardX(i);
-      const potBaseY = constrain(pot.cardY ?? height * 0.55, height * 0.35, height * 0.72);
+      const potBaseY = this._cardY(pot);
 
       if (x + this.cardW < 40 || x > width - 40) continue;
 
@@ -432,6 +444,17 @@ class GardenUI {
     this.targetScrollX = constrain(this.dragScrollX - (mouseX - this.dragStartX), 0, maxScroll);
   }
 
+  onMouseWheel(e) {
+    if (potSetupUI.isVisible || potDetailUI.isVisible) return;
+    const dx = e.deltaX ?? 0;
+    const dy = e.delta ?? e.deltaY ?? 0;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+      this.targetScrollX = constrain(this.targetScrollX + dx * 0.8, 0, maxScroll);
+      return false;
+    }
+  }
+
   onMouseReleased() {
     if (potSetupUI.isVisible || potDetailUI.isVisible) {
       this.isDragging = false; return;
@@ -441,7 +464,7 @@ class GardenUI {
         const pot      = this.pots[i];
         const x        = this._cardX(i);
         const cx       = x + this.cardW / 2;
-        const potBaseY = constrain(pot.cardY ?? height * 0.55, height * 0.35, height * 0.72);
+        const potBaseY = this._cardY(pot);
         if (mouseX > cx - 70 && mouseX < cx + 70 &&
             mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
           potSetupUI.hide();
