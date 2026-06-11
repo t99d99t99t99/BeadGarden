@@ -20,11 +20,23 @@ class StemFinishUI {
     // 이 줄기가 pot의 몇 번째 줄기인지 (각도/위치 배정용)
     const pot = stemBeadCraftUI.currentPot
       ?? (typeof potDetailUI !== 'undefined' ? potDetailUI.pot : null);
-    const stemIndex   = pot?.stems?.length ?? 0;
-    const DEF_ANGLES  = [340, 10, 355, 20, 345, 15, 5];
-    const DEF_OFFSETS = [-20, 20, 0, -10, 10, -15, 15];
-    const savedAngle  = potDecorateUI.stemAngle ?? DEF_ANGLES[stemIndex % DEF_ANGLES.length];
-    const savedOffset = DEF_OFFSETS[stemIndex % DEF_OFFSETS.length];
+    const stemIndex = pot?.stems?.length ?? 0;
+
+    // 각도: 315~360 또는 0~45 범위에서 랜덤
+    const rawAngle = Math.floor(Math.random() * 90) - 45; // -45 ~ 44
+    const savedAngle = potDecorateUI.stemAngle ?? (rawAngle < 0 ? rawAngle + 360 : rawAngle);
+
+    // x 오프셋: -60~60 범위에서 기존 줄기와 25px 이상 떨어지도록 랜덤 배정
+    const existingOffsets = (pot?.stems ?? []).map(s => s.baseOffset ?? 0);
+    let savedOffset = 0;
+    const MIN_GAP = 25;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const candidate = Math.floor(Math.random() * 121) - 60; // -60 ~ 60
+      if (existingOffsets.every(o => Math.abs(o - candidate) >= MIN_GAP)) {
+        savedOffset = candidate;
+        break;
+      }
+    }
 
     // 완성된 줄기 데이터 구성
     const stemData = {
