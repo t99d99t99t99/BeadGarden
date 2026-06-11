@@ -35,8 +35,8 @@ class PotDetailUI {
 
     let cx = x + w / 2;
     let asset = getPotAssetForPot(this.pot);
-    let potMaxWidth = 120;
-    let potMaxHeight = 100;
+    let potMaxWidth  = Math.round(w * 0.30);
+    let potMaxHeight = Math.round(h * 0.37);
     let potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
     let renderedPotHeight = potSize.height || 70;
     let stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
@@ -77,7 +77,7 @@ class PotDetailUI {
           baseX,
           baseY,
           angle,
-          min(stem.stemLength ?? 210, h * 0.56)
+          min(stem.stemLength ?? 210, h * 0.50)
         );
         let fitted = fitStemPathLength(
           baseX,
@@ -362,28 +362,28 @@ class PotDetailUI {
     let imgW = popW - 36, imgH = 340;
     this.drawPotPreview(imgX, imgY, imgW, imgH);
 
-    // QR 코드 (줄기 있거나 잠금됐을 때)
-    if (hasStem || isLocked) {
-      fill(30); noStroke();
-      let qx = imgX + 14, qy = imgY + 12, qs = 8;
-      let qr = [
-        [1,1,1,0,1,1,1],
-        [1,0,1,0,1,0,1],
-        [1,1,1,0,1,1,1],
-        [0,0,0,0,0,0,0],
-        [1,1,1,0,1,0,1],
-        [1,0,0,0,1,1,1],
-        [1,0,1,0,0,0,1],
-      ];
-      for (let r = 0; r < qr.length; r++) {
-        for (let c = 0; c < qr[r].length; c++) {
-          if (qr[r][c]) rect(qx + c * qs, qy + r * qs, qs - 1, qs - 1);
-        }
-      }
-      fill(60); textSize(12); textAlign(LEFT); textStyle(NORMAL);
-      text('QR 코드를 스캔하여', qx + 68, qy + 18);
-      text('비즈 화분 이미지를 저장하세요.', qx + 68, qy + 34);
-    }
+    // TODO: QR 코드 스캔 기능 미구현 — 추후 구현
+    // if (hasStem || isLocked) {
+    //   fill(30); noStroke();
+    //   let qx = imgX + 14, qy = imgY + 12, qs = 8;
+    //   let qr = [
+    //     [1,1,1,0,1,1,1],
+    //     [1,0,1,0,1,0,1],
+    //     [1,1,1,0,1,1,1],
+    //     [0,0,0,0,0,0,0],
+    //     [1,1,1,0,1,0,1],
+    //     [1,0,0,0,1,1,1],
+    //     [1,0,1,0,0,0,1],
+    //   ];
+    //   for (let r = 0; r < qr.length; r++) {
+    //     for (let c = 0; c < qr[r].length; c++) {
+    //       if (qr[r][c]) rect(qx + c * qs, qy + r * qs, qs - 1, qs - 1);
+    //     }
+    //   }
+    //   fill(60); textSize(12); textAlign(LEFT); textStyle(NORMAL);
+    //   text('QR 코드를 스캔하여', qx + 68, qy + 18);
+    //   text('비즈 화분 이미지를 저장하세요.', qx + 68, qy + 34);
+    // }
 
     let btnY = imgY + imgH + 16;
 
