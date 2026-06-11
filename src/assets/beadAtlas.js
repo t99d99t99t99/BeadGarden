@@ -1,4 +1,4 @@
-const BEAD_ATLAS_VERSION = 1;
+const BEAD_ATLAS_VERSION = 2;
 const BEAD_GAMEPLAY_SCALE = 2 / 3;
 const POT_THEMES = Object.freeze({
   PLANT: 'plant',
@@ -8,74 +8,90 @@ const POT_THEMES = Object.freeze({
 });
 
 let beadBodySheet = null;
-let beadHoleSheet = null;
 const beadBodySprites = {};
-const beadHoleSprites = {};
 
-function beadAtlasEntry(id, theme, x, y, w, h) {
+function beadAtlasEntry(data) {
   return Object.freeze({
-    id,
-    theme,
-    source: Object.freeze({ x, y, w, h }),
-    gameplayWidth: w * BEAD_GAMEPLAY_SCALE,
-    gameplayHeight: h * BEAD_GAMEPLAY_SCALE,
-    holeHeight: Math.max(6, h * BEAD_GAMEPLAY_SCALE * 0.32),
+    id: data.id,
+    theme: data.theme,
+    source: Object.freeze({
+      x: data.x,
+      y: data.y,
+      w: data.w,
+      h: data.h,
+    }),
+    gameplayWidth: data.w * BEAD_GAMEPLAY_SCALE,
+    gameplayHeight: data.h * BEAD_GAMEPLAY_SCALE,
+    collisionVertices: Object.freeze(
+      data.collisionVertices.map((point) => Object.freeze({
+        x: point.x * BEAD_GAMEPLAY_SCALE,
+        y: point.y * BEAD_GAMEPLAY_SCALE,
+      }))
+    ),
+    renderOffsetX: data.renderOffsetX * BEAD_GAMEPLAY_SCALE,
+    renderOffsetY: data.renderOffsetY * BEAD_GAMEPLAY_SCALE,
+    collisionWidth: data.collisionWidth * BEAD_GAMEPLAY_SCALE,
+    collisionHeight: data.collisionHeight * BEAD_GAMEPLAY_SCALE,
   });
 }
 
-const BEAD_ATLAS = Object.freeze([
-  beadAtlasEntry('plant-leaf-round', POT_THEMES.PLANT, 1848, 285, 30, 41),
-  beadAtlasEntry('plant-leaf-pointed', POT_THEMES.PLANT, 1885, 285, 29, 41),
-  beadAtlasEntry('plant-leaf-dark', POT_THEMES.PLANT, 1921, 285, 30, 41),
-  beadAtlasEntry('plant-leaf-veined', POT_THEMES.PLANT, 1958, 285, 29, 41),
-  beadAtlasEntry('plant-flower', POT_THEMES.PLANT, 1995, 285, 40, 41),
-  beadAtlasEntry('plant-apple-red', POT_THEMES.PLANT, 2042, 284, 35, 43),
-  beadAtlasEntry('plant-apple-pink', POT_THEMES.PLANT, 2084, 284, 35, 43),
-  beadAtlasEntry('plant-strawberry', POT_THEMES.PLANT, 2126, 285, 34, 41),
-  beadAtlasEntry('plant-bow-white', POT_THEMES.PLANT, 2169, 287, 33, 37),
-  beadAtlasEntry('plant-bow-purple', POT_THEMES.PLANT, 2211, 287, 33, 37),
-  beadAtlasEntry('plant-bow-pink', POT_THEMES.PLANT, 2254, 287, 32, 37),
-  beadAtlasEntry('plant-bow-yellow', POT_THEMES.PLANT, 2296, 287, 33, 37),
-
-  beadAtlasEntry('star-soft-pink', POT_THEMES.STAR, 1865, 1163, 36, 34),
-  beadAtlasEntry('star-soft-silver', POT_THEMES.STAR, 1908, 1163, 36, 34),
-  beadAtlasEntry('star-heart-white', POT_THEMES.STAR, 2033, 1161, 32, 36),
-  beadAtlasEntry('star-heart-blue', POT_THEMES.STAR, 2072, 1161, 32, 36),
-  beadAtlasEntry('star-heart-pink', POT_THEMES.STAR, 2111, 1161, 32, 36),
-  beadAtlasEntry('star-heart-mint', POT_THEMES.STAR, 2150, 1161, 32, 36),
-
-  beadAtlasEntry('ocean-conch-purple', POT_THEMES.OCEAN, 1873, 2192, 42, 44),
-  beadAtlasEntry('ocean-conch-cream', POT_THEMES.OCEAN, 1923, 2192, 42, 44),
-  beadAtlasEntry('ocean-conch-pink', POT_THEMES.OCEAN, 1972, 2192, 42, 44),
-  beadAtlasEntry('ocean-shell-lilac', POT_THEMES.OCEAN, 2021, 2198, 47, 32),
-  beadAtlasEntry('ocean-shell-ivory', POT_THEMES.OCEAN, 2075, 2198, 47, 32),
-  beadAtlasEntry('ocean-shell-blush', POT_THEMES.OCEAN, 2129, 2198, 47, 32),
-  beadAtlasEntry('ocean-drop-blue', POT_THEMES.OCEAN, 2078, 2148, 34, 26),
-  beadAtlasEntry('ocean-drop-navy', POT_THEMES.OCEAN, 2120, 2148, 35, 26),
-  beadAtlasEntry('ocean-drop-green', POT_THEMES.OCEAN, 2162, 2148, 31, 26),
-  beadAtlasEntry('ocean-drop-mint', POT_THEMES.OCEAN, 2204, 2148, 31, 26),
-  beadAtlasEntry('ocean-drop-sky', POT_THEMES.OCEAN, 2246, 2148, 31, 26),
-  beadAtlasEntry('ocean-drop-aqua', POT_THEMES.OCEAN, 2288, 2148, 35, 26),
-  beadAtlasEntry('ocean-drop-sand', POT_THEMES.OCEAN, 2330, 2148, 31, 26),
-]);
-
+const BEAD_ATLAS = Object.freeze(BEAD_ATLAS_MANIFEST.map(beadAtlasEntry));
 const BEAD_ATLAS_BY_ID = Object.freeze(
   Object.fromEntries(BEAD_ATLAS.map((entry) => [entry.id, entry]))
 );
+const BEAD_ATLAS_BY_THEME = Object.freeze({
+  [POT_THEMES.PLANT]: Object.freeze(
+    BEAD_ATLAS.filter((entry) => entry.theme === POT_THEMES.PLANT)
+  ),
+  [POT_THEMES.STAR]: Object.freeze(
+    BEAD_ATLAS.filter((entry) => entry.theme === POT_THEMES.STAR)
+  ),
+  [POT_THEMES.OCEAN]: Object.freeze(
+    BEAD_ATLAS.filter((entry) => entry.theme === POT_THEMES.OCEAN)
+  ),
+});
+
+// Old IDs remain readable so previously saved stems continue to render.
+const BEAD_ATLAS_ID_ALIASES = Object.freeze({
+  'plant-leaf-round': 'plant-leafbottom',
+  'plant-leaf-pointed': 'plant-leaftop',
+  'plant-leaf-dark': 'plant-leafbottom-1',
+  'plant-leaf-veined': 'plant-leaftop-1',
+  'plant-flower': 'plant-butterfly',
+  'plant-apple-red': 'plant-apple',
+  'plant-apple-pink': 'plant-apple-1',
+  'plant-strawberry': 'plant-strawberry',
+  'plant-bow-white': 'plant-butterfly',
+  'plant-bow-purple': 'plant-butterfly-1',
+  'plant-bow-pink': 'plant-butterfly-2',
+  'plant-bow-yellow': 'plant-butterfly-3',
+  'star-soft-pink': 'star-star',
+  'star-soft-silver': 'star-star-1',
+  'star-heart-white': 'star-heart',
+  'star-heart-blue': 'star-heart-1',
+  'star-heart-pink': 'star-heart-2',
+  'star-heart-mint': 'star-heart-3',
+  'ocean-conch-purple': 'ocean-conch',
+  'ocean-conch-cream': 'ocean-conch-1',
+  'ocean-conch-pink': 'ocean-conch-2',
+  'ocean-shell-lilac': 'ocean-seashell',
+  'ocean-shell-ivory': 'ocean-seashell-1',
+  'ocean-shell-blush': 'ocean-seashell-2',
+  'ocean-drop-blue': 'ocean-stone1',
+  'ocean-drop-navy': 'ocean-stone1-1',
+  'ocean-drop-green': 'ocean-stone1-2',
+  'ocean-drop-mint': 'ocean-stone1-3',
+  'ocean-drop-sky': 'ocean-stone2',
+  'ocean-drop-aqua': 'ocean-stone2-1',
+  'ocean-drop-sand': 'ocean-stone2-2',
+});
 
 function preloadBeadSpriteSheets() {
   beadBodySheet = loadImage('assets/beads.png');
-  beadHoleSheet = loadImage('assets/holes.png');
 }
 
 function initializeBeadAtlasSprites() {
-  if (!beadBodySheet || !beadHoleSheet) return;
-
-  for (let asset of BEAD_ATLAS) {
-    let source = asset.source;
-    beadBodySprites[asset.id] = beadBodySheet.get(source.x, source.y, source.w, source.h);
-    beadHoleSprites[asset.id] = beadHoleSheet.get(source.x, source.y, source.w, source.h);
-  }
+  // Sprites are cached lazily because pre-cropping all 590 entries stalls setup.
 }
 
 function normalizePotTheme(potOrTheme) {
@@ -95,19 +111,43 @@ function themeForConcept(concept) {
 }
 
 function getBeadAtlasEntry(assetId) {
-  return BEAD_ATLAS_BY_ID[assetId] || null;
+  let resolvedId = BEAD_ATLAS_ID_ALIASES[assetId] || assetId;
+  return BEAD_ATLAS_BY_ID[resolvedId] || null;
 }
 
 function getBeadAtlasPool(theme) {
   let normalizedTheme = normalizePotTheme(theme);
-  return BEAD_ATLAS.filter((entry) => entry.theme === normalizedTheme);
+  return BEAD_ATLAS_BY_THEME[normalizedTheme] || [];
 }
 
-function drawBeadAtlasLayer(assetOrId, layer, x, y, displayWidth, displayHeight, angle = 0) {
-  let asset = typeof assetOrId === 'string' ? getBeadAtlasEntry(assetOrId) : assetOrId;
-  if (!asset) return;
+function getBeadAtlasSprite(asset) {
+  if (!asset || !beadBodySheet) return null;
+  if (!beadBodySprites[asset.id]) {
+    let source = asset.source;
+    beadBodySprites[asset.id] = beadBodySheet.get(
+      source.x,
+      source.y,
+      source.w,
+      source.h
+    );
+  }
+  return beadBodySprites[asset.id];
+}
 
-  let sprite = layer === 'hole' ? beadHoleSprites[asset.id] : beadBodySprites[asset.id];
+function drawBeadAtlas(
+  assetOrId,
+  x,
+  y,
+  displayWidth,
+  displayHeight,
+  angle = 0,
+  renderOffsetX = 0,
+  renderOffsetY = 0
+) {
+  let asset = typeof assetOrId === 'string' ? getBeadAtlasEntry(assetOrId) : assetOrId;
+  if (!asset || !beadBodySheet) return;
+
+  let sprite = getBeadAtlasSprite(asset);
   let source = asset.source;
   push();
   translate(x, y);
@@ -116,26 +156,23 @@ function drawBeadAtlasLayer(assetOrId, layer, x, y, displayWidth, displayHeight,
   if (sprite) {
     image(
       sprite,
-      0,
-      0,
+      renderOffsetX,
+      renderOffsetY,
       displayWidth ?? asset.gameplayWidth,
       displayHeight ?? asset.gameplayHeight
     );
   } else {
-    let sheet = layer === 'hole' ? beadHoleSheet : beadBodySheet;
-    if (sheet) {
-      image(
-        sheet,
-        0,
-        0,
-        displayWidth ?? asset.gameplayWidth,
-        displayHeight ?? asset.gameplayHeight,
-        source.x,
-        source.y,
-        source.w,
-        source.h
-      );
-    }
+    image(
+      beadBodySheet,
+      renderOffsetX,
+      renderOffsetY,
+      displayWidth ?? asset.gameplayWidth,
+      displayHeight ?? asset.gameplayHeight,
+      source.x,
+      source.y,
+      source.w,
+      source.h
+    );
   }
   pop();
 }

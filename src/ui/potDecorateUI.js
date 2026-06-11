@@ -128,7 +128,6 @@ class PotDecorateUI {
       } else if (stem.isHovered) {
         stroke(180, 180, 220, 60); strokeWeight(10); this._drawStemPath(stem.points);
       }
-      this.#drawStemBeads(stem, 'hole');
     }
 
     for (let stem of stems) {
@@ -138,7 +137,7 @@ class PotDecorateUI {
     }
 
     for (let stem of stems) {
-      this.#drawStemBeads(stem, 'body');
+      this.#drawStemBeads(stem);
     }
 
     fill(100, 100, 200); noStroke();
@@ -834,41 +833,37 @@ class PotDecorateUI {
     this.stemAngle = stem.stemAngle;
   }
 
-  #drawStemBeads(stem, layer) {
+  #drawStemBeads(stem) {
     let beads = stem.data.beads ?? [];
     let count = beads.length || stem.data.beadCount || 0;
+    let placements = beadPathPlacements(stem.points, beads, count, 18);
 
     for (let i = 0; i < count; i++) {
-      let t = (i + 1) / (count + 1);
-      let point = this._pointOnStemPath(stem.points, t);
-      let tangent = this.#stemTangentAt(stem.points, t);
+      let placement = placements[i];
       let bead = beads[i];
       let asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
       let imageAsset = bead?.beadId ? beadImages[bead.beadId] : null;
 
       if (asset) {
-        let beadHeight = 18;
-        let beadWidth = beadHeight * asset.source.w / asset.source.h;
-        drawBeadAtlasLayer(
+        drawBeadAtlas(
           asset,
-          layer,
-          point.x,
-          point.y,
-          beadWidth,
-          beadHeight,
-          atan2(tangent.y, tangent.x)
+          placement.x,
+          placement.y,
+          placement.width,
+          placement.height,
+          placement.angle
         );
-      } else if (imageAsset && layer === 'body') {
+      } else if (imageAsset) {
         push();
-        translate(point.x, point.y);
-        rotate(atan2(tangent.y, tangent.x));
+        translate(placement.x, placement.y);
+        rotate(placement.angle);
         imageMode(CENTER);
-        image(imageAsset, 0, 0, 18, 18);
+        image(imageAsset, 0, 0, placement.width, placement.height);
         pop();
-      } else if (layer === 'body') {
+      } else {
         noStroke();
         fill(bead?.color ?? 200);
-        ellipse(point.x, point.y, 14);
+        ellipse(placement.x, placement.y, placement.height);
       }
     }
   }

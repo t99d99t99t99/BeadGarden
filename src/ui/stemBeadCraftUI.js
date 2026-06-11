@@ -142,15 +142,7 @@ class StemBeadCraftUI {
     for (let bead of beads) {
       let scale = beadDisplayHeight / bead.h;
       let beadDisplayWidth = bead.w * scale;
-      this.#drawPreviewBeadLayer(bead, 'hole', x + beadDisplayWidth / 2, rowY, scale);
-      x += beadDisplayWidth + beadGap;
-    }
-
-    x = rowX;
-    for (let bead of beads) {
-      let scale = beadDisplayHeight / bead.h;
-      let beadDisplayWidth = bead.w * scale;
-      this.#drawPreviewBeadLayer(bead, 'body', x + beadDisplayWidth / 2, rowY, scale);
+      this.#drawPreviewBead(bead, x + beadDisplayWidth / 2, rowY, scale);
       x += beadDisplayWidth + beadGap;
     }
   }
@@ -171,16 +163,15 @@ class StemBeadCraftUI {
   }
 
   /**
-   * @param {{assetId: string | null, color: import("p5").Color, w: Number, h: Number, holeH: Number, partH: Number, partOffset: Number}} bead
-   * @param {string} layer
+   * @param {{assetId: string | null, color: import("p5").Color, w: Number, h: Number}} bead
    * @param {Number} x
    * @param {Number} y
    * @param {Number} scale
    * @returns {void}
    */
-  #drawPreviewBeadLayer(bead, layer, x, y, scale) {
+  #drawPreviewBead(bead, x, y, scale) {
     if (bead.assetId) {
-      drawBeadAtlasLayer(bead.assetId, layer, x, y, bead.w * scale, bead.h * scale);
+      drawBeadAtlas(bead.assetId, x, y, bead.w * scale, bead.h * scale);
       return;
     }
 
@@ -189,14 +180,8 @@ class StemBeadCraftUI {
     rectMode(CENTER);
     noStroke();
 
-    if (layer === 'hole') {
-      fill(red(bead.color) * 0.55, green(bead.color) * 0.55, blue(bead.color) * 0.55, 220);
-      rect(0, 0, bead.w * scale, bead.holeH * scale);
-    } else {
-      fill(bead.color);
-      rect(0, -bead.partOffset * scale, bead.w * scale, bead.partH * scale);
-      rect(0, bead.partOffset * scale, bead.w * scale, bead.partH * scale);
-    }
+    fill(bead.color);
+    rect(0, 0, bead.w * scale, bead.h * scale);
 
     pop();
   }

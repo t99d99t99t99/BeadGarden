@@ -4,59 +4,61 @@ const DEBUG_INPUT_MOUSE = 0;
 const DEBUG_INPUT_HAND = 1;
 const DEBUG_TEST_BEAD_CRAFT = 0;
 const DEBUG_TEST_POT_DECORATE = 1;
-const DEBUG_TEST_BUTTONS = [
-    { x: 18, y: 18, w: 176, h: 36, mode: DEBUG_TEST_BEAD_CRAFT, label: "Bead craft test" },
-    { x: 206, y: 18, w: 196, h: 36, mode: DEBUG_TEST_POT_DECORATE, label: "Pot decoration test" }
-];
 const DEBUG_MODE_BUTTON = { x: 18, y: 66, w: 176, h: 36 };
+const DEBUG_MENU_BUTTON = { x: 18, y: 18, w: 176, h: 36, label: "Back to debug menu" };
+const DEBUG_EXIT_BUTTON = { x: 1208, y: 18, w: 214, h: 36, label: "Exit debugging" };
 let debugInputMode = DEBUG_INPUT_MOUSE;
-let debugTestMode = DEBUG_TEST_BEAD_CRAFT;
+let debugTestMode = null;
 let debugWasPinching = false;
 let debugPotDecoratePot = null;
 
-function debugSceneSetup() {
-    debugSceneDestroyGame();
+/**
+ * @param {Number} mode
+ * @returns {void}
+ */
+function debugInProgressSceneStart(mode) {
+    debugInProgressSceneReset();
+    debugTestMode = mode;
 
-    if (typeof handDetector !== "undefined") {
-        handDetector.stop();
+    if (mode === DEBUG_TEST_BEAD_CRAFT) {
+        debugInProgressSceneSetupBeadCraftTest();
+    } else {
+        debugInProgressSceneEnsurePotDecorateTest();
     }
 
-    debugInputMode = DEBUG_INPUT_MOUSE;
-    debugTestMode = DEBUG_TEST_BEAD_CRAFT;
-    debugWasPinching = false;
-    debugSceneSetupBeadCraftTest();
     gameState = DEBUG;
 }
 
-function debugSceneDraw() {
+function debugInProgressSceneDraw() {
     if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
-        debugSceneDrawPotDecorateTest();
+        debugInProgressSceneDrawPotDecorateTest();
     } else {
-        debugSceneDrawBeadCraftTest();
+        debugInProgressSceneDrawBeadCraftTest();
     }
 
-    debugSceneDrawTestButtons();
+    debugInProgressSceneDrawButton(DEBUG_MENU_BUTTON);
+    debugInProgressSceneDrawButton(DEBUG_EXIT_BUTTON);
 }
 
-function debugSceneDrawBeadCraftTest() {
-    debugSceneEnsureBeadCraftTest();
+function debugInProgressSceneDrawBeadCraftTest() {
+    debugInProgressSceneEnsureBeadCraftTest();
 
     let thumbPosition = null;
     if (debugInputMode === DEBUG_INPUT_HAND) {
-        thumbPosition = debugSceneUpdateHandInput();
+        thumbPosition = debugInProgressSceneUpdateHandInput();
     }
 
     debugGame.update(thumbPosition);
     debugGame.display();
-    debugSceneDrawModeButton();
+    debugInProgressSceneDrawModeButton();
 
     if (debugInputMode === DEBUG_INPUT_HAND) {
-        debugSceneDrawHandMarkers(thumbPosition);
+        debugInProgressSceneDrawHandMarkers(thumbPosition);
     }
 }
 
-function debugSceneDrawPotDecorateTest() {
-    debugSceneEnsurePotDecorateTest();
+function debugInProgressSceneDrawPotDecorateTest() {
+    debugInProgressSceneEnsurePotDecorateTest();
 
     push();
     background(232);
@@ -69,22 +71,26 @@ function debugSceneDrawPotDecorateTest() {
     pop();
 }
 
-function debugSceneMousePressed() {
-    let testButton = debugSceneTestButtonAtMouse();
-    if (testButton) {
-        debugSceneSetTestMode(testButton.mode);
+function debugInProgressSceneMousePressed() {
+    if (debugInProgressSceneMouseInRect(DEBUG_EXIT_BUTTON)) {
+        debugInProgressSceneExit();
+        return;
+    }
+
+    if (debugInProgressSceneMouseInRect(DEBUG_MENU_BUTTON)) {
+        debugLandingSceneSetup();
         return;
     }
 
     if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
-        debugSceneForwardPotDecorateMousePressed();
+        debugInProgressSceneForwardPotDecorateMousePressed();
         return;
     }
 
-    debugSceneEnsureBeadCraftTest();
+    debugInProgressSceneEnsureBeadCraftTest();
 
-    if (debugSceneMouseOverModeButton()) {
-        debugSceneToggleInputMode();
+    if (debugInProgressSceneMouseOverModeButton()) {
+        debugInProgressSceneToggleInputMode();
         return;
     }
 
@@ -93,7 +99,7 @@ function debugSceneMousePressed() {
     }
 }
 
-function debugSceneMouseReleased() {
+function debugInProgressSceneMouseReleased() {
     if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
         if (typeof potDecorateUI !== "undefined") {
             potDecorateUI.onMouseReleased();
@@ -101,31 +107,51 @@ function debugSceneMouseReleased() {
         return;
     }
 
-    if (!debugGame) {
-        return;
-    }
-
-    if (debugInputMode === DEBUG_INPUT_MOUSE) {
+    if (debugGame && debugInputMode === DEBUG_INPUT_MOUSE) {
         debugGame.releaseWire();
     }
 }
 
-function debugSceneMouseDragged() {
+function debugInProgressSceneMouseDragged() {
     if (debugTestMode === DEBUG_TEST_POT_DECORATE && typeof potDecorateUI !== "undefined") {
         potDecorateUI.onMouseDragged();
     }
 }
 
-function debugSceneMouseWheel(delta) {
+function debugInProgressSceneMouseWheel(delta) {
     if (debugTestMode === DEBUG_TEST_POT_DECORATE && typeof potDecorateUI !== "undefined") {
         potDecorateUI.onMouseWheel(delta);
     }
 }
 
+function debugInProgressSceneExit() {
+    debugInProgressSceneReset();
+    gameState = INTRO;
+}
+
+function debugInProgressSceneReset() {
+    if (debugGame) {
+        debugGame.releaseWire();
+        debugGame.destroy();
+        debugGame = null;
+    }
+
+    if (typeof potDecorateUI !== "undefined") {
+        potDecorateUI.hide();
+    }
+    if (typeof handDetector !== "undefined") {
+        handDetector.stop();
+    }
+
+    debugInputMode = DEBUG_INPUT_MOUSE;
+    debugTestMode = null;
+    debugWasPinching = false;
+}
+
 /**
  * @returns {Matter.Vector | null}
  */
-function debugSceneUpdateHandInput() {
+function debugInProgressSceneUpdateHandInput() {
     if (typeof handDetector === "undefined") {
         return null;
     }
@@ -144,7 +170,7 @@ function debugSceneUpdateHandInput() {
     return thumbPosition;
 }
 
-function debugSceneToggleInputMode() {
+function debugInProgressSceneToggleInputMode() {
     debugInputMode = debugInputMode === DEBUG_INPUT_MOUSE ? DEBUG_INPUT_HAND : DEBUG_INPUT_MOUSE;
     debugWasPinching = false;
 
@@ -159,61 +185,18 @@ function debugSceneToggleInputMode() {
     }
 }
 
-/**
- * @param {Number} mode
- * @returns {void}
- */
-function debugSceneSetTestMode(mode) {
-    if (debugTestMode === mode) {
-        return;
-    }
-
-    if (debugGame) {
-        debugGame.releaseWire();
-    }
-    debugWasPinching = false;
-
-    if (typeof handDetector !== "undefined") {
-        handDetector.stop();
-    }
-    debugInputMode = DEBUG_INPUT_MOUSE;
-    debugTestMode = mode;
-
-    if (mode === DEBUG_TEST_BEAD_CRAFT) {
-        if (typeof potDecorateUI !== "undefined") {
-            potDecorateUI.hide();
-        }
-        debugSceneSetupBeadCraftTest();
-    } else {
-        debugSceneDestroyGame();
-        debugSceneEnsurePotDecorateTest();
-    }
-
-    gameState = DEBUG;
-}
-
-function debugSceneSetupBeadCraftTest() {
-    debugSceneDestroyGame();
+function debugInProgressSceneSetupBeadCraftTest() {
     debugGame = new BeadGame();
     debugGame.setupDebugObjects();
 }
 
-function debugSceneEnsureBeadCraftTest() {
+function debugInProgressSceneEnsureBeadCraftTest() {
     if (!debugGame) {
-        debugSceneSetupBeadCraftTest();
+        debugInProgressSceneSetupBeadCraftTest();
     }
 }
 
-function debugSceneDestroyGame() {
-    if (!debugGame) {
-        return;
-    }
-
-    debugGame.destroy();
-    debugGame = null;
-}
-
-function debugSceneEnsurePotDecorateTest() {
+function debugInProgressSceneEnsurePotDecorateTest() {
     if (typeof potDecorateUI === "undefined") {
         return;
     }
@@ -233,40 +216,36 @@ function debugSceneEnsurePotDecorateTest() {
     }
 }
 
-function debugSceneForwardPotDecorateMousePressed() {
+function debugInProgressSceneForwardPotDecorateMousePressed() {
     if (typeof potDecorateUI === "undefined") {
         return;
     }
 
     potDecorateUI.onMousePressed();
     gameState = DEBUG;
-    debugSceneEnsurePotDecorateTest();
+    debugInProgressSceneEnsurePotDecorateTest();
 }
 
-function debugSceneDrawTestButtons() {
+function debugInProgressSceneDrawButton(button) {
+    let hovering = debugInProgressSceneMouseInRect(button);
+
     push();
+    stroke(40);
+    strokeWeight(1);
+    fill(hovering ? 230 : 248);
+    rect(button.x, button.y, button.w, button.h, 6);
+    noStroke();
+    fill(35);
     textAlign(CENTER, CENTER);
     textSize(14);
     textStyle(BOLD);
-
-    for (let button of DEBUG_TEST_BUTTONS) {
-        let selected = debugTestMode === button.mode;
-        let hovering = debugSceneMouseInRect(button);
-        stroke(40);
-        strokeWeight(selected ? 2 : 1);
-        fill(selected ? 30 : hovering ? 230 : 248);
-        rect(button.x, button.y, button.w, button.h, 6);
-        noStroke();
-        fill(selected ? 255 : 35);
-        text(button.label, button.x + button.w / 2, button.y + button.h / 2);
-    }
-
+    text(button.label, button.x + button.w / 2, button.y + button.h / 2);
     pop();
 }
 
-function debugSceneDrawModeButton() {
+function debugInProgressSceneDrawModeButton() {
     let handMode = debugInputMode === DEBUG_INPUT_HAND;
-    let hovering = debugSceneMouseOverModeButton();
+    let hovering = debugInProgressSceneMouseOverModeButton();
 
     push();
     stroke(40);
@@ -289,7 +268,7 @@ function debugSceneDrawModeButton() {
  * @param {Matter.Vector | null} thumbPosition
  * @returns {void}
  */
-function debugSceneDrawHandMarkers(thumbPosition) {
+function debugInProgressSceneDrawHandMarkers(thumbPosition) {
     let gumjiPosition = typeof handDetector !== "undefined" ? handDetector.gumjiPosition() : null;
 
     push();
@@ -315,31 +294,15 @@ function debugSceneDrawHandMarkers(thumbPosition) {
     pop();
 }
 
-/**
- * @returns {boolean}
- */
-function debugSceneMouseOverModeButton() {
-    return debugSceneMouseInRect(DEBUG_MODE_BUTTON);
-}
-
-/**
- * @returns {{x: Number, y: Number, w: Number, h: Number, mode: Number, label: string} | null}
- */
-function debugSceneTestButtonAtMouse() {
-    for (let button of DEBUG_TEST_BUTTONS) {
-        if (debugSceneMouseInRect(button)) {
-            return button;
-        }
-    }
-
-    return null;
+function debugInProgressSceneMouseOverModeButton() {
+    return debugInProgressSceneMouseInRect(DEBUG_MODE_BUTTON);
 }
 
 /**
  * @param {{x: Number, y: Number, w: Number, h: Number}} rect
  * @returns {boolean}
  */
-function debugSceneMouseInRect(rect) {
+function debugInProgressSceneMouseInRect(rect) {
     return mouseX >= rect.x &&
         mouseX <= rect.x + rect.w &&
         mouseY >= rect.y &&

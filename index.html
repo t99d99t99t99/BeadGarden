@@ -41,13 +41,21 @@
       messagingSenderId: "717402771931",
       appId: "1:717402771931:web:9dce58d33fe7dae67f97fe"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    let db = null;
+    try {
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+      }
+    } catch (err) {
+      console.warn('[Firebase] Initialization failed; local database will be used:', err);
+    }
   </script>
 </head>
 
 <body>
   <!-- sprite atlas -->
+  <script src="src/assets/beadAtlasManifest.js"></script>
   <script src="src/assets/beadAtlas.js"></script>
   <script src="src/assets/potAtlas.js"></script>
 
@@ -75,7 +83,8 @@
   <script src="src/archive.js"></script>
   <script src="src/beadGame.js"></script>
   <script src="src/handDetector.js"></script>
-  <script src="src/debugScene.js"></script>
+  <script src="src/debugInProgressScene.js"></script>
+  <script src="src/debugLandingScene.js"></script>
 
   <!-- sketch.js -->
   <script src="sketch.js"></script>

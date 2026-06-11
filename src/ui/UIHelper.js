@@ -32,6 +32,77 @@ function getStemColor(pot, colorIndex) {
   return palette[colorIndex] ?? '#AAAAAA';
 }
 
+function beadPathPlacements(
+  points,
+  beads,
+  count,
+  beadHeight,
+  gap = 0.5,
+  alignment = 'center'
+) {
+  if (!points || points.length < 2 || count <= 0) return [];
+
+  let lengths = [0];
+  for (let i = 1; i < points.length; i++) {
+    lengths.push(
+      lengths[i - 1] + dist(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y)
+    );
+  }
+  let pathLength = lengths[lengths.length - 1];
+  if (pathLength <= 0) return [];
+
+  let sizes = [];
+  for (let i = 0; i < count; i++) {
+    let bead = beads[i];
+    let asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
+    let width = asset ? beadHeight * asset.source.w / asset.source.h : beadHeight;
+    let visibleWidth = asset
+      ? width * asset.collisionWidth / asset.gameplayWidth
+      : width;
+    sizes.push({
+      width,
+      visibleWidth,
+      height: beadHeight,
+    });
+  }
+
+  let occupiedLength = sizes.reduce((total, size) => total + size.visibleWidth, 0)
+    + gap * Math.max(0, count - 1);
+  let fitScale = occupiedLength > pathLength ? pathLength / occupiedLength : 1;
+  let cursor = alignment === 'start'
+    ? 0
+    : Math.max(0, (pathLength - occupiedLength * fitScale) / 2);
+
+  return sizes.map((size) => {
+    let width = size.width * fitScale;
+    let visibleWidth = size.visibleWidth * fitScale;
+    let height = size.height * fitScale;
+    let centerDistance = cursor + visibleWidth / 2;
+    cursor += visibleWidth + gap * fitScale;
+
+    let segment = 0;
+    while (
+      segment < lengths.length - 2 &&
+      lengths[segment + 1] < centerDistance
+    ) {
+      segment++;
+    }
+    let segmentLength = lengths[segment + 1] - lengths[segment];
+    let localT = segmentLength > 0
+      ? (centerDistance - lengths[segment]) / segmentLength
+      : 0;
+    let start = points[segment];
+    let end = points[segment + 1];
+    return {
+      x: lerp(start.x, end.x, localT),
+      y: lerp(start.y, end.y, localT),
+      angle: atan2(end.y - start.y, end.x - start.x),
+      width,
+      height,
+    };
+  });
+}
+
 // ── 화분 모양 그리기 (scale 파라미터로 카드/팝업 크기 조정) ─────────────────────
 // cx, baseY: 화분 상단 중앙 기준점 / scale: 1.0 = 원본, 0.6 = 카드용
 function drawPotShapeAt(cx, baseY, shapeIdx, scale) {

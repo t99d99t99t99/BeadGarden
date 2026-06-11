@@ -91,25 +91,27 @@ class PotDetailUI {
         this.#drawStemPath(points);
         let beads = stem.beads ?? [];
         let beadCount = beads.length || stem.beadCount || 5;
+        let placements = beadPathPlacements(points, beads, beadCount, 14, 0.5, 'start');
         for (let j = 0; j < beadCount; j++) {
-          let t = (j + 1) / (beadCount + 1);
-          let point = this.#pointOnStemPath(points, t);
+          let placement = placements[j];
           let bead = beads[j];
           if (bead?.assetId) {
             let asset = getBeadAtlasEntry(bead.assetId);
             if (asset) {
-              let previewH = 14;
-              let tangent = this.#stemTangentAt(points, t);
-              let beadAngle = atan2(tangent.y, tangent.x);
-              let previewW = previewH * asset.source.w / asset.source.h;
-              drawBeadAtlasLayer(asset, 'hole', point.x, point.y, previewW, previewH, beadAngle);
-              drawBeadAtlasLayer(asset, 'body', point.x, point.y, previewW, previewH, beadAngle);
+              drawBeadAtlas(
+                asset,
+                placement.x,
+                placement.y,
+                placement.width,
+                placement.height,
+                placement.angle
+              );
               continue;
             }
           }
           noStroke();
           fill(bead?.color ?? 200);
-          ellipse(point.x, point.y, 14 - Math.min(j, 4) * 1.5);
+          ellipse(placement.x, placement.y, placement.height);
         }
       }
     }
