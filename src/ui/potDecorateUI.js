@@ -9,11 +9,11 @@ class PotDecorateUI {
 
     // 화분 설정
     this.potColors = POT_COLORS;
-    this.bgColors  = ['#EEEEF5','#E8F4F8','#F0F8F0','#FDFDE6','#F5EEF8','#F8F8F8','#BABABA','#1C1C1C'];
-    this.availablePots   = [];
+    this.bgColors = ['#EEEEF5', '#E8F4F8', '#F0F8F0', '#FDFDE6', '#F5EEF8', '#F8F8F8', '#BABABA', '#1C1C1C'];
+    this.availablePots = [];
     this.selectedPotAsset = 0;
     this.selectedPotColor = 0;
-    this.selectedBgColor  = 0;
+    this.selectedBgColor = 0;
 
     // 줄기 세부 설정
     this.selectedStemIndex = -1; // -1 = 선택 안 됨
@@ -23,6 +23,10 @@ class PotDecorateUI {
     this.selectedStemShape = 0;
     this.stemAngle = 0;
     this.workingStems = [];
+    this.activeSlider = null;
+    this.sliderHitAreas = [];
+    this.deleteStemButtonRect = null;
+    this.pendingStemDeletion = false;
 
     // 드래그용
     this.isDraggingAngle = false;
@@ -45,6 +49,10 @@ class PotDecorateUI {
     this.isDraggingAngle = false;
     this.isDraggingStem = false;
     this.draggingStemIndex = -1;
+    this.activeSlider = null;
+    this.sliderHitAreas = [];
+    this.deleteStemButtonRect = null;
+    this.pendingStemDeletion = false;
     this.workingStems = (pot?.stems ?? []).map((stem, index) => this.#normalizeStem(stem, index));
 
     // 컨셉에 따라 사용 가능한 화분 에셋 목록 결정
@@ -67,20 +75,20 @@ class PotDecorateUI {
     if (mode === 'new') {
       this.selectedPotAsset = 0;
       this.selectedPotColor = 0;
-      this.selectedBgColor  = floor(random(this.bgColors.length));
+      this.selectedBgColor = floor(random(this.bgColors.length));
     } else {
       let savedAssetIndex = this.availablePots.indexOf(pot?.potAssetName);
       this.selectedPotAsset = savedAssetIndex >= 0 ? savedAssetIndex : pot?.potAssetIndex ?? 0;
       this.selectedPotAsset = constrain(this.selectedPotAsset, 0, Math.max(0, this.availablePots.length - 1));
       this.selectedPotColor = pot?.colorIndex ?? 0;
-      this.selectedBgColor  = pot?.bgIndex ?? 0;
+      this.selectedBgColor = pot?.bgIndex ?? 0;
     }
 
     this._savedState = {
       potAsset: this.selectedPotAsset,
       potColor: this.selectedPotColor,
-      bgColor:  this.selectedBgColor,
-      stems:    this.workingStems.map((stem) => this.#cloneStem(stem)),
+      bgColor: this.selectedBgColor,
+      stems: this.workingStems.map((stem) => this.#cloneStem(stem)),
     };
   }
 
@@ -91,11 +99,11 @@ class PotDecorateUI {
   getData() {
     return {
       potAssetIndex: this.selectedPotAsset,
-      potAssetName:  this.availablePots?.[this.selectedPotAsset] ?? '',
-      colorIndex:    this.selectedPotColor,
-      bgIndex:       this.selectedBgColor,
-      bgColor:       this.bgColors[this.selectedBgColor],
-      stems:         this.workingStems.map((stem) => this.#cloneStem(stem)),
+      potAssetName: this.availablePots?.[this.selectedPotAsset] ?? '',
+      colorIndex: this.selectedPotColor,
+      bgIndex: this.selectedBgColor,
+      bgColor: this.bgColors[this.selectedBgColor],
+      stems: this.workingStems.map((stem) => this.#cloneStem(stem)),
     };
   }
 
@@ -150,14 +158,21 @@ class PotDecorateUI {
       let baseX = cx + data.baseOffset;
       let angle = radians(data.stemAngle);
       let stemLength = data.stemLength * lengthScale;
-      let stem = {
-        data,
+      let fitted = fitStemPathLength(
         baseX,
         baseY,
-        tipX: baseX + sin(angle) * stemLength,
-        tipY: baseY - cos(angle) * stemLength,
+        angle,
+        stemLength,
+        (geometry) => this._stemPathPoints(
+          { ...geometry, data },
+          data.stemShape
+        )
+      );
+      let stem = {
+        data,
+        ...fitted.geometry,
+        points: fitted.points,
       };
-      stem.points = this._stemPathPoints(stem, data.stemShape);
       stem.isSelected = this.selectedStemIndex === i;
       stem.isHovered = this._distToPath(mouseX, mouseY, stem.points) < 15;
       return stem;
@@ -169,9 +184,9 @@ class PotDecorateUI {
       case 1:
         return this._curvedStemPoints(stem);
       case 2:
-        return this._waveStemPoints(stem, 5, 13, true);
+        return this._waveStemPoints(stem, 5, stem.data.waveWidth, true);
       case 3:
-        return this._waveStemPoints(stem, 3, 12, false);
+        return this._waveStemPoints(stem, 3, stem.data.waveWidth, false);
       default:
         return [
           { x: stem.baseX, y: stem.baseY },
@@ -184,14 +199,52 @@ class PotDecorateUI {
     let points = [];
     let start = { x: stem.baseX, y: stem.baseY };
     let end = { x: stem.tipX, y: stem.tipY };
-    let control = {
-      x: start.x,
-      y: start.y - this._distance(start, end) * 0.55
+    let dx = end.x - start.x;
+    let dy = end.y - start.y;
+    let length = Math.sqrt(dx * dx + dy * dy);
+    if (length === 0) {
+      return [start];
+    }
+
+    let tangent = { x: dx / length, y: dy / length };
+    let normal = { x: -tangent.y, y: tangent.x };
+    let depth = constrain(stem.data.curveDepth, -100, 100) / 100;
+    let sharpness = constrain(stem.data.curveSharpness, 0, 100) / 100;
+    let midpoint = {
+      x: (start.x + end.x) / 2 + normal.x * length * depth * 0.5,
+      y: (start.y + end.y) / 2 + normal.y * length * depth * 0.5,
+    };
+    let smoothHandle = length * 0.24;
+    let smoothIn = {
+      x: midpoint.x - tangent.x * smoothHandle,
+      y: midpoint.y - tangent.y * smoothHandle,
+    };
+    let smoothOut = {
+      x: midpoint.x + tangent.x * smoothHandle,
+      y: midpoint.y + tangent.y * smoothHandle,
+    };
+    let sharpIn = {
+      x: lerp(start.x, midpoint.x, 0.55),
+      y: lerp(start.y, midpoint.y, 0.55),
+    };
+    let sharpOut = {
+      x: lerp(midpoint.x, end.x, 0.45),
+      y: lerp(midpoint.y, end.y, 0.45),
+    };
+    let controlIn = {
+      x: lerp(smoothIn.x, sharpIn.x, sharpness),
+      y: lerp(smoothIn.y, sharpIn.y, sharpness),
+    };
+    let controlOut = {
+      x: lerp(smoothOut.x, sharpOut.x, sharpness),
+      y: lerp(smoothOut.y, sharpOut.y, sharpness),
     };
 
-    for (let i = 0; i <= 28; i++) {
-      let t = i / 28;
-      points.push(this._quadraticPoint(start, control, end, t));
+    for (let i = 0; i <= 14; i++) {
+      points.push(this._quadraticPoint(start, controlIn, midpoint, i / 14));
+    }
+    for (let i = 1; i <= 14; i++) {
+      points.push(this._quadraticPoint(midpoint, controlOut, end, i / 14));
     }
 
     return points;
@@ -273,8 +326,7 @@ class PotDecorateUI {
   }
 
   _triangleWave(value) {
-    let phase = value - floor(value);
-    return 1 - 4 * abs(phase - 0.5);
+    return (2 / Math.PI) * Math.asin(Math.sin(value * TWO_PI));
   }
 
   _distance(a, b) {
@@ -423,6 +475,39 @@ class PotDecorateUI {
     }
   }
 
+  _drawStemSlider(label, key, minValue, maxValue, step, x, y, widthValue = 330) {
+    let stem = this.workingStems[this.selectedStemIndex];
+    if (!stem) return;
+
+    let value = stem[key];
+    let normalized = (value - minValue) / (maxValue - minValue);
+    let trackY = y + 28;
+
+    fill(30); noStroke();
+    textSize(13); textStyle(NORMAL); textAlign(LEFT, CENTER);
+    text(label, x, y + 4);
+    fill(120); textAlign(RIGHT, CENTER);
+    text(`${Math.round(value)}`, x + widthValue, y + 4);
+
+    stroke(205); strokeWeight(6); strokeCap(ROUND);
+    line(x, trackY, x + widthValue, trackY);
+    stroke(80, 100, 220); strokeWeight(6);
+    line(x, trackY, x + widthValue * normalized, trackY);
+    noStroke(); fill(80, 100, 220);
+    circle(x + widthValue * normalized, trackY, 18);
+
+    this.sliderHitAreas.push({
+      key,
+      minValue,
+      maxValue,
+      step,
+      x,
+      y: trackY - 14,
+      w: widthValue,
+      h: 28,
+    });
+  }
+
   // ── 각도 다이얼 그리기 ──
   _drawAngleDial(x, y, r) {
     // 배경 원
@@ -455,6 +540,9 @@ class PotDecorateUI {
 
   draw() {
     if (!this.isVisible) return;
+
+    this.sliderHitAreas = [];
+    this.deleteStemButtonRect = null;
 
     // 부드러운 스크롤
     this.targetScrollY = constrain(this.targetScrollY, 0, this.maxScrollY);
@@ -516,12 +604,12 @@ class PotDecorateUI {
     // 화분 이미지 그리드 (3열)
     const pots = this.availablePots ?? [];
     const cellW = 90, cellH = 90, colGap = 14, rowGap = 18;
-    const cols  = 4;
+    const cols = 4;
     for (let i = 0; i < pots.length; i++) {
       let col = i % cols;
       let row = Math.floor(i / cols);
-      let sx  = panX + col * (cellW + colGap);
-      let sy  = panY + 34 + row * (cellH + rowGap + 16);
+      let sx = panX + col * (cellW + colGap);
+      let sy = panY + 34 + row * (cellH + rowGap + 16);
       let isSel = (this.selectedPotAsset === i);
 
       // 셀 배경
@@ -563,6 +651,7 @@ class PotDecorateUI {
 
     // 줄기 세부 설정
     let stemSecY = nextOptionY + 100;
+    let contentBottomOffset = stemSecY - panY + 60;
     fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
     text('줄기 세부 설정', panX, stemSecY);
 
@@ -607,21 +696,67 @@ class PotDecorateUI {
         }
       }
 
+      let controlsY = stemSecY + 224;
+      if (this.selectedStemShape === 1) {
+        this._drawStemSlider(
+          '꺾임',
+          'curveSharpness',
+          0,
+          100,
+          1,
+          panX,
+          controlsY
+        );
+        controlsY += 70;
+        this._drawStemSlider(
+          '깊이',
+          'curveDepth',
+          -100,
+          100,
+          1,
+          panX,
+          controlsY
+        );
+        controlsY += 76;
+      } else if (this.selectedStemShape === 2 || this.selectedStemShape === 3) {
+        this._drawStemSlider(
+          '너비',
+          'waveWidth',
+          0,
+          40,
+          1,
+          panX,
+          controlsY
+        );
+        controlsY += 76;
+      }
+
       // 각도 다이얼
       fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
-      text('줄기 기울기', panX, stemSecY + 236);
+      text('줄기 기울기', panX, controlsY);
       fill(150); textStyle(NORMAL); textSize(14);
-      text(`${this.stemAngle}°`, panX + 92, stemSecY + 236);
-      this._drawAngleDial(panX + 70, stemSecY + 320, 64);
+      text(`${this.stemAngle}°`, panX + 92, controlsY);
+      this._drawAngleDial(panX + 70, controlsY + 84, 64);
 
-
+      let positionY = controlsY + 204;
       fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
-      text('줄기 위치', panX, stemSecY + 440);
+      text('줄기 위치', panX, positionY);
       fill(180); textStyle(NORMAL); textSize(12);
-      text('미리보기 속 줄기를 좌우로 드래그하여 줄기의 배치를 바꾸세요.', panX + 70, stemSecY + 440);
+      text('미리보기 속 줄기를 좌우로 드래그하여 줄기의 배치를 바꾸세요.', panX, positionY + 24);
+
+      let deleteY = positionY + 70;
+      let deleteW = 180;
+      let deleteH = 40;
+      let deleteHov = isHovered(panX, deleteY, deleteW, deleteH);
+      fill(deleteHov ? color(185, 45, 65) : color(215, 70, 85));
+      noStroke();
+      rect(panX, deleteY, deleteW, deleteH, 20);
+      fill(255); textStyle(BOLD); textSize(13); textAlign(CENTER, CENTER);
+      text('선택한 줄기 삭제', panX + deleteW / 2, deleteY + deleteH / 2);
+      this.deleteStemButtonRect = { x: panX, y: deleteY, w: deleteW, h: deleteH };
+      contentBottomOffset = deleteY + deleteH - panY + 24;
     }
 
-    let contentBottomOffset = (this.selectedStemIndex === -1 ? 510 : 920);
     let visibleContentH = popH - 132;
     this.maxScrollY = max(0, contentBottomOffset - visibleContentH);
     this.targetScrollY = constrain(this.targetScrollY, 0, this.maxScrollY);
@@ -646,7 +781,13 @@ class PotDecorateUI {
     fill(255); textSize(14); textAlign(CENTER, CENTER);
     text('저장하기', saveX + 70, saveY + 22);
 
-    if (xHov || skipHov || saveHov) cursor(HAND); else cursor(ARROW);
+    if (this.pendingStemDeletion) {
+      this.#drawStemDeleteConfirmation();
+    } else if (xHov || skipHov || saveHov || this.#isPointInRect(mouseX, mouseY, this.deleteStemButtonRect)) {
+      cursor(HAND);
+    } else {
+      cursor(ARROW);
+    }
   }
 
   // 마우스 클릭으로 줄기 선택
@@ -656,6 +797,43 @@ class PotDecorateUI {
     let popW = 1060, popH = 700;
     let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
+    let controlsClip = {
+      x: popX + 431,
+      y: popY + 53,
+      w: popW - 431,
+      h: popH - 123,
+    };
+
+    if (this.pendingStemDeletion) {
+      let buttons = this.#stemDeleteConfirmationButtons();
+      if (this.#isPointInRect(mouseX, mouseY, buttons.confirm)) {
+        this.workingStems.splice(this.selectedStemIndex, 1);
+        this.selectedStemIndex = -1;
+        this.pendingStemDeletion = false;
+      } else if (this.#isPointInRect(mouseX, mouseY, buttons.cancel)) {
+        this.pendingStemDeletion = false;
+      }
+      return;
+    }
+
+    let slider = this.sliderHitAreas.find((area) =>
+      this.#isPointInRect(mouseX, mouseY, area) &&
+      this.#isPointInRect(mouseX, mouseY, controlsClip)
+    );
+    if (slider) {
+      this.activeSlider = slider;
+      this.#updateActiveSlider();
+      return;
+    }
+
+    if (this.#isPointInRect(mouseX, mouseY, this.deleteStemButtonRect) &&
+      this.#isPointInRect(mouseX, mouseY, controlsClip)) {
+      this.pendingStemDeletion = true;
+      this.isDraggingAngle = false;
+      this.isDraggingStem = false;
+      this.draggingStemIndex = -1;
+      return;
+    }
 
     // X 버튼
     if (mouseX > popX + popW - 40 && mouseX < popX + popW - 12 &&
@@ -699,6 +877,11 @@ class PotDecorateUI {
   }
 
   onMouseDragged() {
+    if (this.activeSlider) {
+      this.#updateActiveSlider();
+      return;
+    }
+
     if (!this.isVisible || !this.isDraggingStem || this.draggingStemIndex < 0) {
       return;
     }
@@ -714,11 +897,23 @@ class PotDecorateUI {
     this.isDraggingAngle = false;
     this.isDraggingStem = false;
     this.draggingStemIndex = -1;
+    this.activeSlider = null;
   }
 
   onMouseWheel(delta) {
-    if (!this.isVisible) return;
+    if (!this.isVisible || this.pendingStemDeletion) return;
     this.targetScrollY = constrain(this.targetScrollY + delta, 0, this.maxScrollY);
+  }
+
+  #updateActiveSlider() {
+    if (!this.activeSlider || this.selectedStemIndex < 0) return;
+
+    let slider = this.activeSlider;
+    let normalized = constrain((mouseX - slider.x) / slider.w, 0, 1);
+    let rawValue = lerp(slider.minValue, slider.maxValue, normalized);
+    let value = Math.round(rawValue / slider.step) * slider.step;
+    this.workingStems[this.selectedStemIndex][slider.key] =
+      constrain(value, slider.minValue, slider.maxValue);
   }
 
   #consumeOptionClick(x, y, w, h) {
@@ -739,7 +934,7 @@ class PotDecorateUI {
     if (!this._savedState) return;
     this.selectedPotAsset = this._savedState.potAsset;
     this.selectedPotColor = this._savedState.potColor;
-    this.selectedBgColor  = this._savedState.bgColor;
+    this.selectedBgColor = this._savedState.bgColor;
     this.workingStems = this._savedState.stems.map((stem) => this.#cloneStem(stem));
   }
 
@@ -750,10 +945,10 @@ class PotDecorateUI {
 
     let data = this.getData();
     this.currentPot.potAssetIndex = data.potAssetIndex;
-    this.currentPot.potAssetName  = data.potAssetName;
-    this.currentPot.colorIndex    = data.colorIndex;
-    this.currentPot.bgIndex       = data.bgIndex;
-    this.currentPot.stems         = data.stems;
+    this.currentPot.potAssetName = data.potAssetName;
+    this.currentPot.colorIndex = data.colorIndex;
+    this.currentPot.bgIndex = data.bgIndex;
+    this.currentPot.stems = data.stems;
 
     return this.currentPot.firestoreId
       ? updatePotDecor(this.currentPot.firestoreId, data)
@@ -816,6 +1011,9 @@ class PotDecorateUI {
       angle: stem?.stemAngle ?? stem?.angle ?? defaultAngles[index % defaultAngles.length],
       baseOffset: stem?.baseOffset ?? defaultOffsets[index % defaultOffsets.length],
       stemLength: stem?.stemLength ?? 210,
+      curveSharpness: stem?.curveSharpness ?? 45,
+      curveDepth: stem?.curveDepth ?? 45,
+      waveWidth: stem?.waveWidth ?? (stem?.stemShape === 3 ? 12 : 13),
       beads: (stem?.beads ?? []).map((bead) => ({ ...bead })),
     };
   }
@@ -831,6 +1029,67 @@ class PotDecorateUI {
     this.selectedStemColor = stem.stemColor;
     this.selectedStemShape = stem.stemShape;
     this.stemAngle = stem.stemAngle;
+  }
+
+  #drawStemDeleteConfirmation() {
+    let modalW = 420;
+    let modalH = 220;
+    let modalX = width / 2 - modalW / 2;
+    let modalY = height / 2 - modalH / 2;
+    let buttons = this.#stemDeleteConfirmationButtons();
+
+    fill(0, 0, 0, 120); noStroke();
+    rect(0, 0, width, height);
+    fill(255); stroke(220); strokeWeight(1);
+    rect(modalX, modalY, modalW, modalH, 14);
+
+    fill(30); noStroke(); textStyle(BOLD); textSize(18); textAlign(CENTER, CENTER);
+    text('줄기를 삭제할까요?', width / 2, modalY + 50);
+    fill(120); textStyle(NORMAL); textSize(13);
+    text('삭제한 줄기는 저장하기 전까지만 되돌릴 수 있어요.', width / 2, modalY + 88);
+
+    let cancelHov = this.#isPointInRect(mouseX, mouseY, buttons.cancel);
+    fill(cancelHov ? 225 : 240); stroke(210); strokeWeight(1);
+    rect(buttons.cancel.x, buttons.cancel.y, buttons.cancel.w, buttons.cancel.h, 22);
+    fill(80); noStroke(); textStyle(BOLD);
+    text('취소', buttons.cancel.x + buttons.cancel.w / 2, buttons.cancel.y + buttons.cancel.h / 2);
+
+    let confirmHov = this.#isPointInRect(mouseX, mouseY, buttons.confirm);
+    fill(confirmHov ? color(175, 35, 55) : color(210, 60, 75)); noStroke();
+    rect(buttons.confirm.x, buttons.confirm.y, buttons.confirm.w, buttons.confirm.h, 22);
+    fill(255);
+    text('삭제', buttons.confirm.x + buttons.confirm.w / 2, buttons.confirm.y + buttons.confirm.h / 2);
+    cursor(cancelHov || confirmHov ? HAND : ARROW);
+  }
+
+  #stemDeleteConfirmationButtons() {
+    let modalW = 420;
+    let modalH = 220;
+    let modalX = width / 2 - modalW / 2;
+    let modalY = height / 2 - modalH / 2;
+    let buttonW = 150;
+    let buttonH = 44;
+    let gap = 16;
+    return {
+      cancel: {
+        x: modalX + (modalW - buttonW * 2 - gap) / 2,
+        y: modalY + modalH - 68,
+        w: buttonW,
+        h: buttonH,
+      },
+      confirm: {
+        x: modalX + (modalW - buttonW * 2 - gap) / 2 + buttonW + gap,
+        y: modalY + modalH - 68,
+        w: buttonW,
+        h: buttonH,
+      },
+    };
+  }
+
+  #isPointInRect(x, y, rectValue) {
+    return !!rectValue &&
+      x >= rectValue.x && x <= rectValue.x + rectValue.w &&
+      y >= rectValue.y && y <= rectValue.y + rectValue.h;
   }
 
   #drawStemBeads(stem) {

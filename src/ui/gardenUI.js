@@ -84,17 +84,53 @@ class GardenUI {
   }
 
   // ── 줄기 경로 포인트 계산 (potDecorateUI와 동일한 로직) ─────────────────────
-  _stemPoints(bx, baseY, tx, ty, shapeIdx) {
+  _stemPoints(bx, baseY, tx, ty, shapeIdx, stemData = {}) {
     switch (shapeIdx) {
       case 1: { // 곡선
         const pts = [];
-        const ctrl = { x: bx, y: baseY - dist(bx, baseY, tx, ty) * 0.55 };
-        for (let k = 0; k <= 28; k++) {
-          const t = k / 28, u = 1 - t;
-          pts.push({
-            x: u*u*bx + 2*u*t*ctrl.x + t*t*tx,
-            y: u*u*baseY + 2*u*t*ctrl.y + t*t*ty,
-          });
+        const dx = tx - bx, dy = ty - baseY;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        if (len === 0) return [{ x: bx, y: baseY }];
+
+        const tangent = { x: dx / len, y: dy / len };
+        const normal = { x: -tangent.y, y: tangent.x };
+        const depth = constrain(stemData.curveDepth ?? 45, -100, 100) / 100;
+        const sharpness = constrain(stemData.curveSharpness ?? 45, 0, 100) / 100;
+        const midpoint = {
+          x: (bx + tx) / 2 + normal.x * len * depth * 0.5,
+          y: (baseY + ty) / 2 + normal.y * len * depth * 0.5,
+        };
+        const handle = len * 0.24;
+        const smoothIn = {
+          x: midpoint.x - tangent.x * handle,
+          y: midpoint.y - tangent.y * handle,
+        };
+        const smoothOut = {
+          x: midpoint.x + tangent.x * handle,
+          y: midpoint.y + tangent.y * handle,
+        };
+        const controlIn = {
+          x: lerp(smoothIn.x, lerp(bx, midpoint.x, 0.55), sharpness),
+          y: lerp(smoothIn.y, lerp(baseY, midpoint.y, 0.55), sharpness),
+        };
+        const controlOut = {
+          x: lerp(smoothOut.x, lerp(midpoint.x, tx, 0.45), sharpness),
+          y: lerp(smoothOut.y, lerp(midpoint.y, ty, 0.45), sharpness),
+        };
+        const quadratic = (start, control, end, t) => {
+          const u = 1 - t;
+          return {
+            x: u*u*start.x + 2*u*t*control.x + t*t*end.x,
+            y: u*u*start.y + 2*u*t*control.y + t*t*end.y,
+          };
+        };
+        const start = { x: bx, y: baseY };
+        const end = { x: tx, y: ty };
+        for (let k = 0; k <= 14; k++) {
+          pts.push(quadratic(start, controlIn, midpoint, k / 14));
+        }
+        for (let k = 1; k <= 14; k++) {
+          pts.push(quadratic(midpoint, controlOut, end, k / 14));
         }
         return pts;
       }
@@ -103,11 +139,11 @@ class GardenUI {
         const dx = tx - bx, dy = ty - baseY;
         const len = Math.sqrt(dx*dx + dy*dy) || 1;
         const nx = -dy/len, ny = dx/len;
+        const amplitude = stemData.waveWidth ?? 13;
         for (let k = 0; k <= samples; k++) {
           const t = k / samples;
-          const phase = t * 5 - Math.floor(t * 5);
-          const wave  = 1 - 4 * Math.abs(phase - 0.5);
-          pts.push({ x: lerp(bx,tx,t) + nx*13*wave, y: lerp(baseY,ty,t) + ny*13*wave });
+          const wave = (2 / Math.PI) * Math.asin(Math.sin(t * 5 * TWO_PI));
+          pts.push({ x: lerp(bx,tx,t) + nx*amplitude*wave, y: lerp(baseY,ty,t) + ny*amplitude*wave });
         }
         return pts;
       }
@@ -116,9 +152,10 @@ class GardenUI {
         const dx = tx - bx, dy = ty - baseY;
         const len = Math.sqrt(dx*dx + dy*dy) || 1;
         const nx = -dy/len, ny = dx/len;
+        const amplitude = stemData.waveWidth ?? 12;
         for (let k = 0; k <= samples; k++) {
           const t = k / samples;
-          pts.push({ x: lerp(bx,tx,t) + nx*12*Math.sin(t*3*TWO_PI), y: lerp(baseY,ty,t) + ny*12*Math.sin(t*3*TWO_PI) });
+          pts.push({ x: lerp(bx,tx,t) + nx*amplitude*Math.sin(t*3*TWO_PI), y: lerp(baseY,ty,t) + ny*amplitude*Math.sin(t*3*TWO_PI) });
         }
         return pts;
       }
@@ -142,10 +179,22 @@ class GardenUI {
       const shapeIdx  = stem.stemShape ?? 0;
       const bx        = cx + offset * 0.6;
       const angleRad  = radians(angleDeg);
-      const tx        = bx + sin(angleRad) * stemLen;
-      const ty        = baseY - cos(angleRad) * stemLen;
       const col       = getStemColor(pot, stem.stemColor);
-      const pts       = this._stemPoints(bx, baseY, tx, ty, shapeIdx);
+      const fitted    = fitStemPathLength(
+        bx,
+        baseY,
+        angleRad,
+        stemLen,
+        (geometry) => this._stemPoints(
+          geometry.baseX,
+          geometry.baseY,
+          geometry.tipX,
+          geometry.tipY,
+          shapeIdx,
+          stem
+        )
+      );
+      const pts       = fitted.points;
 
       // 줄기 선 그리기
       stroke(col); strokeWeight(1.5); noFill();

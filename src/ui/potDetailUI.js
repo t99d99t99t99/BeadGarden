@@ -79,13 +79,18 @@ class PotDetailUI {
           angle,
           min(stem.stemLength ?? 210, h * 0.56)
         );
-        let stemGeometry = {
+        let fitted = fitStemPathLength(
           baseX,
           baseY,
-          tipX: baseX + sin(angle) * len,
-          tipY: baseY - cos(angle) * len,
-        };
-        let points = this.#stemPathPoints(stemGeometry, stem.stemShape ?? 0);
+          angle,
+          len,
+          (geometry) => this.#stemPathPoints(
+            geometry,
+            stem.stemShape ?? 0,
+            stem
+          )
+        );
+        let points = fitted.points;
         let col   = getStemColor(this.pot, stem.stemColor);
         stroke(col); strokeWeight(2);
         this.#drawStemPath(points);
@@ -141,20 +146,53 @@ class PotDetailUI {
     return max(24, maxLength);
   }
 
-  #stemPathPoints(stem, shapeIdx) {
+  #stemPathPoints(stem, shapeIdx, stemData = {}) {
     if (shapeIdx === 1) {
       let points = [];
-      let control = {
-        x: stem.baseX,
-        y: stem.baseY - dist(stem.baseX, stem.baseY, stem.tipX, stem.tipY) * 0.55,
+      let dx = stem.tipX - stem.baseX;
+      let dy = stem.tipY - stem.baseY;
+      let length = sqrt(dx * dx + dy * dy);
+      if (length === 0) return [{ x: stem.baseX, y: stem.baseY }];
+
+      let tangent = { x: dx / length, y: dy / length };
+      let normal = { x: -tangent.y, y: tangent.x };
+      let depth = constrain(stemData.curveDepth ?? 45, -100, 100) / 100;
+      let sharpness = constrain(stemData.curveSharpness ?? 45, 0, 100) / 100;
+      let midpoint = {
+        x: (stem.baseX + stem.tipX) / 2 + normal.x * length * depth * 0.5,
+        y: (stem.baseY + stem.tipY) / 2 + normal.y * length * depth * 0.5,
       };
-      for (let i = 0; i <= 28; i++) {
-        let t = i / 28;
+      let handle = length * 0.24;
+      let smoothIn = {
+        x: midpoint.x - tangent.x * handle,
+        y: midpoint.y - tangent.y * handle,
+      };
+      let smoothOut = {
+        x: midpoint.x + tangent.x * handle,
+        y: midpoint.y + tangent.y * handle,
+      };
+      let controlIn = {
+        x: lerp(smoothIn.x, lerp(stem.baseX, midpoint.x, 0.55), sharpness),
+        y: lerp(smoothIn.y, lerp(stem.baseY, midpoint.y, 0.55), sharpness),
+      };
+      let controlOut = {
+        x: lerp(smoothOut.x, lerp(midpoint.x, stem.tipX, 0.45), sharpness),
+        y: lerp(smoothOut.y, lerp(midpoint.y, stem.tipY, 0.45), sharpness),
+      };
+      let quadratic = (start, control, end, t) => {
         let u = 1 - t;
-        points.push({
-          x: u * u * stem.baseX + 2 * u * t * control.x + t * t * stem.tipX,
-          y: u * u * stem.baseY + 2 * u * t * control.y + t * t * stem.tipY,
-        });
+        return {
+          x: u * u * start.x + 2 * u * t * control.x + t * t * end.x,
+          y: u * u * start.y + 2 * u * t * control.y + t * t * end.y,
+        };
+      };
+      let start = { x: stem.baseX, y: stem.baseY };
+      let end = { x: stem.tipX, y: stem.tipY };
+      for (let i = 0; i <= 14; i++) {
+        points.push(quadratic(start, controlIn, midpoint, i / 14));
+      }
+      for (let i = 1; i <= 14; i++) {
+        points.push(quadratic(midpoint, controlOut, end, i / 14));
       }
       return points;
     }
@@ -167,19 +205,19 @@ class PotDetailUI {
       let normalX = length > 0 ? -dy / length : 0;
       let normalY = length > 0 ? dx / length : 0;
       let cycles = shapeIdx === 2 ? 5 : 3;
+      let amplitude = stemData.waveWidth ?? (shapeIdx === 2 ? 13 : 12);
       let samples = cycles * 12;
       for (let i = 0; i <= samples; i++) {
         let t = i / samples;
         let wave;
         if (shapeIdx === 2) {
-          let phase = t * cycles - floor(t * cycles);
-          wave = 1 - 4 * abs(phase - 0.5);
+          wave = (2 / Math.PI) * Math.asin(Math.sin(t * cycles * TWO_PI));
         } else {
           wave = sin(t * cycles * TWO_PI);
         }
         points.push({
-          x: lerp(stem.baseX, stem.tipX, t) + normalX * 10 * wave,
-          y: lerp(stem.baseY, stem.tipY, t) + normalY * 10 * wave,
+          x: lerp(stem.baseX, stem.tipX, t) + normalX * amplitude * wave,
+          y: lerp(stem.baseY, stem.tipY, t) + normalY * amplitude * wave,
         });
       }
       return points;

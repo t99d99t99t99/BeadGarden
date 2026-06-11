@@ -103,6 +103,65 @@ function beadPathPlacements(
   });
 }
 
+function stemPathLength(points) {
+  let length = 0;
+  for (let i = 1; i < points.length; i++) {
+    length += dist(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+  }
+  return length;
+}
+
+function fitStemPathLength(baseX, baseY, angle, targetLength, buildPoints) {
+  let directionX = sin(angle);
+  let directionY = -cos(angle);
+  let makeCandidate = (endpointDistance) => {
+    let geometry = {
+      baseX,
+      baseY,
+      tipX: baseX + directionX * endpointDistance,
+      tipY: baseY + directionY * endpointDistance,
+    };
+    return {
+      geometry,
+      points: buildPoints(geometry),
+    };
+  };
+
+  let minimum = makeCandidate(0.01);
+  if (stemPathLength(minimum.points) > targetLength) {
+    let full = makeCandidate(targetLength);
+    let fullLength = stemPathLength(full.points);
+    let scale = fullLength > 0 ? targetLength / fullLength : 1;
+    let points = full.points.map((point) => ({
+      x: baseX + (point.x - baseX) * scale,
+      y: baseY + (point.y - baseY) * scale,
+    }));
+    return {
+      geometry: {
+        ...full.geometry,
+        tipX: points[points.length - 1].x,
+        tipY: points[points.length - 1].y,
+      },
+      points,
+    };
+  }
+
+  let low = 0;
+  let high = targetLength;
+  let best = makeCandidate(high);
+  for (let i = 0; i < 24; i++) {
+    let midpoint = (low + high) / 2;
+    let candidate = makeCandidate(midpoint);
+    if (stemPathLength(candidate.points) > targetLength) {
+      high = midpoint;
+    } else {
+      low = midpoint;
+      best = candidate;
+    }
+  }
+  return best;
+}
+
 // ── 화분 모양 그리기 (scale 파라미터로 카드/팝업 크기 조정) ─────────────────────
 // cx, baseY: 화분 상단 중앙 기준점 / scale: 1.0 = 원본, 0.6 = 카드용
 function drawPotShapeAt(cx, baseY, shapeIdx, scale) {
