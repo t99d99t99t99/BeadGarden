@@ -43,6 +43,7 @@ function isClicked(x, y, w, h) {
 function preload() {
   preloadBeadSpriteSheets();
   preloadPotImages();
+  preloadWireAssets();
 }
 
 function startStemCraftForPot(pot) {

@@ -88,6 +88,10 @@ class BeadGame {
         for (let bead of this.beads) {
             bead.displayBody();
         }
+
+        for (let wire of this.wires) {
+            wire.displayBlocker();
+        }
     }
 
     draw() {
@@ -394,7 +398,9 @@ class BeadGame {
             return;
         }
 
-        let minT = 0.001;
+        let firstBeadWidth = piercedBeads[0].collisionWidth ?? piercedBeads[0].w;
+        let blockerClearance = (wire.blockerRadius ?? 0) + firstBeadWidth / 2 + 0.5;
+        let minT = Math.max(0.001, blockerClearance / wire.wireLength);
         let maxT = 0.999;
         let pairSpacing = [];
         for (let i = 1; i < piercedBeads.length; ++i) {

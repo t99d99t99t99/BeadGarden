@@ -134,6 +134,38 @@ class HandDetector {
     }
 
     /**
+     * @returns {{thumb: Matter.Vector | null, index: Matter.Vector | null}}
+     */
+    fingerJointPositions() {
+        this.#ensureStarted();
+        let hand = this.#currentHand();
+        let thumb = hand ? this.#toCanvasPoint(this.#keypointByIndex(hand, 3)) : null;
+        let index = hand ? this.#toCanvasPoint(this.#keypointByIndex(hand, 7)) : null;
+        return {
+            thumb: thumb ? { ...thumb } : null,
+            index: index ? { ...index } : null
+        };
+    }
+
+    /**
+     * Returns the ml5 hand-skeleton path from thumb tip to index-finger tip.
+     * @returns {Matter.Vector[]}
+     */
+    thumbToIndexPath() {
+        this.#ensureStarted();
+        let hand = this.#currentHand();
+        if (!hand) return [];
+
+        let points = [4, 2, 0, 6, 8]
+            .map((index) => this.#toCanvasPoint(this.#keypointByIndex(hand, index)));
+        if (points.some((point) => point === null)) {
+            return [];
+        }
+
+        return points.map((point) => ({ ...point }));
+    }
+
+    /**
      * @returns {boolean}
      */
     pinched() {
