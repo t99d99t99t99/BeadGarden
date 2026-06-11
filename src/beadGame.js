@@ -108,6 +108,15 @@ class BeadGame {
     }
 
     /**
+     * @returns {Matter.Vector | null}
+     */
+    getWireGrabPosition() {
+        let wire = this.wires[0];
+        let segment = wire ? this.#lastSegment(wire) : null;
+        return segment ? { x: segment.position.x, y: segment.position.y } : null;
+    }
+
+    /**
      * @param {string[]} paletteColors
      * @returns {void}
      */
@@ -144,6 +153,27 @@ class BeadGame {
                 w: bead.w,
                 h: bead.h
             }));
+    }
+
+    /**
+     * Deletes a pierced bead using the same order shown in the craft preview.
+     * @param {Number} previewIndex
+     * @returns {boolean}
+     */
+    deletePiercedBeadAtPreviewIndex(previewIndex) {
+        let piercedBeads = this.beads
+            .filter((bead) => bead.isPierced)
+            .sort((a, b) => (b.pierceOrder ?? 0) - (a.pierceOrder ?? 0));
+        let bead = piercedBeads[previewIndex];
+
+        if (!bead) {
+            return false;
+        }
+
+        Matter.Composite.remove(this.#matterEngine.world, bead.body);
+        this.beads = this.beads.filter((item) => item !== bead);
+        this.#keepPiercedBeadsOrdered(this.wires[0]);
+        return true;
     }
 
     getPiercedBeadData() {
@@ -452,7 +482,7 @@ class BeadGame {
      * @returns {Matter.Vector}
      */
     #separatedSpawnPosition(minX, maxX, minY, maxY, beadWidth, beadHeight) {
-        let bestPosition = { x: random(minX, maxX), y: random(minY, maxY) };
+        let bestPosition = null;
         let bestClearance = -Infinity;
 
         for (let attempt = 0; attempt < this.beadSpawnAttempts; ++attempt) {
@@ -460,6 +490,10 @@ class BeadGame {
                 x: random(minX, maxX),
                 y: random(minY, maxY)
             };
+            if (this.#overlapsPreview(candidate, beadWidth, beadHeight)) {
+                continue;
+            }
+
             let clearance = this.#spawnClearance(candidate, beadWidth, beadHeight);
             if (clearance >= this.beadSpawnGap) {
                 return candidate;
@@ -470,7 +504,44 @@ class BeadGame {
             }
         }
 
-        return bestPosition;
+        if (bestPosition) {
+            return bestPosition;
+        }
+
+        let previewBottom = 116 + 64;
+        return {
+            x: this.#clamp(width / 2, minX, maxX),
+            y: this.#clamp(
+                previewBottom + this.beadSpawnGap + beadHeight / 2,
+                minY,
+                maxY
+            )
+        };
+    }
+
+    /**
+     * @param {Matter.Vector} candidate
+     * @param {Number} beadWidth
+     * @param {Number} beadHeight
+     * @returns {boolean}
+     */
+    #overlapsPreview(candidate, beadWidth, beadHeight) {
+        let preview = {
+            x: width / 2 - 470 / 2,
+            y: 116,
+            w: 470,
+            h: 64
+        };
+        let padding = this.beadSpawnGap;
+        let beadLeft = candidate.x - beadWidth / 2;
+        let beadRight = candidate.x + beadWidth / 2;
+        let beadTop = candidate.y - beadHeight / 2;
+        let beadBottom = candidate.y + beadHeight / 2;
+
+        return beadRight >= preview.x - padding &&
+            beadLeft <= preview.x + preview.w + padding &&
+            beadBottom >= preview.y - padding &&
+            beadTop <= preview.y + preview.h + padding;
     }
 
     /**

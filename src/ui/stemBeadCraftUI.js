@@ -4,12 +4,14 @@ class StemBeadCraftUI {
     this.currentPot = null;
     this.minBeads = 10;
     this.newBeadButtonWasPressed = false;
+    this.previewBeadHitAreas = [];
+    this.hoveredPreviewBeadIndex = null;
 
     // 테마별 배경 이미지 로드
     this.bgImgs = {};
-    loadImage('assets/stemBeadCraft_plant_bg.png', img => { this.bgImgs[POT_THEMES.PLANT] = img; }, () => {});
-    loadImage('assets/stemBeadCraft_star_bg.png',  img => { this.bgImgs[POT_THEMES.STAR]  = img; }, () => {});
-    loadImage('assets/stemBeadCraft_ocean_bg.png', img => { this.bgImgs[POT_THEMES.OCEAN] = img; }, () => {});
+    loadImage('assets/stemBeadCraft_plant_bg.png', img => { this.bgImgs[POT_THEMES.PLANT] = img; }, () => { });
+    loadImage('assets/stemBeadCraft_star_bg.png', img => { this.bgImgs[POT_THEMES.STAR] = img; }, () => { });
+    loadImage('assets/stemBeadCraft_ocean_bg.png', img => { this.bgImgs[POT_THEMES.OCEAN] = img; }, () => { });
   }
 
   setPalette(colors) {
@@ -58,7 +60,7 @@ class StemBeadCraftUI {
   drawGuide() {
     let isPinching = this.isPinching();
     let isHoldingWire = this.isHoldingWire();
-    let msg = '👌 손가락을 모아 철사를 잡으세요.';
+    let msg = '👌손가락을 모아 O 부분의 철사를 잡으세요.';
 
     if (isPinching && !isHoldingWire) {
       msg = '👌 철사를 잡지 못했어요! 손가락을 뗀 뒤 다시 철사를 잡아 보세요.';
@@ -73,9 +75,66 @@ class StemBeadCraftUI {
 
     fill(239, 238, 255); noStroke();
     rect(guideX, guideY, guideW, guideH, 6);
-    fill(120); noStroke(); textSize(13); textStyle(NORMAL);
-    textAlign(CENTER, CENTER);
-    text(msg, width / 2, guideY + guideH / 2);
+    noStroke(); textSize(13); textStyle(NORMAL);
+
+    if (!isPinching && !isHoldingWire) {
+      this.#drawIdleGuideMessage(width / 2, guideY + guideH / 2);
+    } else {
+      fill(120);
+      textAlign(CENTER, CENTER);
+      text(msg, width / 2, guideY + guideH / 2);
+    }
+  }
+
+  #drawIdleGuideMessage(centerX, centerY) {
+    let beforeMarker = '👌손가락을 모아 ';
+    let marker = '◯';
+    let afterMarker = ' 부분의 철사를 잡으세요.';
+    let totalWidth = textWidth(beforeMarker) + textWidth(marker) + textWidth(afterMarker);
+    let x = centerX - totalWidth / 2;
+
+    textAlign(LEFT, CENTER);
+    fill(120);
+    text(beforeMarker, x, centerY);
+    x += textWidth(beforeMarker);
+
+    fill(255, 70, 70);
+    textStyle(BOLD);
+    text(marker, x, centerY);
+    x += textWidth(marker);
+
+    fill(120);
+    textStyle(NORMAL);
+    text(afterMarker, x, centerY);
+  }
+
+  drawHoldPointHighlight() {
+    if (this.isHoldingWire() ||
+      typeof beadGame === 'undefined' ||
+      typeof beadGame.getWireGrabPosition !== 'function') {
+      return;
+    }
+
+    let position = beadGame.getWireGrabPosition();
+    if (!position) {
+      return;
+    }
+
+    let diameter = 150;
+
+    push();
+    noFill();
+    stroke(255, 70, 70);
+    strokeWeight(2);
+    circle(position.x, position.y, diameter);
+
+    noStroke();
+    fill(255, 70, 70);
+    textSize(13);
+    textStyle(BOLD);
+    textAlign(CENTER, BOTTOM);
+    text('여기를 잡으세요', position.x, position.y - diameter / 2 - 10);
+    pop();
   }
 
   // ── 비즈 카운터 ──
@@ -100,7 +159,7 @@ class StemBeadCraftUI {
   // ── 완성 줄기 프리뷰 자리 ──
   drawPreviewPlaceholder() {
     let previewW = 470;
-    let previewH = 46;
+    let previewH = 64;
     let previewX = width / 2 - previewW / 2;
     let previewY = 116;
 
@@ -122,6 +181,8 @@ class StemBeadCraftUI {
     }
 
     if (beads.length === 0) {
+      this.previewBeadHitAreas = [];
+      this.hoveredPreviewBeadIndex = null;
       return;
     }
 
@@ -138,13 +199,55 @@ class StemBeadCraftUI {
     let rowX = previewX + labelReserve + (availableW - rowW) / 2;
     let rowY = previewY + previewH / 2;
 
+    this.previewBeadHitAreas = [];
     let x = rowX;
-    for (let bead of beads) {
+    for (let i = 0; i < beads.length; i++) {
+      let bead = beads[i];
       let scale = beadDisplayHeight / bead.h;
       let beadDisplayWidth = bead.w * scale;
-      this.#drawPreviewBead(bead, x + beadDisplayWidth / 2, rowY, scale);
+      this.previewBeadHitAreas.push({
+        x,
+        y: rowY - beadDisplayHeight / 2,
+        w: beadDisplayWidth,
+        h: beadDisplayHeight,
+      });
       x += beadDisplayWidth + beadGap;
     }
+
+    this.#updatePreviewHover();
+
+    for (let i = 0; i < beads.length; i++) {
+      let bead = beads[i];
+      let area = this.previewBeadHitAreas[i];
+      let scale = area.h / bead.h;
+      let isHovered = i === this.hoveredPreviewBeadIndex;
+      this.#drawPreviewBeadHighlight(bead, area, scale, isHovered);
+      this.#drawPreviewBead(bead, area.x + area.w / 2, rowY, scale);
+    }
+
+    if (this.hoveredPreviewBeadIndex !== null) {
+      this.#drawPreviewDeleteButton(
+        this.#previewDeleteButtonRect(this.previewBeadHitAreas[this.hoveredPreviewBeadIndex])
+      );
+    }
+  }
+
+  onMousePressed() {
+    if (this.hoveredPreviewBeadIndex === null) {
+      return;
+    }
+
+    let area = this.previewBeadHitAreas[this.hoveredPreviewBeadIndex];
+    let deleteButton = this.#previewDeleteButtonRect(area);
+    if (!this.#pointInRect(mouseX, mouseY, deleteButton)) {
+      return;
+    }
+
+    if (typeof beadGame !== 'undefined' &&
+      typeof beadGame.deletePiercedBeadAtPreviewIndex === 'function') {
+      beadGame.deletePiercedBeadAtPreviewIndex(this.hoveredPreviewBeadIndex);
+    }
+    this.hoveredPreviewBeadIndex = null;
   }
 
   /**
@@ -184,6 +287,93 @@ class StemBeadCraftUI {
     rect(0, 0, bead.w * scale, bead.h * scale);
 
     pop();
+  }
+
+  #updatePreviewHover() {
+    let hoveredIndex = this.previewBeadHitAreas.findIndex(area =>
+      this.#pointInRect(mouseX, mouseY, area)
+    );
+
+    if (hoveredIndex < 0 && this.hoveredPreviewBeadIndex !== null) {
+      let previousArea = this.previewBeadHitAreas[this.hoveredPreviewBeadIndex];
+      if (previousArea &&
+        this.#pointInRect(mouseX, mouseY, this.#previewDeleteButtonRect(previousArea))) {
+        hoveredIndex = this.hoveredPreviewBeadIndex;
+      }
+    }
+
+    this.hoveredPreviewBeadIndex = hoveredIndex >= 0 ? hoveredIndex : null;
+  }
+
+  #drawPreviewBeadHighlight(bead, area, scale, isHovered) {
+    if (!isHovered) {
+      return;
+    }
+
+    push();
+    translate(area.x + area.w / 2, area.y + area.h / 2);
+    noStroke();
+    fill(145, 145, 145, 150);
+
+    if (bead.assetId) {
+      drawingContext.shadowColor = 'rgba(90, 90, 90, 0.55)';
+      drawingContext.shadowBlur = 8;
+      tint(145, 145, 145, 190);
+      drawBeadAtlas(
+        bead.assetId,
+        0,
+        0,
+        bead.w * scale + 8,
+        bead.h * scale + 8
+      );
+      noTint();
+    } else {
+      rectMode(CENTER);
+      rect(0, 0, area.w + 8, area.h + 8);
+    }
+    pop();
+  }
+
+  #drawPreviewDeleteButton(button) {
+    push();
+    noStroke();
+    fill(255, 0, 0);
+    circle(button.x + button.w / 2, button.y + button.h / 2, button.w);
+
+    stroke(255);
+    strokeWeight(3);
+    strokeCap(ROUND);
+    let inset = 7;
+    line(
+      button.x + inset,
+      button.y + inset,
+      button.x + button.w - inset,
+      button.y + button.h - inset
+    );
+    line(
+      button.x + button.w - inset,
+      button.y + inset,
+      button.x + inset,
+      button.y + button.h - inset
+    );
+    pop();
+  }
+
+  #previewDeleteButtonRect(area) {
+    let size = 28;
+    return {
+      x: area.x + area.w - size / 2,
+      y: area.y - size / 2,
+      w: size,
+      h: size,
+    };
+  }
+
+  #pointInRect(x, y, rect) {
+    return x >= rect.x &&
+      x <= rect.x + rect.w &&
+      y >= rect.y &&
+      y <= rect.y + rect.h;
   }
 
   // ── 새 비즈 생성 버튼 ──
@@ -298,6 +488,7 @@ class StemBeadCraftUI {
     if (typeof beadGame !== 'undefined') {
       beadGame.update(handDetector);
       beadGame.draw();
+      this.drawHoldPointHighlight();
       this.drawHandMarkers();
     } else {
       fill(200); textSize(14); textStyle(NORMAL); textAlign(CENTER);

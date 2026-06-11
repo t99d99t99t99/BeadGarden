@@ -149,6 +149,9 @@ function mousePressed() {
     case POT_LOCK:
       potLockUI.onMousePressed();
       break;
+    case STEM_BEAD_CRAFT:
+      stemBeadCraftUI.onMousePressed();
+      break;
     case DEBUG_MENU:
       debugLandingSceneMousePressed();
       break;
