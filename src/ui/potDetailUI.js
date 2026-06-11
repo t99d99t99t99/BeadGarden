@@ -261,7 +261,7 @@ class PotDetailUI {
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let canEdit  = (this.pot.createdBy === myDeviceId) && !isLocked;
+    let canEdit  = !isLocked;
     let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
     let popX     = width  / 2 - popW / 2;
     let popY     = height / 2 - popH / 2;
@@ -322,7 +322,7 @@ class PotDetailUI {
     let popW     = 600;
     let hasStem  = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let canEdit  = (this.pot.createdBy === myDeviceId) && !isLocked;
+    let canEdit  = !isLocked;
     let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
     let popX     = width  / 2 - popW / 2;
     let popY     = height / 2 - popH / 2;
