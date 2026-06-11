@@ -192,6 +192,9 @@ function mouseReleased() {
 
 function mouseWheel(e) {
   switch (gameState) {
+    case GARDEN:
+      gardenUI.onMouseWheel(e.delta);
+      return false;
     case POT_DECORATE:
       potDecorateUI.onMouseWheel(e.delta);
       return false;
