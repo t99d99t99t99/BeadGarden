@@ -43,31 +43,26 @@
       appId: "1:1052006372337:web:f56447c5b2a85cf2976a50"
     };
     let db = null;
-    let firebaseAuthReady = false;
-    let firebaseAuthReadyCallbacks = [];
-
-    function onFirebaseAuthReady(cb) {
-      if (firebaseAuthReady) { cb(); return; }
-      firebaseAuthReadyCallbacks.push(cb);
-    }
+    let firebaseAuthReadyPromise = Promise.resolve({
+      ok: false,
+      error: new Error('Firebase is unavailable')
+    });
 
     try {
       if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
-        firebase.auth().signInAnonymously().then(() => {
-          firebaseAuthReady = true;
-          firebaseAuthReadyCallbacks.forEach(cb => cb());
-          firebaseAuthReadyCallbacks = [];
-        }).catch(err => {
-          console.warn('[Firebase] Anonymous auth failed; local database will be used:', err);
-          firebaseAuthReady = true;
-          firebaseAuthReadyCallbacks.forEach(cb => cb());
-          firebaseAuthReadyCallbacks = [];
-        });
+        firebaseAuthReadyPromise = firebase.auth().signInAnonymously()
+          .then(() => ({ ok: true, error: null }))
+          .catch(error => {
+            console.warn('[Firebase] Anonymous auth failed; local database will be used:', error);
+            return { ok: false, error };
+          });
       }
     } catch (err) {
       console.warn('[Firebase] Initialization failed; local database will be used:', err);
+      db = null;
+      firebaseAuthReadyPromise = Promise.resolve({ ok: false, error: err });
     }
   </script>
 </head>
