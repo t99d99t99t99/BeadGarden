@@ -92,6 +92,7 @@ function draw() {
       break;
     case GARDEN:
       gardenUI.draw();
+      gardenUI.drawDatabaseStatus();
       potSetupUI.draw(); // 위에 팝업으로 표시
       potDetailUI.draw(); // 위에 팝업으로 표시
       potLockUI.draw(); // 위에 팝업으로 표시

@@ -7,6 +7,7 @@ let databaseMode = DATABASE_SERVER;
 let databaseStatus = 'Connecting to server';
 let potsListener = null;
 let firestoreUnsubscribe = null;
+let potsListenerGeneration = 0;
 
 // ── 비즈 카탈로그 ────────────────────────────────────────────────────────────
 let beadCatalog = {};
@@ -19,6 +20,7 @@ async function loadBeadCatalog() {
   }
 
   try {
+    await ensureFirebaseReady();
     const snapshot = await withDatabaseTimeout(db.collection('beads').get());
     beadCatalog = {};
     snapshot.docs.forEach(doc => {
@@ -84,7 +86,7 @@ async function setDatabaseMode(mode) {
 
   databaseStatus = 'Connecting to server';
   try {
-    if (!db) throw new Error('Firebase is unavailable');
+    await ensureFirebaseReady();
     await withDatabaseTimeout(db.collection('pots').limit(1).get());
     databaseMode = DATABASE_SERVER;
     databaseStatus = 'Connected to server';
@@ -129,6 +131,17 @@ function withDatabaseTimeout(promise) {
   });
 }
 
+async function ensureFirebaseReady() {
+  if (!db) {
+    throw new Error('Firebase is unavailable');
+  }
+
+  const result = await withDatabaseTimeout(firebaseAuthReadyPromise);
+  if (!result?.ok) {
+    throw result?.error ?? new Error('Firebase authentication failed');
+  }
+}
+
 // ── Pots subscription ────────────────────────────────────────────────────────
 function listenPots(onUpdate) {
   potsListener = onUpdate;
@@ -137,6 +150,9 @@ function listenPots(onUpdate) {
 
 function restartPotsListener() {
   if (!potsListener) return;
+
+  potsListenerGeneration += 1;
+  const generation = potsListenerGeneration;
 
   if (firestoreUnsubscribe) {
     firestoreUnsubscribe();
@@ -154,26 +170,48 @@ function restartPotsListener() {
     return;
   }
 
-  firestoreUnsubscribe = db.collection('pots')
-    .orderBy('createdAt', 'asc')
-    .onSnapshot(snapshot => {
-      if (databaseMode !== DATABASE_SERVER) return;
+  ensureFirebaseReady().then(() => {
+    if (generation !== potsListenerGeneration ||
+      databaseMode !== DATABASE_SERVER ||
+      !potsListener) {
+      return;
+    }
 
-      const pots = snapshot.docs.map(doc => ({
-        firestoreId: doc.id,
-        ...doc.data(),
-      })).map(normalizeStoredPot);
+    firestoreUnsubscribe = db.collection('pots')
+      .orderBy('createdAt', 'asc')
+      .onSnapshot(snapshot => {
+        if (generation !== potsListenerGeneration ||
+          databaseMode !== DATABASE_SERVER) {
+          return;
+        }
 
-      updateLocalDatabase(data => {
-        data.pots = pots;
+        const pots = snapshot.docs.map(doc => ({
+          firestoreId: doc.id,
+          ...doc.data(),
+        })).map(normalizeStoredPot);
+
+        updateLocalDatabase(data => {
+          if (pots.length > 0 || data.pots.length === 0) {
+            data.pots = pots;
+          }
+        });
+        databaseStatus = 'Connected to server';
+        potsListener(pots);
+      }, err => {
+        if (generation !== potsListenerGeneration) {
+          return;
+        }
+        firestoreUnsubscribe = null;
+        switchToLocalDatabase(err);
+        emitLocalPots();
       });
-      databaseStatus = 'Connected to server';
-      potsListener(pots);
-    }, err => {
-      firestoreUnsubscribe = null;
+  }).catch(err => {
+    if (generation === potsListenerGeneration &&
+      databaseMode === DATABASE_SERVER) {
       switchToLocalDatabase(err);
       emitLocalPots();
-    });
+    }
+  });
 }
 
 function emitLocalPots() {
@@ -217,6 +255,7 @@ async function createPot(data) {
 
   if (databaseMode === DATABASE_SERVER) {
     try {
+      await ensureFirebaseReady();
       const ref = await withDatabaseTimeout(db.collection('pots').add({
         ...pot,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -247,6 +286,7 @@ async function updatePotDecor(potId, decorData) {
 async function addStemToPot(potId, stemData) {
   if (databaseMode === DATABASE_SERVER) {
     try {
+      await ensureFirebaseReady();
       await withDatabaseTimeout(db.collection('pots').doc(potId).update({
         stems: firebase.firestore.FieldValue.arrayUnion(stemData),
       }));
@@ -270,6 +310,7 @@ async function lockPot(potId) {
 async function updatePotWithFallback(potId, changes) {
   if (databaseMode === DATABASE_SERVER) {
     try {
+      await ensureFirebaseReady();
       await withDatabaseTimeout(db.collection('pots').doc(potId).update(changes));
       return;
     } catch (err) {
