@@ -4,11 +4,17 @@ class StemFinishUI {
     this.beadCount = 0;
     this.stemColors = []; // 완성된 줄기 색상 (미리보기용)
     this.beads = [];
+    this.currentPot = null;
+    this.stemData = null;
+    this.stemIndex = 0;
+    this.savePromise = Promise.resolve();
+    this.isLeaving = false;
   }
 
   show() {
     if (this.isVisible) return;
     this.isVisible = true;
+    this.isLeaving = false;
 
     // 팀원 코드에서 완성된 줄기 데이터 읽기
     if (typeof beadGame !== 'undefined') {
@@ -38,12 +44,17 @@ class StemFinishUI {
       angle:      savedAngle,    // gardenUI/potDetailUI가 읽는 필드명
       baseOffset: savedOffset,
     };
+    this.currentPot = pot;
+    this.stemData = stemData;
+    this.stemIndex = stemIndex;
 
     // Firestore에 줄기 추가 (리스너가 gardenUI.pots를 자동 갱신)
     if (pot?.firestoreId) {
-      addStemToPot(pot.firestoreId, stemData)
+      this.savePromise = addStemToPot(pot.firestoreId, stemData)
         .then(() => console.log('[Firestore] 줄기 저장 완료:', stemIndex + 1, '번째 줄기'))
         .catch(err => console.error('[Firestore] 줄기 저장 오류:', err));
+    } else {
+      this.savePromise = Promise.resolve();
     }
   }
 
@@ -72,12 +83,14 @@ class StemFinishUI {
     stroke(100); strokeWeight(2);
     line(sx, sy, ex, ey);
 
+    let previewBeads = this.beads.slice().reverse();
+    let previewColors = this.stemColors.slice();
     for (let i = 0; i < count; i++) {
       let t = i / Math.max(1, count - 1);
       let bx = lerp(sx, ex, t);
       let by = lerp(sy, ey, t);
       let sz = map(t, 0, 1, 18, 10); // 위쪽 비즈가 더 큼
-      let bead = this.beads[i];
+      let bead = previewBeads[i];
       if (bead?.assetId) {
         let asset = getBeadAtlasEntry(bead.assetId);
         if (asset) {
@@ -88,18 +101,14 @@ class StemFinishUI {
           continue;
         }
       }
-      let c = this.stemColors.length > 0
-        ? this.stemColors[i % this.stemColors.length]
+      let c = previewColors.length > 0
+        ? previewColors[i % previewColors.length]
         : lerpColor(color(80), color(200), t);
       noStroke();
       fill(c);
       ellipse(bx, by, sz);
     }
 
-    // 플레이스홀더 텍스트
-    fill(100, 100, 200);
-    textSize(12); noStroke(); textStyle(NORMAL); textAlign(CENTER, CENTER);
-    text('(완성된 줄기 미리보기)', x + w / 2, y + h * 0.88);
   }
 
   draw() {
@@ -142,7 +151,7 @@ class StemFinishUI {
     let preW = popW - 40, preH = 140;
     this.drawStemPreview(preX, preY, preW, preH);
 
-    // ── 내 화분에서 새로운 줄기 만들기 버튼 ──
+    // ── 내 화분으로 가기 버튼 ──
     let btn1X = popX + 20, btn1Y = popY + 278;
     let btn1W = popW - 40, btn1H = 52;
     let btn1Hov = isHovered(btn1X, btn1Y, btn1W, btn1H);
@@ -150,11 +159,9 @@ class StemFinishUI {
     rect(btn1X, btn1Y, btn1W, btn1H, 26);
     fill(255); textSize(15); textStyle(BOLD);
     textAlign(CENTER, CENTER);
-    text('내 화분에서 새로운 줄기 만들기', btn1X + btn1W / 2, btn1Y + btn1H / 2);
-    if (isClicked(btn1X, btn1Y, btn1W, btn1H)) {
-      const pot = stemBeadCraftUI.currentPot ?? potDetailUI.pot;
-      this.hide();
-      startStemCraftForPot(pot);
+    text('내 화분으로 가기', btn1X + btn1W / 2, btn1Y + btn1H / 2);
+    if (!this.isLeaving && isClicked(btn1X, btn1Y, btn1W, btn1H)) {
+      this.#returnToPotDetail();
     }
 
     // ── 비즈 가든으로 가기 버튼 ──
@@ -165,12 +172,37 @@ class StemFinishUI {
     fill(255); textSize(15); textStyle(BOLD);
     textAlign(CENTER, CENTER);
     text('비즈 가든으로 가기', btn2X + btn2W / 2, btn2Y + btn2H / 2);
-    if (isClicked(btn2X, btn2Y, btn2W, btn2H)) {
-      this.hide();
-      potDetailUI.hide();  // 팝업 닫고 가든 카드가 보이도록
-      goTo(GARDEN);
+    if (!this.isLeaving && isClicked(btn2X, btn2Y, btn2W, btn2H)) {
+      this.#returnToGarden();
     }
 
     if (btn1Hov || isHovered(btn2X, btn2Y, btn2W, btn2H)) cursor(HAND); else cursor(ARROW);
+  }
+
+  async #returnToPotDetail() {
+    this.isLeaving = true;
+    await this.savePromise;
+    this.#applyStemToCurrentPot();
+    this.hide();
+    potDetailUI.show(this.currentPot);
+    goTo(GARDEN);
+  }
+
+  async #returnToGarden() {
+    this.isLeaving = true;
+    await this.savePromise;
+    this.#applyStemToCurrentPot();
+    this.hide();
+    potDetailUI.hide();
+    goTo(GARDEN);
+  }
+
+  #applyStemToCurrentPot() {
+    if (!this.currentPot || !this.stemData) return;
+
+    let stems = this.currentPot.stems ?? [];
+    if (stems.length === this.stemIndex) {
+      this.currentPot.stems = [...stems, this.stemData];
+    }
   }
 }
