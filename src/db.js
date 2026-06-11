@@ -18,6 +18,8 @@ async function loadBeadCatalog() {
     return beadCatalog;
   }
 
+  await new Promise(resolve => onFirebaseAuthReady(resolve));
+
   try {
     const snapshot = await withDatabaseTimeout(db.collection('beads').get());
     beadCatalog = {};
@@ -154,6 +156,7 @@ function restartPotsListener() {
     return;
   }
 
+  onFirebaseAuthReady(() => {
   firestoreUnsubscribe = db.collection('pots')
     .orderBy('createdAt', 'asc')
     .onSnapshot(snapshot => {
@@ -174,6 +177,7 @@ function restartPotsListener() {
       switchToLocalDatabase(err);
       emitLocalPots();
     });
+  });
 }
 
 function emitLocalPots() {

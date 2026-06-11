@@ -32,20 +32,39 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyCq9MFrMnwvdZpIvDRg1EWqU9Nlmtlc4Kc",
-      authDomain: "beadgardenv2.firebaseapp.com",
-      projectId: "beadgardenv2",
-      storageBucket: "beadgardenv2.firebasestorage.app",
-      messagingSenderId: "717402771931",
-      appId: "1:717402771931:web:9dce58d33fe7dae67f97fe"
+      apiKey: "AIzaSyDoXjr6IMt_1G40JbZtye7H3LpdWlMZeRg",
+      authDomain: "beadgardenv3.firebaseapp.com",
+      projectId: "beadgardenv3",
+      storageBucket: "beadgardenv3.firebasestorage.app",
+      messagingSenderId: "1052006372337",
+      appId: "1:1052006372337:web:f56447c5b2a85cf2976a50"
     };
     let db = null;
+    let firebaseAuthReady = false;
+    let firebaseAuthReadyCallbacks = [];
+
+    function onFirebaseAuthReady(cb) {
+      if (firebaseAuthReady) { cb(); return; }
+      firebaseAuthReadyCallbacks.push(cb);
+    }
+
     try {
       if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        firebase.auth().signInAnonymously().then(() => {
+          firebaseAuthReady = true;
+          firebaseAuthReadyCallbacks.forEach(cb => cb());
+          firebaseAuthReadyCallbacks = [];
+        }).catch(err => {
+          console.warn('[Firebase] Anonymous auth failed; local database will be used:', err);
+          firebaseAuthReady = true;
+          firebaseAuthReadyCallbacks.forEach(cb => cb());
+          firebaseAuthReadyCallbacks = [];
+        });
       }
     } catch (err) {
       console.warn('[Firebase] Initialization failed; local database will be used:', err);
