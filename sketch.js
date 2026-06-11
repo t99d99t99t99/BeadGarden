@@ -9,6 +9,7 @@ const MOBILE_IMAGE_SAVE = 7; // QR코드 스캔시 모바일에 나타날 화면
 const POT_LOCK = 8; // 화분 잠금 여부 결정하기 (팝업)
 const STEM_BEAD_CRAFT = 9; // 비즈를 꽂으며 화분 조립하기
 const STEM_FINISH = 10; // 저장 및 데이터베이스 업로드 (팝업)
+const DEBUG_MENU = 98;
 const DEBUG = 99;
 
 let gameState = INTRO;
@@ -110,9 +111,13 @@ function draw() {
       gardenUI.draw();
       potLockUI.draw();
       break;
+    case DEBUG_MENU:
+      background(240);
+      debugLandingSceneDraw();
+      break;
     case DEBUG:
       background(240);
-      debugSceneDraw();
+      debugInProgressSceneDraw();
       break;
   }
 
@@ -124,7 +129,7 @@ function draw() {
 function keyPressed() {
   console.log(keyCode);
   if (keyCode == 220) { // 역슬래시 버튼으로 디버그 모드
-    debugSceneSetup();
+    debugLandingSceneSetup();
   }
 }
 
@@ -144,8 +149,11 @@ function mousePressed() {
     case POT_LOCK:
       potLockUI.onMousePressed();
       break;
+    case DEBUG_MENU:
+      debugLandingSceneMousePressed();
+      break;
     case DEBUG:
-      debugSceneMousePressed();
+      debugInProgressSceneMousePressed();
       break;
   }
 }
@@ -159,7 +167,7 @@ function mouseDragged() {
       potDecorateUI.onMouseDragged();
       break;
     case DEBUG:
-      debugSceneMouseDragged();
+      debugInProgressSceneMouseDragged();
       break;
   }
 }
@@ -173,7 +181,7 @@ function mouseReleased() {
       potDecorateUI.onMouseReleased();
       break;
     case DEBUG:
-      debugSceneMouseReleased();
+      debugInProgressSceneMouseReleased();
       break;
   }
 }
@@ -184,7 +192,7 @@ function mouseWheel(e) {
       potDecorateUI.onMouseWheel(e.delta);
       return false;
     case DEBUG:
-      debugSceneMouseWheel(e.delta);
+      debugInProgressSceneMouseWheel(e.delta);
       return false;
   }
 }
