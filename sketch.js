@@ -31,6 +31,7 @@ let beadGame;
  * @param {number} state 
  */
 function goTo(state) {
+  if (state === TUTORIAL && typeof tutorialUI !== 'undefined') tutorialUI.enter();
   gameState = state;
 }
 
