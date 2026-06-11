@@ -4,6 +4,12 @@ const HIDDEN_CONSTRAINT_RENDER = {
     lineWidth: 0,
     strokeStyle: "transparent"
 };
+const BEAD_BLOCKER_SIZE = 16;
+let beadBlockerImage = null;
+
+function preloadWireAssets() {
+    beadBlockerImage = loadImage("assets/bead_blocker.png");
+}
 
 class Wire {
     /**
@@ -20,6 +26,7 @@ class Wire {
         this.segNum = Math.max(2, Math.floor(_segNum));
         this.segLength = this.wireLength / this.segNum;
         this.thickness = _thickness;
+        this.blockerRadius = BEAD_BLOCKER_SIZE / 2;
         this.engine = engine;
         this.heldEndRestPosition = { x: _x, y: _y };
         this.unheldEndRestPosition = { x: _x + this.wireLength, y: _y };
@@ -35,13 +42,14 @@ class Wire {
         this.liftAmount = 0;
         this.graphPoints = [];
         this.shadowPoints = [];
-        this.unheldEndStop = Matter.Bodies.rectangle(
+        this.unheldEndStop = Matter.Bodies.circle(
             this.unheldEndRestPosition.x,
             this.unheldEndRestPosition.y,
-            Math.max(this.thickness * 4, 24),
-            Math.max(this.thickness * 8, 48),
+            this.blockerRadius,
             {
                 isStatic: true,
+                friction: 0,
+                restitution: 0,
                 render: {
                     visible: false,
                     opacity: 0,
@@ -127,10 +135,7 @@ class Wire {
         }
 
         let unheldEnd = this.graphPoints[0];
-        let next = this.graphPoints[1];
-        let stopAngle = Math.atan2(next.y - unheldEnd.y, next.x - unheldEnd.x);
         Matter.Body.setPosition(this.unheldEndStop, unheldEnd);
-        Matter.Body.setAngle(this.unheldEndStop, stopAngle);
     }
 
     display() {
@@ -152,6 +157,27 @@ class Wire {
         strokeCap(ROUND);
         strokeJoin(ROUND);
         this.#drawCurve(points);
+        pop();
+    }
+
+    displayBlocker() {
+        let position = this.unheldEndStop.position;
+
+        push();
+        imageMode(CENTER);
+        if (beadBlockerImage) {
+            image(
+                beadBlockerImage,
+                position.x,
+                position.y,
+                BEAD_BLOCKER_SIZE,
+                BEAD_BLOCKER_SIZE
+            );
+        } else {
+            noStroke();
+            fill(25);
+            circle(position.x, position.y, BEAD_BLOCKER_SIZE);
+        }
         pop();
     }
 

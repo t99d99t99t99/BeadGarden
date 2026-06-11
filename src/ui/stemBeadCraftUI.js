@@ -6,12 +6,31 @@ class StemBeadCraftUI {
     this.newBeadButtonWasPressed = false;
     this.previewBeadHitAreas = [];
     this.hoveredPreviewBeadIndex = null;
+    this.playGraphics = {};
 
     // 테마별 배경 이미지 로드
     this.bgImgs = {};
     loadImage('assets/stemBeadCraft_plant_bg.png', img => { this.bgImgs[POT_THEMES.PLANT] = img; }, () => { });
     loadImage('assets/stemBeadCraft_star_bg.png', img => { this.bgImgs[POT_THEMES.STAR] = img; }, () => { });
     loadImage('assets/stemBeadCraft_ocean_bg.png', img => { this.bgImgs[POT_THEMES.OCEAN] = img; }, () => { });
+
+    const graphicPath = 'assets/stem_bead_play/';
+    const graphicFiles = {
+      boxMessage: 'box_message.png',
+      boxPreview: 'box_preview.png',
+      buttonComplete: 'button_complete.png',
+      buttonCompletePressed: 'button_complete_pressed.png',
+      buttonNewBead: 'button_new_bead.png',
+      buttonNewBeadPressed: 'button_new_bead_pressed.png',
+      markerFingerGreen: 'marker_finger_green.png',
+      markerFingerPink: 'marker_finger_pink.png',
+      markerFingertipGreen: 'marker_fingertip_green.png',
+      markerFingertipPink: 'marker_fingertip_pink.png',
+      markerWireEnd: 'marker_wire_end.png',
+    };
+    for (const [key, filename] of Object.entries(graphicFiles)) {
+      loadImage(graphicPath + filename, img => { this.playGraphics[key] = img; }, () => { });
+    }
   }
 
   setPalette(colors) {
@@ -77,13 +96,12 @@ class StemBeadCraftUI {
       msg = '👆 철사를 잡았어요! 비즈 구멍에 통과시켜 보세요.';
     }
 
-    let guideW = 470;
-    let guideH = 48;
+    let guideW = 440;
+    let guideH = 44;
     let guideX = width / 2 - guideW / 2;
     let guideY = height - 160;
 
-    fill(239, 238, 255); noStroke();
-    rect(guideX, guideY, guideW, guideH, 6);
+    this.#drawGraphicBox(this.playGraphics.boxMessage, guideX, guideY, guideW, guideH);
     noStroke(); textSize(13); textStyle(NORMAL);
 
     if (!isWireFull && !isPinching && !isHoldingWire) {
@@ -129,13 +147,18 @@ class StemBeadCraftUI {
       return;
     }
 
-    let diameter = 150;
+    let diameter = 168;
 
     push();
-    noFill();
-    stroke(255, 70, 70);
-    strokeWeight(2);
-    circle(position.x, position.y, diameter);
+    imageMode(CENTER);
+    if (this.playGraphics.markerWireEnd) {
+      image(this.playGraphics.markerWireEnd, position.x, position.y, diameter, diameter);
+    } else {
+      noFill();
+      stroke(235, 0, 255, 25);
+      strokeWeight(12);
+      circle(position.x, position.y, diameter);
+    }
 
     noStroke();
     fill(255, 70, 70);
@@ -167,15 +190,12 @@ class StemBeadCraftUI {
 
   // ── 완성 줄기 프리뷰 자리 ──
   drawPreviewPlaceholder() {
-    let previewW = 470;
-    let previewH = 64;
+    let previewW = 440;
+    let previewH = 44;
     let previewX = width / 2 - previewW / 2;
     let previewY = 116;
 
-    fill(239, 238, 255);
-    stroke(150);
-    strokeWeight(1);
-    rect(previewX, previewY, previewW, previewH, 6);
+    this.#drawGraphicBox(this.playGraphics.boxPreview, previewX, previewY, previewW, previewH);
 
     fill(120);
     noStroke();
@@ -385,22 +405,31 @@ class StemBeadCraftUI {
       y <= rect.y + rect.h;
   }
 
+  #drawGraphicBox(graphic, x, y, w, h) {
+    if (graphic) {
+      push();
+      imageMode(CORNER);
+      image(graphic, x, y, w, h);
+      pop();
+      return;
+    }
+
+    fill(239, 238, 255);
+    noStroke();
+    rect(x, y, w, h, 6);
+  }
+
   // ── 새 비즈 생성 버튼 ──
   drawNewBeadBtn() {
-    let btnW = 220;
-    let btnH = 56;
-    let btnX = width / 2 - 360;
+    let btnW = 204;
+    let btnH = 52;
+    let btnX = width / 2 - 348;
     let btnY = height - 64;
-    let isHover = isHovered(btnX, btnY, btnW, btnH);
-
-    if (isHover) {
-      fill(232, 231, 252);
-    } else {
-      fill(239, 238, 255);
-    }
-    stroke(150);
-    strokeWeight(1);
-    rect(btnX, btnY, btnW, btnH, 4);
+    let isButtonPressed = isClicked(btnX, btnY, btnW, btnH);
+    let graphic = isButtonPressed
+      ? this.playGraphics.buttonNewBeadPressed
+      : this.playGraphics.buttonNewBead;
+    this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH);
 
     fill(100);
     noStroke();
@@ -409,7 +438,6 @@ class StemBeadCraftUI {
     textAlign(CENTER, CENTER);
     text('새로운 비즈 생성하기', btnX + btnW / 2, btnY + btnH / 2);
 
-    let isButtonPressed = isClicked(btnX, btnY, btnW, btnH);
     if (isButtonPressed && !this.newBeadButtonWasPressed &&
       typeof beadGame !== 'undefined' && typeof beadGame.regenerateUnpiercedBeads === 'function') {
       beadGame.regenerateUnpiercedBeads();
@@ -421,35 +449,35 @@ class StemBeadCraftUI {
   drawCompleteBtn() {
     let count = this.getBeadCount();
     let canDone = count >= this.minBeads;
-    let btnW = 500, btnH = 56;
-    let btnX = width / 2 - 115;
+    let btnW = 467, btnH = 52;
+    let btnX = width / 2 - 119;
     let btnY = height - 64;
-    let isHover = canDone &&
-      mouseX > btnX && mouseX < btnX + btnW &&
-      mouseY > btnY && mouseY < btnY + btnH;
-
-    if (canDone) {
-      fill(isHover ? 40 : 30); noStroke();
-    } else {
-      fill(180); noStroke();
-    }
-    rect(btnX, btnY, btnW, btnH, 24);
-
-    fill(255); textSize(15);
-    textStyle(canDone ? BOLD : NORMAL);
-    textAlign(CENTER, CENTER);
-
-    if (canDone) {
-      text('완성하기', btnX + btnW / 2, btnY + btnH / 2);
-    } else {
-      text('완성하기', btnX + btnW / 2, btnY + btnH / 2);
-    }
+    let isPressed = canDone && isClicked(btnX, btnY, btnW, btnH);
+    let graphic = isPressed
+      ? this.playGraphics.buttonCompletePressed
+      : this.playGraphics.buttonComplete;
+    this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH, !canDone);
 
     // 클릭 → STEM_FINISH
-    if (canDone && !this.isPinching() && isClicked(btnX, btnY, btnW, btnH)) {
+    if (canDone && !this.isPinching() && isPressed) {
       stemFinishUI.show();
       goTo(STEM_FINISH);
     }
+  }
+
+  #drawGraphicButton(graphic, x, y, w, h, disabled = false) {
+    push();
+    if (disabled) tint(255, 110);
+    if (graphic) {
+      imageMode(CORNER);
+      image(graphic, x, y, w, h);
+    } else {
+      fill(disabled ? 180 : 30);
+      noStroke();
+      rect(x, y, w, h, 24);
+    }
+    noTint();
+    pop();
   }
 
   drawHandMarkers() {
@@ -459,28 +487,102 @@ class StemBeadCraftUI {
 
     let thumbPosition = handDetector.thumbPosition();
     let gumjiPosition = handDetector.gumjiPosition();
+    let fingerPath = typeof handDetector.thumbToIndexPath === 'function'
+      ? handDetector.thumbToIndexPath()
+      : [];
+    if (fingerPath.length > 0 && thumbPosition) {
+      fingerPath[0] = thumbPosition;
+    }
+    if (fingerPath.length > 1 && gumjiPosition) {
+      fingerPath[fingerPath.length - 1] = gumjiPosition;
+    }
+    let theme = normalizePotTheme(this.currentPot);
+    if (theme === POT_THEMES.LEGACY) {
+      theme = themeForConcept(this.currentPot?.concept);
+    }
+    let isPlant = theme === POT_THEMES.PLANT;
+    let lineGraphic = isPlant
+      ? this.playGraphics.markerFingerGreen
+      : this.playGraphics.markerFingerPink;
+    let tipGraphic = isPlant
+      ? this.playGraphics.markerFingertipGreen
+      : this.playGraphics.markerFingertipPink;
 
     push();
-    noStroke();
-
-    let pointerColor = color(255, 0, 0, 80);
-    if (handDetector.pinched()) {
-      pointerColor = color(0, 0, 255, 80);
+    for (let i = 1; i < fingerPath.length; i++) {
+      this.#drawFingerSegment(fingerPath[i - 1], fingerPath[i], lineGraphic, isPlant);
     }
-
-    if (gumjiPosition) {
-      fill(pointerColor);
-      circle(gumjiPosition.x, gumjiPosition.y, 9);
-    }
-
-    if (thumbPosition) {
-      fill(red(pointerColor), green(pointerColor), blue(pointerColor), 255);
-      circle(thumbPosition.x, thumbPosition.y, 14);
-      fill(255, 255, 255, 180);
-      circle(thumbPosition.x, thumbPosition.y, 5);
-    }
+    this.#drawFingertipMarker(thumbPosition, tipGraphic, isPlant);
+    this.#drawFingertipMarker(gumjiPosition, tipGraphic, isPlant);
 
     pop();
+  }
+
+  #drawFingerSegment(joint, tip, graphic, isPlant) {
+    if (!joint || !tip) return;
+
+    let dx = tip.x - joint.x;
+    let dy = tip.y - joint.y;
+    let targetLength = Math.sqrt(dx * dx + dy * dy);
+    if (targetLength <= 0) return;
+
+    let lineThickness = 4;
+    if (!graphic) {
+      stroke(isPlant ? color(127, 215, 140) : color(248, 140, 205));
+      strokeWeight(lineThickness);
+      line(joint.x, joint.y, tip.x, tip.y);
+      return;
+    }
+
+    // The painted stroke occupies about 3px of the 24px-tall source image.
+    // Fit the painted diagonal, rather than the bitmap rectangle, to the joints.
+    let renderedHeight = graphic.height * lineThickness / 3;
+    let paintedDy = renderedHeight * 20 / graphic.height;
+    if (targetLength <= Math.abs(paintedDy)) {
+      stroke(isPlant ? color(127, 215, 140) : color(248, 140, 205));
+      strokeWeight(lineThickness);
+      line(joint.x, joint.y, tip.x, tip.y);
+      return;
+    }
+
+    let paintedDx = Math.sqrt(targetLength * targetLength - paintedDy * paintedDy);
+    let renderedWidth = paintedDx * graphic.width / 151;
+    let graphicAngle = Math.atan2(paintedDy, paintedDx);
+    let sourceMidpointOffset = {
+      x: -renderedWidth / graphic.width,
+      y: -renderedHeight / graphic.height,
+    };
+    let rotation = Math.atan2(dy, dx) - graphicAngle;
+    let rotatedOffset = {
+      x: sourceMidpointOffset.x * Math.cos(rotation) -
+        sourceMidpointOffset.y * Math.sin(rotation),
+      y: sourceMidpointOffset.x * Math.sin(rotation) +
+        sourceMidpointOffset.y * Math.cos(rotation),
+    };
+
+    push();
+    translate(
+      (joint.x + tip.x) / 2 - rotatedOffset.x,
+      (joint.y + tip.y) / 2 - rotatedOffset.y
+    );
+    rotate(rotation);
+    imageMode(CENTER);
+    image(graphic, 0, 0, renderedWidth, renderedHeight);
+    pop();
+  }
+
+  #drawFingertipMarker(position, graphic, isPlant) {
+    if (!position) return;
+
+    if (graphic) {
+      imageMode(CENTER);
+      image(graphic, position.x, position.y, 13, 13);
+      return;
+    }
+
+    noStroke();
+    fill(isPlant ? color(80, 190, 100) : color(235, 90, 160));
+    circle(position.x, position.y, 13);
   }
 
   draw() {
@@ -550,5 +652,12 @@ class StemBeadCraftUI {
 
     // 완성하기 버튼
     this.drawCompleteBtn();
+  }
+
+  // ── 스크린샷 저장 ──
+  takeScreenshot() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    saveCanvas(`screenshot-${timestamp}`, 'png');
+    console.log('스크린샷이 저장되었습니다.');
   }
 }
