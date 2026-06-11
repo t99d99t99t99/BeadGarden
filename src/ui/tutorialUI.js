@@ -1,6 +1,9 @@
 class TutorialUI {
   constructor() {
     this.currentStep = 0;
+    this._arrowY = 0;
+    this._arrowW = 52;
+    this._arrowH = 60;
 
     this.steps = [
       {
@@ -62,16 +65,15 @@ class TutorialUI {
   onMousePressed() {
     if (gameState !== TUTORIAL) return;
 
-    // 건너뛰기 버튼
-    const skipX = width - 40 - 140, skipY = 32;
-    if (isHovered(skipX, skipY, 140, 48)) { this._exit(); return; }
+    // 건너뛰기 / 가든 입장하기 버튼
+    const isLastStep = this.currentStep === this.steps.length - 1;
+    const skipBtnW = (prevState !== STEM_BEAD_CRAFT && isLastStep) ? 160 : 140;
+    const skipX = width - 40 - skipBtnW, skipY = 32;
+    if (isHovered(skipX, skipY, skipBtnW, 48)) { this._exit(); return; }
 
-    // < 버튼
-    const arrowY = height / 2 - 30, arrowW = 52, arrowH = 60;
-    if (isHovered(20, arrowY, arrowW, arrowH)) { this._prev(); return; }
-
-    // > 버튼
-    if (isHovered(width - 72, arrowY, arrowW, arrowH)) { this._next(); return; }
+    // < > 버튼 (draw()에서 계산된 arrowY 사용)
+    if (isHovered(20, this._arrowY, this._arrowW, this._arrowH)) { this._prev(); return; }
+    if (isHovered(width - 72, this._arrowY, this._arrowW, this._arrowH)) { this._next(); return; }
   }
 
   draw() {
@@ -91,11 +93,23 @@ class TutorialUI {
     // ── 건너뛰기 버튼 ──
     const skipX   = width - pad - 140, skipY = 32;
     const skipHov = isHovered(skipX, skipY, 140, 48);
-    fill(skipHov ? 100 : 130); noStroke();
-    rect(skipX, skipY, 140, 48, 10);
+    const isLastStep = this.currentStep === this.steps.length - 1;
+    let skipLabel, skipBtnW = 140;
+    if (prevState === STEM_BEAD_CRAFT) {
+      skipLabel = '돌아가기';
+      fill(skipHov ? 100 : 130);
+    } else if (isLastStep) {
+      skipLabel = '가든 입장하기';
+      skipBtnW = 160;
+      fill(skipHov ? color(180, 0, 180) : color(255, 0, 255));
+    } else {
+      skipLabel = '건너뛰기';
+      fill(skipHov ? 100 : 130);
+    }
+    noStroke();
+    rect(skipX, skipY, skipBtnW, 48, 10);
     fill(255); textStyle(NORMAL); textSize(15); textAlign(CENTER, CENTER);
-    const skipLabel = prevState === STEM_BEAD_CRAFT ? '돌아가기' : '건너뛰기';
-    text(skipLabel, skipX + 70, skipY + 24);
+    text(skipLabel, skipX + skipBtnW / 2, skipY + 24);
 
     // ── Step 배지 ──
     const badgeY = 138;
@@ -116,20 +130,26 @@ class TutorialUI {
     const imgH = height - imgY - 40;
     const imgX = width / 2 - imgW / 2;
 
-    fill(220); noStroke();
-    rect(imgX, imgY, imgW, imgH, 10);
+    noFill(); noStroke();
 
     if (step.img) {
-      imageMode(CORNER);
-      image(step.img, imgX, imgY, imgW, imgH);
+      push();
+      imageMode(CENTER);
+      const imgRatio = step.img.width / step.img.height;
+      const boxRatio = imgW / imgH;
+      const drawW = imgRatio > boxRatio ? imgW : imgH * imgRatio;
+      const drawH = imgRatio > boxRatio ? imgW / imgRatio : imgH;
+      image(step.img, imgX + imgW / 2, imgY + imgH / 2, drawW, drawH);
+      pop();
     } else {
       fill(160); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
       text(`assets/tutorial_${this.currentStep + 1}.png`, width / 2, imgY + imgH / 2);
     }
 
-    // ── < > 화살표 ──
-    const arrowY = imgY + imgH / 2 - 30;
-    const arrowW = 52, arrowH = 60;
+    // ── < > 화살표 ── (onMousePressed에서도 같은 값 사용)
+    this._arrowY = imgY + imgH / 2 - 30;
+    const arrowY = this._arrowY;
+    const arrowW = this._arrowW, arrowH = this._arrowH;
 
     if (this.currentStep > 0) {
       const lHov = isHovered(20, arrowY, arrowW, arrowH);
