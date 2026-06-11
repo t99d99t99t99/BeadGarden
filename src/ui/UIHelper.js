@@ -98,7 +98,9 @@ function beadPathPlacements(
       y: lerp(start.y, end.y, localT),
       angle: atan2(end.y - start.y, end.x - start.x),
       width,
+      visibleWidth,
       height,
+      pathDistance: centerDistance,
     };
   });
 }

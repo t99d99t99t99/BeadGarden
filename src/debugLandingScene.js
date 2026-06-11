@@ -1,9 +1,10 @@
 const DEBUG_TEST_BUTTONS = [
     { x: 520, y: 310, w: 400, h: 56, mode: DEBUG_TEST_BEAD_CRAFT, label: "Bead craft test" },
-    { x: 520, y: 382, w: 400, h: 56, mode: DEBUG_TEST_POT_DECORATE, label: "Pot decoration test" }
+    { x: 520, y: 382, w: 400, h: 56, mode: DEBUG_TEST_POT_DECORATE, label: "Pot decoration test" },
+    { x: 520, y: 454, w: 400, h: 56, mode: DEBUG_TEST_POT_MANAGEMENT, label: "Pot management" }
 ];
 const DEBUG_LANDING_EXIT_BUTTON = { x: 1208, y: 18, w: 214, h: 36, label: "Exit debugging" };
-const DEBUG_DATABASE_BUTTON = { x: 520, y: 470, w: 400, h: 56 };
+const DEBUG_DATABASE_BUTTON = { x: 520, y: 542, w: 400, h: 56 };
 
 function debugLandingSceneSetup() {
     debugInProgressSceneReset();

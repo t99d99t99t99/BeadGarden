@@ -4,6 +4,7 @@ const DEBUG_INPUT_MOUSE = 0;
 const DEBUG_INPUT_HAND = 1;
 const DEBUG_TEST_BEAD_CRAFT = 0;
 const DEBUG_TEST_POT_DECORATE = 1;
+const DEBUG_TEST_POT_MANAGEMENT = 2;
 const DEBUG_MODE_BUTTON = { x: 18, y: 66, w: 176, h: 36 };
 const DEBUG_MENU_BUTTON = { x: 18, y: 18, w: 176, h: 36, label: "Back to debug menu" };
 const DEBUG_EXIT_BUTTON = { x: 1208, y: 18, w: 214, h: 36, label: "Exit debugging" };
@@ -22,15 +23,19 @@ function debugInProgressSceneStart(mode) {
 
     if (mode === DEBUG_TEST_BEAD_CRAFT) {
         debugInProgressSceneSetupBeadCraftTest();
-    } else {
+    } else if (mode === DEBUG_TEST_POT_DECORATE) {
         debugInProgressSceneEnsurePotDecorateTest();
+    } else {
+        debugPotManagementSceneSetup();
     }
 
     gameState = DEBUG;
 }
 
 function debugInProgressSceneDraw() {
-    if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
+    if (debugTestMode === DEBUG_TEST_POT_MANAGEMENT) {
+        debugPotManagementSceneDraw();
+    } else if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
         debugInProgressSceneDrawPotDecorateTest();
     } else {
         debugInProgressSceneDrawBeadCraftTest();
@@ -82,6 +87,11 @@ function debugInProgressSceneMousePressed() {
         return;
     }
 
+    if (debugTestMode === DEBUG_TEST_POT_MANAGEMENT) {
+        debugPotManagementSceneMousePressed();
+        return;
+    }
+
     if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
         debugInProgressSceneForwardPotDecorateMousePressed();
         return;
@@ -100,6 +110,11 @@ function debugInProgressSceneMousePressed() {
 }
 
 function debugInProgressSceneMouseReleased() {
+    if (debugTestMode === DEBUG_TEST_POT_MANAGEMENT) {
+        debugPotManagementSceneMouseReleased();
+        return;
+    }
+
     if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
         if (typeof potDecorateUI !== "undefined") {
             potDecorateUI.onMouseReleased();
@@ -113,12 +128,22 @@ function debugInProgressSceneMouseReleased() {
 }
 
 function debugInProgressSceneMouseDragged() {
+    if (debugTestMode === DEBUG_TEST_POT_MANAGEMENT) {
+        debugPotManagementSceneMouseDragged();
+        return;
+    }
+
     if (debugTestMode === DEBUG_TEST_POT_DECORATE && typeof potDecorateUI !== "undefined") {
         potDecorateUI.onMouseDragged();
     }
 }
 
 function debugInProgressSceneMouseWheel(delta) {
+    if (debugTestMode === DEBUG_TEST_POT_MANAGEMENT) {
+        debugPotManagementSceneMouseWheel(delta);
+        return;
+    }
+
     if (debugTestMode === DEBUG_TEST_POT_DECORATE && typeof potDecorateUI !== "undefined") {
         potDecorateUI.onMouseWheel(delta);
     }
@@ -141,6 +166,9 @@ function debugInProgressSceneReset() {
     }
     if (typeof handDetector !== "undefined") {
         handDetector.stop();
+    }
+    if (typeof debugPotManagementSceneReset !== "undefined") {
+        debugPotManagementSceneReset();
     }
 
     debugInputMode = DEBUG_INPUT_MOUSE;

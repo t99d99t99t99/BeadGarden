@@ -307,6 +307,27 @@ async function lockPot(potId) {
   await updatePotWithFallback(potId, { locked: true });
 }
 
+async function unlockPot(potId) {
+  await updatePotWithFallback(potId, { locked: false });
+}
+
+async function deletePot(potId) {
+  if (databaseMode === DATABASE_SERVER) {
+    try {
+      await ensureFirebaseReady();
+      await withDatabaseTimeout(db.collection('pots').doc(potId).delete());
+      deleteLocalPot(potId);
+      emitLocalPots();
+      return;
+    } catch (err) {
+      switchToLocalDatabase(err);
+    }
+  }
+
+  deleteLocalPot(potId);
+  emitLocalPots();
+}
+
 async function updatePotWithFallback(potId, changes) {
   if (databaseMode === DATABASE_SERVER) {
     try {
@@ -352,6 +373,14 @@ function updateLocalPot(potId, update) {
     } else {
       data.pots.push(next);
     }
+  });
+}
+
+function deleteLocalPot(potId) {
+  updateLocalDatabase(data => {
+    data.pots = data.pots.filter(pot =>
+      pot.firestoreId !== potId && pot.localId !== potId
+    );
   });
 }
 

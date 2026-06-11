@@ -114,48 +114,46 @@ class PotDecorateUI {
     rect(x, y, w, h, 8);
 
     let layout = this.#previewLayout(x, y, w, h);
-    let stems = this._previewStems(layout.cx, layout.baseY, 1.2);
+    this.#constrainStemOffsets(layout);
+    let stems = this._previewStems(layout, 1.2);
 
-    // Draw the pot first so stems remain visible all the way to their pivot.
     if (!drawPotAsset(
       layout.asset,
       layout.asset?.theme,
-      layout.cx,
-      layout.baseY + layout.potSize.height / 2,
+      layout.potDrawX,
+      layout.potTopY + layout.potSize.height / 2,
       layout.potMaxWidth,
       layout.potMaxHeight,
-      this.selectedPotColor
+      this.selectedPotColor,
+      true
     )) {
       fill(200); noStroke();
-      rect(layout.cx - 55, layout.baseY, 110, 96, 4);
+      rect(layout.potDrawX - 55, layout.potTopY, 110, 96, 4);
     }
 
     for (let stem of stems) {
       if (stem.isSelected) {
-        stroke(100, 100, 220, 80); strokeWeight(14); this._drawStemPath(stem.points);
+        stroke(100, 100, 220, 80); strokeWeight(14); this._drawStemPath(stem.displayPoints);
       } else if (stem.isHovered) {
-        stroke(180, 180, 220, 60); strokeWeight(10); this._drawStemPath(stem.points);
+        stroke(180, 180, 220, 60); strokeWeight(10); this._drawStemPath(stem.displayPoints);
       }
     }
 
     for (let stem of stems) {
       stroke(this.stemColors[stem.data.stemColor] ?? '#AAAAAA');
       strokeWeight(2);
-      this._drawStemPath(stem.points);
+      this._drawStemPath(stem.displayPoints);
     }
 
     for (let stem of stems) {
       this.#drawStemBeads(stem);
     }
-
-    fill(100, 100, 200); noStroke();
-    textSize(12); textAlign(CENTER); textStyle(NORMAL);
-    text('(화분 미리보기)', layout.cx, y + h * 0.95);
   }
 
-  _previewStems(cx, baseY, lengthScale = 1) {
+  _previewStems(layout, lengthScale = 1) {
     return this.workingStems.map((data, i) => {
-      let baseX = cx + data.baseOffset;
+      let baseX = layout.cx + data.baseOffset;
+      let baseY = this.#stemBaseY(layout, data.baseOffset);
       let angle = radians(data.stemAngle);
       let stemLength = data.stemLength * lengthScale;
       let fitted = fitStemPathLength(
@@ -173,8 +171,10 @@ class PotDecorateUI {
         ...fitted.geometry,
         points: fitted.points,
       };
+      stem.beadPlacements = this.#stemBeadPlacements(stem);
+      stem.displayPoints = this.#stemDisplayPoints(stem);
       stem.isSelected = this.selectedStemIndex === i;
-      stem.isHovered = this._distToPath(mouseX, mouseY, stem.points) < 15;
+      stem.isHovered = this._distToPath(mouseX, mouseY, stem.displayPoints) < 15;
       return stem;
     });
   }
@@ -620,7 +620,16 @@ class PotDecorateUI {
 
       // 화분 이미지
       const asset = this.#potAssetAt(i);
-      drawPotAsset(asset, asset?.theme, sx + cellW / 2, sy + cellH / 2, cellW - 16, cellH - 16, this.selectedPotColor);
+      drawPotAsset(
+        asset,
+        asset?.theme,
+        sx + cellW / 2,
+        sy + cellH / 2,
+        cellW - 16,
+        cellH - 16,
+        this.selectedPotColor,
+        true
+      );
 
       // 선택 체크
       if (isSel) {
@@ -859,11 +868,12 @@ class PotDecorateUI {
     }
 
     let layout = this.#previewLayout(popX + 20, popY + 62, 400, 520);
-    let stems = this._previewStems(layout.cx, layout.baseY, 1.2);
+    this.#constrainStemOffsets(layout);
+    let stems = this._previewStems(layout, 1.2);
 
     for (let i = 0; i < stems.length; i++) {
       let s = stems[i];
-      let d = this._distToPath(mouseX, mouseY, s.points);
+      let d = this._distToPath(mouseX, mouseY, s.displayPoints);
       if (d < 15) {
         this.selectedStemIndex = i;
         this.#loadSelectedStemControls();
@@ -886,11 +896,13 @@ class PotDecorateUI {
       return;
     }
 
-    let popW = 1060;
+    let popW = 1060, popH = 700;
     let popX = width / 2 - popW / 2;
-    let previewCenterX = popX + 20 + 200;
+    let popY = height / 2 - popH / 2;
+    let layout = this.#previewLayout(popX + 20, popY + 62, 400, 520);
+    let maxOffset = this.#stemOffsetLimit(layout);
     this.workingStems[this.draggingStemIndex].baseOffset =
-      constrain(mouseX - previewCenterX, -120, 120);
+      constrain(mouseX - layout.cx, -maxOffset, maxOffset);
   }
 
   onMouseReleased() {
@@ -987,17 +999,48 @@ class PotDecorateUI {
     const asset = this.#selectedPotAsset();
     const potMaxWidth = 220;
     const potMaxHeight = 190;
-    const potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
+    const potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight, true);
     const bottomMargin = 45;
     const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
+    const openingCenterRatio = asset?.stemOpeningCenterRatio ?? 0.5;
+    const potTopY = y + h - bottomMargin - potMaxHeight;
+    const cx = x + w / 2;
     return {
       asset,
       potMaxWidth,
       potMaxHeight,
       potSize,
-      cx: x + w / 2,
-      baseY: y + h - bottomMargin - potSize.height - stemYOffset,
+      cx,
+      potDrawX: cx - (openingCenterRatio - 0.5) * potSize.width,
+      potTopY,
+      baseY: potTopY + stemYOffset,
     };
+  }
+
+  #stemOffsetLimit(layout) {
+    const openingRatio = layout.asset?.stemOpeningRatio ?? 0.8;
+    return max(0, layout.potSize.width * openingRatio / 2 - 4);
+  }
+
+  #stemBaseY(layout, baseOffset) {
+    const maxOffset = this.#stemOffsetLimit(layout);
+    if (maxOffset <= 0) return layout.baseY;
+
+    const normalizedX = constrain(baseOffset / maxOffset, -1, 1);
+    const curve = layout.asset?.stemOpeningCurveRatio ?? 0;
+    const tilt = layout.asset?.stemOpeningTiltRatio ?? 0;
+    return layout.baseY +
+      layout.potSize.height * (
+        curve * normalizedX * normalizedX +
+        tilt * normalizedX
+      );
+  }
+
+  #constrainStemOffsets(layout) {
+    const maxOffset = this.#stemOffsetLimit(layout);
+    for (let stem of this.workingStems) {
+      stem.baseOffset = constrain(stem.baseOffset, -maxOffset, maxOffset);
+    }
   }
 
   #normalizeStem(stem, index) {
@@ -1095,7 +1138,7 @@ class PotDecorateUI {
   #drawStemBeads(stem) {
     let beads = stem.data.beads ?? [];
     let count = beads.length || stem.data.beadCount || 0;
-    let placements = beadPathPlacements(stem.points, beads, count, 18);
+    let placements = stem.beadPlacements ?? this.#stemBeadPlacements(stem);
 
     for (let i = 0; i < count; i++) {
       let placement = placements[i];
@@ -1125,6 +1168,52 @@ class PotDecorateUI {
         ellipse(placement.x, placement.y, placement.height);
       }
     }
+  }
+
+  #stemBeadPlacements(stem) {
+    let beads = stem.data.beads ?? [];
+    let count = beads.length || stem.data.beadCount || 0;
+    return beadPathPlacements(stem.points, beads, count, 18, 0.5, 'start');
+  }
+
+  #stemDisplayPoints(stem) {
+    let placements = stem.beadPlacements ?? [];
+    if (placements.length === 0) {
+      return stem.points;
+    }
+
+    let last = placements[placements.length - 1];
+    let endDistance = (last.pathDistance ?? stemPathLength(stem.points)) +
+      (last.visibleWidth ?? last.width) / 2;
+    return this.#pathPointsThroughDistance(stem.points, endDistance);
+  }
+
+  #pathPointsThroughDistance(points, endDistance) {
+    if (points.length < 2) return points;
+
+    let result = [points[0]];
+    let travelled = 0;
+    for (let i = 1; i < points.length; i++) {
+      let segmentLength = dist(
+        points[i - 1].x,
+        points[i - 1].y,
+        points[i].x,
+        points[i].y
+      );
+      if (travelled + segmentLength >= endDistance) {
+        let t = segmentLength > 0
+          ? constrain((endDistance - travelled) / segmentLength, 0, 1)
+          : 0;
+        result.push({
+          x: lerp(points[i - 1].x, points[i].x, t),
+          y: lerp(points[i - 1].y, points[i].y, t),
+        });
+        return result;
+      }
+      result.push(points[i]);
+      travelled += segmentLength;
+    }
+    return result;
   }
 
   #stemTangentAt(points, t) {
