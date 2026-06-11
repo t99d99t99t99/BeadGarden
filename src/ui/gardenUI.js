@@ -318,6 +318,33 @@ class GardenUI {
     if (btnHov) cursor(HAND);
   }
 
+  drawDatabaseStatus() {
+    const isOnline = typeof getDatabaseMode === 'function' &&
+      getDatabaseMode() === DATABASE_SERVER;
+    const label = isOnline ? '온라인' : '오프라인';
+    const markerX = 16;
+    const markerY = 16;
+    const markerW = 78;
+    const markerH = 28;
+
+    push();
+    fill(255, 255, 255, 220);
+    stroke(isOnline ? color(70, 165, 95) : color(145));
+    strokeWeight(1);
+    rect(markerX, markerY, markerW, markerH, 14);
+
+    noStroke();
+    fill(isOnline ? color(70, 165, 95) : color(145));
+    circle(markerX + 15, markerY + markerH / 2, 8);
+
+    fill(70);
+    textSize(12);
+    textStyle(BOLD);
+    textAlign(CENTER, CENTER);
+    text(label, markerX + 48, markerY + markerH / 2);
+    pop();
+  }
+
   onMousePressed() {
     const btnW = 320, btnH = 52;
     const btnX = width / 2 - btnW / 2;
