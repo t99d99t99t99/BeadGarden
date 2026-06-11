@@ -444,10 +444,15 @@ class GardenUI {
     this.targetScrollX = constrain(this.dragScrollX - (mouseX - this.dragStartX), 0, maxScroll);
   }
 
-  onMouseWheel(delta) {
+  onMouseWheel(e) {
     if (potSetupUI.isVisible || potDetailUI.isVisible) return;
-    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
-    this.targetScrollX = constrain(this.targetScrollX + delta * 0.8, 0, maxScroll);
+    const dx = e.deltaX ?? 0;
+    const dy = e.delta ?? e.deltaY ?? 0;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+      this.targetScrollX = constrain(this.targetScrollX + dx * 0.8, 0, maxScroll);
+      return false;
+    }
   }
 
   onMouseReleased() {
