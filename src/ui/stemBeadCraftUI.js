@@ -653,4 +653,11 @@ class StemBeadCraftUI {
     // 완성하기 버튼
     this.drawCompleteBtn();
   }
+
+  // ── 스크린샷 저장 ──
+  takeScreenshot() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    saveCanvas(`screenshot-${timestamp}`, 'png');
+    console.log('스크린샷이 저장되었습니다.');
+  }
 }
