@@ -13,7 +13,7 @@ const DEBUG_MENU = 98;
 const DEBUG = 99;
 
 let gameState = INTRO;
-let prevState  = INTRO; // 튜토리얼 진입 전 이전 상태 추적
+let prevState = INTRO; // 튜토리얼 진입 전 이전 상태 추적
 let backgroundNum = 0;
 let introUI;
 let tutorialUI;

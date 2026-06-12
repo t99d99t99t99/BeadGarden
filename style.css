@@ -1,8 +1,21 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  /* Centers horizontally */
+  align-items: center;
+  /* Centers vertically */
+  background-color: #111;
+  /* Optional background color */
 }
 
 canvas {
   display: block;
+  /* Removes default browser spacing issues */
 }
