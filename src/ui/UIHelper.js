@@ -167,16 +167,23 @@ function fitStemPathLength(baseX, baseY, angle, targetLength, buildPoints) {
 function normalizeRenderableStem(stem, index) {
   const defaultAngles = [340, 0, 20, 330, 30];
   const defaultOffsets = [-48, 0, 48, -24, 24];
+  const stemShape = stem?.stemShape ?? 0;
+  const defaultWaveWidth = stemShape === 3 ? 12 : 13;
+  const waveWidthMax = stemShape === 2 ? 12 : stemShape === 3 ? 20 : Infinity;
   return {
     ...(stem ?? {}),
     stemColor: stem?.stemColor ?? 0,
-    stemShape: stem?.stemShape ?? 0,
+    stemShape,
     stemAngle: stem?.stemAngle ?? stem?.angle ?? defaultAngles[index % defaultAngles.length],
     baseOffset: stem?.baseOffset ?? defaultOffsets[index % defaultOffsets.length],
     stemLength: stem?.stemLength ?? 210,
     curveSharpness: stem?.curveSharpness ?? 45,
     curveDepth: stem?.curveDepth ?? 45,
-    waveWidth: stem?.waveWidth ?? (stem?.stemShape === 3 ? 12 : 13),
+    waveWidth: constrain(
+      Number(stem?.waveWidth ?? defaultWaveWidth),
+      0,
+      waveWidthMax
+    ),
     beads: stem?.beads ?? [],
   };
 }

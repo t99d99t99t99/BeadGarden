@@ -430,11 +430,22 @@ class PotDecorateUI {
     }
   }
 
-  _drawStemSlider(label, key, minValue, maxValue, step, x, y, widthValue = 330) {
+  _drawStemSlider(
+    label,
+    key,
+    minValue,
+    maxValue,
+    step,
+    x,
+    y,
+    widthValue = 330,
+    decimalPlaces = 0
+  ) {
     let stem = this.workingStems[this.selectedStemIndex];
     if (!stem) return;
 
-    let value = stem[key];
+    let value = constrain(Number(stem[key]) || 0, minValue, maxValue);
+    stem[key] = value;
     let normalized = (value - minValue) / (maxValue - minValue);
     let trackY = y + 28;
 
@@ -442,7 +453,7 @@ class PotDecorateUI {
     textSize(13); textStyle(NORMAL); textAlign(LEFT, CENTER);
     text(label, x, y + 4);
     fill(120); textAlign(RIGHT, CENTER);
-    text(`${Math.round(value)}`, x + widthValue, y + 4);
+    text(Number(value).toFixed(decimalPlaces), x + widthValue, y + 4);
 
     stroke(205); strokeWeight(6); strokeCap(ROUND);
     line(x, trackY, x + widthValue, trackY);
@@ -682,15 +693,30 @@ class PotDecorateUI {
           controlsY
         );
         controlsY += 76;
-      } else if (this.selectedStemShape === 2 || this.selectedStemShape === 3) {
+      } else if (this.selectedStemShape === 2) {
         this._drawStemSlider(
           '너비',
           'waveWidth',
           0,
-          40,
-          1,
+          12,
+          0.5,
           panX,
-          controlsY
+          controlsY,
+          330,
+          1
+        );
+        controlsY += 76;
+      } else if (this.selectedStemShape === 3) {
+        this._drawStemSlider(
+          '너비',
+          'waveWidth',
+          0,
+          20,
+          0.5,
+          panX,
+          controlsY,
+          330,
+          1
         );
         controlsY += 76;
       }
@@ -987,17 +1013,25 @@ class PotDecorateUI {
   #normalizeStem(stem, index) {
     const defaultAngles = [340, 0, 20, 330, 30];
     const defaultOffsets = [-48, 0, 48, -24, 24];
+    const stemShape = stem?.stemShape ?? 0;
+    const defaultWaveWidth = stemShape === 3 ? 12 : 13;
+    const waveWidthMax = stemShape === 2 ? 12 : stemShape === 3 ? 20 : Infinity;
+    const waveWidth = constrain(
+      Number(stem?.waveWidth ?? defaultWaveWidth),
+      0,
+      waveWidthMax
+    );
     return {
       ...this.#cloneStem(stem),
       stemColor: stem?.stemColor ?? 0,
-      stemShape: stem?.stemShape ?? 0,
+      stemShape,
       stemAngle: stem?.stemAngle ?? stem?.angle ?? defaultAngles[index % defaultAngles.length],
       angle: stem?.stemAngle ?? stem?.angle ?? defaultAngles[index % defaultAngles.length],
       baseOffset: stem?.baseOffset ?? defaultOffsets[index % defaultOffsets.length],
       stemLength: stem?.stemLength ?? 210,
       curveSharpness: stem?.curveSharpness ?? 45,
       curveDepth: stem?.curveDepth ?? 45,
-      waveWidth: stem?.waveWidth ?? (stem?.stemShape === 3 ? 12 : 13),
+      waveWidth,
       beads: (stem?.beads ?? []).map((bead) => ({ ...bead })),
     };
   }
