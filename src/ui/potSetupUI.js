@@ -1,13 +1,13 @@
 class PotSetupUI {
   constructor() {
-    this.isVisible       = false;
+    this.isVisible = false;
     this.selectedConcept = 1; // 0: 식물, 1: 스타(기본), 2: 바다
-    this.nameInput       = null;
-    this.descInput       = null;
+    this.nameInput = null;
+    this.descInput = null;
 
     this.concepts = [
       { label: '식물 에디션', theme: POT_THEMES.PLANT, imgPath: 'assets/concept_plant.png' },
-      { label: '스타 에디션', theme: POT_THEMES.STAR,  imgPath: 'assets/concept_star.png'  },
+      { label: '스타 에디션', theme: POT_THEMES.STAR, imgPath: 'assets/concept_star.png' },
       { label: '바다 에디션', theme: POT_THEMES.OCEAN, imgPath: 'assets/concept_ocean.png' },
     ];
 
@@ -23,42 +23,42 @@ class PotSetupUI {
   show() {
     if (this.nameInput) { this.nameInput.remove(); this.nameInput = null; }
     if (this.descInput) { this.descInput.remove(); this.descInput = null; }
-    this.isVisible       = true;
+    this.isVisible = true;
     this.selectedConcept = 1;
 
     let popW = 520, popH = 540;
-    let popX = width  / 2 - popW / 2;
+    let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
 
     // 화분 이름 input
     this.nameInput = createInput('');
     this.nameInput.attribute('placeholder', '예) 쑥쑥이');
-    this.nameInput.attribute('maxlength',   '20');
-    this.nameInput.style('position',      'absolute');
-    this.nameInput.style('width',         '456px');
-    this.nameInput.style('padding',       '10px 14px');
-    this.nameInput.style('font-size',     '14px');
-    this.nameInput.style('border',        '1px solid #ddd');
+    this.nameInput.attribute('maxlength', '20');
+    this.nameInput.style('position', 'absolute');
+    this.nameInput.style('width', '456px');
+    this.nameInput.style('padding', '10px 14px');
+    this.nameInput.style('font-size', '14px');
+    this.nameInput.style('border', '1px solid #ddd');
     this.nameInput.style('border-radius', '8px');
-    this.nameInput.style('outline',       'none');
-    this.nameInput.style('box-sizing',    'border-box');
-    this.nameInput.style('background',    '#ffffff');
-    this.nameInput.style('z-index',       '10');
+    this.nameInput.style('outline', 'none');
+    this.nameInput.style('box-sizing', 'border-box');
+    this.nameInput.style('background', '#ffffff');
+    this.nameInput.style('z-index', '10');
 
     // 한 줄 설명 input
     this.descInput = createInput('');
     this.descInput.attribute('placeholder', '예) 오늘 처음 만들어본 화분');
-    this.descInput.attribute('maxlength',   '40');
-    this.descInput.style('position',      'absolute');
-    this.descInput.style('width',         '456px');
-    this.descInput.style('padding',       '10px 14px');
-    this.descInput.style('font-size',     '14px');
-    this.descInput.style('border',        '1px solid #ddd');
+    this.descInput.attribute('maxlength', '40');
+    this.descInput.style('position', 'absolute');
+    this.descInput.style('width', '456px');
+    this.descInput.style('padding', '10px 14px');
+    this.descInput.style('font-size', '14px');
+    this.descInput.style('border', '1px solid #ddd');
     this.descInput.style('border-radius', '8px');
-    this.descInput.style('outline',       'none');
-    this.descInput.style('box-sizing',    'border-box');
-    this.descInput.style('background',    '#f9f9f9');
-    this.descInput.style('z-index',       '10');
+    this.descInput.style('outline', 'none');
+    this.descInput.style('box-sizing', 'border-box');
+    this.descInput.style('background', '#f9f9f9');
+    this.descInput.style('z-index', '10');
 
     this.updateInputLayout();
   }
@@ -71,10 +71,10 @@ class PotSetupUI {
 
   getData() {
     return {
-      name:    this.nameInput ? this.nameInput.value().trim() : '',
-      desc:    this.descInput ? this.descInput.value().trim() : '',
+      name: this.nameInput ? this.nameInput.value().trim() : '',
+      desc: this.descInput ? this.descInput.value().trim() : '',
       concept: this.concepts[this.selectedConcept].label,
-      theme:   this.concepts[this.selectedConcept].theme,
+      theme: this.concepts[this.selectedConcept].theme,
     };
   }
 
@@ -82,7 +82,7 @@ class PotSetupUI {
     if (!this.isVisible) return;
 
     let popW = 520, popH = 540;
-    let popX = width  / 2 - popW / 2;
+    let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
 
     // 컨셉 카드 클릭
@@ -93,7 +93,7 @@ class PotSetupUI {
     for (let i = 0; i < 3; i++) {
       let cx = startX + i * (cardW + cardGap);
       if (mouseX > cx && mouseX < cx + cardW &&
-          mouseY > cardY && mouseY < cardY + cardH) {
+        mouseY > cardY && mouseY < cardY + cardH) {
         this.selectedConcept = i;
         return;
       }
@@ -102,7 +102,7 @@ class PotSetupUI {
     // 취소 버튼
     let cancelX = popX + 28, cancelY = popY + 464;
     if (mouseX > cancelX && mouseX < cancelX + 148 &&
-        mouseY > cancelY && mouseY < cancelY + 48) {
+      mouseY > cancelY && mouseY < cancelY + 48) {
       this.hide();
       goTo(GAME_STATE.GARDEN_LIST);
       return;
@@ -112,25 +112,25 @@ class PotSetupUI {
     let data = this.getData();
     let confirmX = popX + 196, confirmY = popY + 464;
     if (data.name.length > 0 &&
-        mouseX > confirmX && mouseX < confirmX + 296 &&
-        mouseY > confirmY && mouseY < confirmY + 48) {
+      mouseX > confirmX && mouseX < confirmX + 296 &&
+      mouseY > confirmY && mouseY < confirmY + 48) {
       // Firestore에 화분 생성 후 꾸미기 화면으로 이동
       let cardY = random(height * 0.15, height * 0.45);
       createPot({ name: data.name, desc: data.desc, concept: data.concept, theme: data.theme, cardY })
         .then(potId => {
           const newPot = {
             firestoreId: potId,
-            createdBy:   myDeviceId,
-            name:        data.name,
-            desc:        data.desc,
-            concept:     data.concept,
-            theme:       data.theme,
+            createdBy: myDeviceId,
+            name: data.name,
+            desc: data.desc,
+            concept: data.concept,
+            theme: data.theme,
             cardY,
-            colorIndex:  0,
-            bgIndex:     0,
-            shapeIndex:  0,
-            locked:      false,
-            stems:       [],
+            colorIndex: 0,
+            bgIndex: 0,
+            shapeIndex: 0,
+            locked: false,
+            stems: [],
           };
           this.hide();
           potDecorateUI.show('new', newPot);
@@ -152,7 +152,7 @@ class PotSetupUI {
 
     // 팝업 박스
     let popW = 520, popH = 540;
-    let popX = width  / 2 - popW / 2;
+    let popX = width / 2 - popW / 2;
     let popY = height / 2 - popH / 2;
     fill(255); stroke(220); strokeWeight(1);
     rect(popX, popY, popW, popH, 14);
@@ -184,8 +184,12 @@ class PotSetupUI {
     fill(255, 0, 255); textStyle(BOLD); textAlign(LEFT);
     text('한 줄 설명 (선택)', popX + 28, popY + 176);
 
+    let descLen = this.descinput ? this.descInput.value().length : 0;
+    fill(160); textStyle(NORMAL); textAlign(RIGHT);
+    text(`${descLen} / 20`, popX + popW - 28, popY + 176);
+
     // 비즈 식물 컨셉 라벨
-    fill(255, 0, 255); textStyle(BOLD);
+    fill(255, 0, 255); textStyle(BOLD); textAlign(LEFT);
     text('비즈 식물 컨셉', popX + 28, popY + 258);
     fill(120); textStyle(NORMAL); textSize(12);
     text('줄기에 꿰어질 비즈와 화분의 디자인을 결정해요.', popX + 28, popY + 276);
