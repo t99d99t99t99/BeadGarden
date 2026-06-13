@@ -496,29 +496,25 @@ class StemBeadCraftUI {
     if (fingerPath.length > 1 && gumjiPosition) {
       fingerPath[fingerPath.length - 1] = gumjiPosition;
     }
-    let theme = normalizePotTheme(this.currentPot);
-    if (theme === POT_THEMES.LEGACY) {
-      theme = themeForConcept(this.currentPot?.concept);
-    }
-    let isPlant = theme === POT_THEMES.PLANT;
-    let lineGraphic = isPlant
+    let isPinched = handDetector.pinched();
+    let lineGraphic = isPinched
       ? this.playGraphics.markerFingerGreen
       : this.playGraphics.markerFingerPink;
-    let tipGraphic = isPlant
+    let tipGraphic = isPinched
       ? this.playGraphics.markerFingertipGreen
       : this.playGraphics.markerFingertipPink;
 
     push();
     for (let i = 1; i < fingerPath.length; i++) {
-      this.#drawFingerSegment(fingerPath[i - 1], fingerPath[i], lineGraphic, isPlant);
+      this.#drawFingerSegment(fingerPath[i - 1], fingerPath[i], lineGraphic, isPinched);
     }
-    this.#drawFingertipMarker(thumbPosition, tipGraphic, isPlant);
-    this.#drawFingertipMarker(gumjiPosition, tipGraphic, isPlant);
+    this.#drawFingertipMarker(thumbPosition, tipGraphic, isPinched);
+    this.#drawFingertipMarker(gumjiPosition, tipGraphic, isPinched);
 
     pop();
   }
 
-  #drawFingerSegment(joint, tip, graphic, isPlant) {
+  #drawFingerSegment(joint, tip, graphic, isPinched) {
     if (!joint || !tip) return;
 
     let dx = tip.x - joint.x;
@@ -528,7 +524,7 @@ class StemBeadCraftUI {
 
     let lineThickness = 4;
     if (!graphic) {
-      stroke(isPlant ? color(127, 215, 140) : color(248, 140, 205));
+      stroke(isPinched ? color(127, 215, 140) : color(248, 140, 205));
       strokeWeight(lineThickness);
       line(joint.x, joint.y, tip.x, tip.y);
       return;
@@ -539,7 +535,7 @@ class StemBeadCraftUI {
     let renderedHeight = graphic.height * lineThickness / 3;
     let paintedDy = renderedHeight * 20 / graphic.height;
     if (targetLength <= Math.abs(paintedDy)) {
-      stroke(isPlant ? color(127, 215, 140) : color(248, 140, 205));
+      stroke(isPinched ? color(127, 215, 140) : color(248, 140, 205));
       strokeWeight(lineThickness);
       line(joint.x, joint.y, tip.x, tip.y);
       return;
@@ -571,7 +567,7 @@ class StemBeadCraftUI {
     pop();
   }
 
-  #drawFingertipMarker(position, graphic, isPlant) {
+  #drawFingertipMarker(position, graphic, isPinched) {
     if (!position) return;
 
     if (graphic) {
@@ -581,7 +577,7 @@ class StemBeadCraftUI {
     }
 
     noStroke();
-    fill(isPlant ? color(80, 190, 100) : color(235, 90, 160));
+    fill(isPinched ? color(80, 190, 100) : color(235, 90, 160));
     circle(position.x, position.y, 13);
   }
 
