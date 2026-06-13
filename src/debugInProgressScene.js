@@ -29,7 +29,7 @@ function debugInProgressSceneStart(mode) {
         debugPotManagementSceneSetup();
     }
 
-    gameState = DEBUG;
+    goTo(GAME_STATE.DEBUG);
 }
 
 function debugInProgressSceneDraw() {
@@ -151,7 +151,7 @@ function debugInProgressSceneMouseWheel(delta) {
 
 function debugInProgressSceneExit() {
     debugInProgressSceneReset();
-    gameState = INTRO;
+    goTo(GAME_STATE.INTRO);
 }
 
 function debugInProgressSceneReset() {
@@ -250,7 +250,7 @@ function debugInProgressSceneForwardPotDecorateMousePressed() {
     }
 
     potDecorateUI.onMousePressed();
-    gameState = DEBUG;
+    goTo(GAME_STATE.DEBUG);
     debugInProgressSceneEnsurePotDecorateTest();
 }
 

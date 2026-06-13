@@ -39,7 +39,7 @@ class PotLockUI {
       }
       this.hide();
       potDetailUI.show(pot);
-      goTo(GARDEN);
+      goTo(GAME_STATE.POT_PREVIEW);
       return;
     }
 
@@ -49,7 +49,7 @@ class PotLockUI {
       const pot = this.pot;
       this.hide();
       potDetailUI.show(pot);
-      goTo(GARDEN);
+      goTo(GAME_STATE.POT_PREVIEW);
     }
   }
 

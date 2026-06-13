@@ -104,7 +104,7 @@ class PotSetupUI {
     if (mouseX > cancelX && mouseX < cancelX + 148 &&
         mouseY > cancelY && mouseY < cancelY + 48) {
       this.hide();
-      goTo(GARDEN);
+      goTo(GAME_STATE.GARDEN_LIST);
       return;
     }
 
@@ -134,7 +134,7 @@ class PotSetupUI {
           };
           this.hide();
           potDecorateUI.show('new', newPot);
-          goTo(POT_DECORATE);
+          goTo(GAME_STATE.POT_DECORATE);
         })
         .catch(err => console.error('[Firestore] 화분 생성 오류:', err));
       return;

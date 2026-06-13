@@ -109,70 +109,25 @@ class PotDecorateUI {
 
   // ── 화분 미리보기 그리기 ──
   drawPreview(x, y, w, h) {
-    fill(this.bgColors[this.selectedBgColor]);
-    noStroke();
-    rect(x, y, w, h, 8);
-
-    let layout = this.#previewLayout(x, y, w, h);
-    this.#constrainStemOffsets(layout);
-    let stems = this._previewStems(layout, 1.2);
-
-    if (!drawPotAsset(
-      layout.asset,
-      layout.asset?.theme,
-      layout.potDrawX,
-      layout.potTopY + layout.potSize.height / 2,
-      layout.potMaxWidth,
-      layout.potMaxHeight,
-      this.selectedPotColor,
-      true
-    )) {
-      fill(200); noStroke();
-      rect(layout.potDrawX - 55, layout.potTopY, 110, 96, 4);
-    }
-
-    for (let stem of stems) {
-      if (stem.isSelected) {
-        stroke(100, 100, 220, 80); strokeWeight(14); this._drawStemPath(stem.displayPoints);
-      } else if (stem.isHovered) {
-        stroke(180, 180, 220, 60); strokeWeight(10); this._drawStemPath(stem.displayPoints);
-      }
-    }
-
-    for (let stem of stems) {
-      stroke(this.stemColors[stem.data.stemColor] ?? '#AAAAAA');
-      strokeWeight(2);
-      this._drawStemPath(stem.displayPoints);
-    }
-
-    for (let stem of stems) {
-      this.#drawStemBeads(stem);
-    }
+    drawPotComposition({
+      ...this.currentPot,
+      potAssetName: this.availablePots?.[this.selectedPotAsset],
+      potAssetIndex: this.selectedPotAsset,
+      colorIndex: this.selectedPotColor,
+      bgIndex: this.selectedBgColor,
+      stems: this.workingStems,
+    }, x, y, w, h, {
+      selectedStemIndex: this.selectedStemIndex,
+      highlightHover: true,
+    });
   }
 
   _previewStems(layout, lengthScale = 1) {
-    return this.workingStems.map((data, i) => {
-      let baseX = layout.cx + data.baseOffset;
-      let baseY = this.#stemBaseY(layout, data.baseOffset);
-      let angle = radians(data.stemAngle);
-      let stemLength = data.stemLength * lengthScale;
-      let fitted = fitStemPathLength(
-        baseX,
-        baseY,
-        angle,
-        stemLength,
-        (geometry) => this._stemPathPoints(
-          { ...geometry, data },
-          data.stemShape
-        )
-      );
-      let stem = {
-        data,
-        ...fitted.geometry,
-        points: fitted.points,
-      };
-      stem.beadPlacements = this.#stemBeadPlacements(stem);
-      stem.displayPoints = this.#stemDisplayPoints(stem);
+    return buildPotRenderStems(
+      { ...this.currentPot, stems: this.workingStems },
+      layout,
+      { lengthScale }
+    ).map((stem, i) => {
       stem.isSelected = this.selectedStemIndex === i;
       stem.isHovered = this._distToPath(mouseX, mouseY, stem.displayPoints) < 15;
       return stem;
@@ -848,7 +803,7 @@ class PotDecorateUI {
     if (mouseX > popX + popW - 40 && mouseX < popX + popW - 12 &&
       mouseY > popY + 8 && mouseY < popY + 36) {
       this.hide();
-      goTo(GARDEN);
+      goTo(GAME_STATE.GARDEN_LIST);
       return;
     }
 
@@ -979,7 +934,7 @@ class PotDecorateUI {
   #returnToPotDetail() {
     this.hide();
     potDetailUI.show(this.currentPot);
-    goTo(GARDEN);
+    goTo(GAME_STATE.POT_PREVIEW);
   }
 
   #potTheme() {
@@ -996,25 +951,11 @@ class PotDecorateUI {
   }
 
   #previewLayout(x, y, w, h) {
-    const asset = this.#selectedPotAsset();
-    const potMaxWidth = 220;
-    const potMaxHeight = 190;
-    const potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight, true);
-    const bottomMargin = 45;
-    const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
-    const openingCenterRatio = asset?.stemOpeningCenterRatio ?? 0.5;
-    const potTopY = y + h - bottomMargin - potMaxHeight;
-    const cx = x + w / 2;
-    return {
-      asset,
-      potMaxWidth,
-      potMaxHeight,
-      potSize,
-      cx,
-      potDrawX: cx - (openingCenterRatio - 0.5) * potSize.width,
-      potTopY,
-      baseY: potTopY + stemYOffset,
-    };
+    return createPotRenderLayout({
+      ...this.currentPot,
+      potAssetName: this.availablePots?.[this.selectedPotAsset],
+      potAssetIndex: this.selectedPotAsset,
+    }, x, y, w, h);
   }
 
   #stemOffsetLimit(layout) {

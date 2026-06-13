@@ -62,13 +62,16 @@ class GardenUI {
     // 화분 이미지 실제 높이 계산
     const potW    = this.cardW * 0.5;
     const asset   = getPotAssetForPot(pot);
-    const potSize = getPotAssetDrawSize(asset, potW, potW);
-    const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
-    const stemBaseY = potBaseY - stemYOffset;
+    const potSize = getPotAssetDrawSize(asset, potW, potW, true);
 
-    // 줄기 + 화분 그리기
-    this._drawStems(cx, stemBaseY, pot);
-    this._drawPotImage(cx, potBaseY, pot);
+    drawPotComposition(pot, x, potBaseY - 180, this.cardW, 280, {
+      background: false,
+      potMaxWidth: potW,
+      potMaxHeight: potW,
+      bottomMargin: 0,
+      beadHeight: 14,
+      stemWeight: 1.5,
+    });
     const potBottom = potBaseY + potSize.height + 10; // 화분 하단 + 여백
 
     // 호버 시 글로우 효과
@@ -413,6 +416,7 @@ class GardenUI {
     if (mouseX > btnX && mouseX < btnX + btnW &&
         mouseY > btnY && mouseY < btnY + btnH) {
       potSetupUI.show();
+      goTo(GAME_STATE.NEW_POT);
       return;
     }
     if (potSetupUI.isVisible || potDetailUI.isVisible) return;
@@ -469,6 +473,8 @@ class GardenUI {
             mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
           potSetupUI.hide();
           potDetailUI.show(pot);
+          goTo(GAME_STATE.POT_PREVIEW);
+          break;
         }
       }
     }

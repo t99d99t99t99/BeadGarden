@@ -25,7 +25,7 @@ class IntroUI {
 
     // 3초 후 자동 전환
     if (millis() - this.startTime > this.duration) {
-      goTo(TUTORIAL);
+      goTo(GAME_STATE.TUTORIAL);
     }
   }
 }

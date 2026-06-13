@@ -55,19 +55,19 @@ class TutorialUI {
   }
 
   _exit() {
-    if (prevState === STEM_BEAD_CRAFT) {
-      goTo(STEM_BEAD_CRAFT);
+    if (prevState === GAME_STATE.STEM_BEAD_CRAFT) {
+      goTo(GAME_STATE.STEM_BEAD_CRAFT);
     } else {
-      goTo(GARDEN);
+      goTo(GAME_STATE.GARDEN_LIST);
     }
   }
 
   onMousePressed() {
-    if (gameState !== TUTORIAL) return;
+    if (gameState !== GAME_STATE.TUTORIAL) return;
 
     // 건너뛰기 / 가든 입장하기 버튼
     const isLastStep = this.currentStep === this.steps.length - 1;
-    const skipBtnW = (prevState !== STEM_BEAD_CRAFT && isLastStep) ? 160 : 140;
+    const skipBtnW = (prevState !== GAME_STATE.STEM_BEAD_CRAFT && isLastStep) ? 160 : 140;
     const skipX = width - 40 - skipBtnW, skipY = 32;
     if (isHovered(skipX, skipY, skipBtnW, 48)) { this._exit(); return; }
 
@@ -95,7 +95,7 @@ class TutorialUI {
     const skipHov = isHovered(skipX, skipY, 140, 48);
     const isLastStep = this.currentStep === this.steps.length - 1;
     let skipLabel, skipBtnW = 140;
-    if (prevState === STEM_BEAD_CRAFT) {
+    if (prevState === GAME_STATE.STEM_BEAD_CRAFT) {
       skipLabel = '돌아가기';
       fill(skipHov ? 100 : 130);
     } else if (isLastStep) {

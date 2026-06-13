@@ -461,7 +461,7 @@ class StemBeadCraftUI {
     // 클릭 → STEM_FINISH
     if (canDone && !this.isPinching() && isPressed) {
       stemFinishUI.show();
-      goTo(STEM_FINISH);
+      goTo(GAME_STATE.STEM_FINISH);
     }
   }
 
@@ -619,7 +619,7 @@ class StemBeadCraftUI {
     text('← 나가기', 67, 28);
     if (isClicked(24, 14, 86, 28)) {
       potDetailUI.show(this.currentPot);
-      goTo(GARDEN);
+      goTo(GAME_STATE.POT_PREVIEW);
     }
 
     // 페이지 타이틀
@@ -634,8 +634,8 @@ class StemBeadCraftUI {
     textAlign(CENTER, CENTER);
     text('튜토리얼', width - 66, 28);
     if (isClicked(width - 108, 14, 84, 28)) {
-      prevState = STEM_BEAD_CRAFT;
-      goTo(TUTORIAL);
+      prevState = GAME_STATE.STEM_BEAD_CRAFT;
+      goTo(GAME_STATE.TUTORIAL);
     }
 
     // 카운터

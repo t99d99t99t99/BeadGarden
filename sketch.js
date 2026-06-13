@@ -1,19 +1,21 @@
-// 게임 상태
-const INTRO = 0; // 게임 전반 설명 화면
-const TUTORIAL = 1; // CRAFT 화면 내 인터랙션 설명 영상 및 GARDEN 화면과의 연결고리 역할
-const GARDEN = 2;  // 이미 만들어진 화분 보여주기
-const POT_SETUP = 3; // 새 화분 이름, 설명 입력 (팝업)
-const POT_DETAIL = 4; // 만들어진 화분 모양 보여주면서 줄기 만들기, 화분 꾸미기, 이미지 저장, 화분 잠금으로 접근 가능한 화면 (팝업)
-const POT_DECORATE = 6; // 화분 꾸미기: 색상, 모양 선택 + 줄기 선택시 각 줄기별 특성(색상, 형태, 기울기) 설정하기 (팝업)
-const MOBILE_IMAGE_SAVE = 7; // QR코드 스캔시 모바일에 나타날 화면: 이미지 저장
-const POT_LOCK = 8; // 화분 잠금 여부 결정하기 (팝업)
-const STEM_BEAD_CRAFT = 9; // 비즈를 꽂으며 화분 조립하기
-const STEM_FINISH = 10; // 저장 및 데이터베이스 업로드 (팝업)
-const DEBUG_MENU = 98;
-const DEBUG = 99;
+// 게임 상태 정의
+const GAME_STATE = Object.freeze({
+  INTRO: 'intro',
+  TUTORIAL: 'tutorial',
+  GARDEN_LIST: 'garden-list',
+  NEW_POT: 'new-pot',
+  POT_PREVIEW: 'pot-preview',
+  POT_DECORATE: 'pot-decorate',
+  POT_LOCK: 'pot-lock',
+  STEM_BEAD_CRAFT: 'stem-bead-craft',
+  STEM_FINISH: 'stem-finish',
+  DEBUG_MENU: 'debug-menu',
+  DEBUG: 'debug',
+});
 
-let gameState = INTRO;
-let prevState = INTRO; // 튜토리얼 진입 전 이전 상태 추적
+// 각 상태별 UI 클래스의 인스턴스 생성
+let gameState = GAME_STATE.INTRO;
+let prevState = GAME_STATE.INTRO; // 튜토리얼 진입 전 이전 상태 추적
 let backgroundNum = 0;
 let introUI;
 let tutorialUI;
@@ -28,10 +30,13 @@ let beadGame;
 
 /**
  * 
- * @param {number} state 
+ * @param {string} state
  */
 function goTo(state) {
-  if (state === TUTORIAL && typeof tutorialUI !== 'undefined') tutorialUI.enter();
+  if (!Object.values(GAME_STATE).includes(state)) {
+    throw new Error(`Unknown game state: ${state}`);
+  }
+  if (state === GAME_STATE.TUTORIAL && typeof tutorialUI !== 'undefined') tutorialUI.enter();
   gameState = state;
 }
 
@@ -54,7 +59,7 @@ function startStemCraftForPot(pot) {
   potDetailUI.hide(); // 가든으로 돌아올 때 팝업이 남지 않도록
   stemBeadCraftUI.setPot(pot);
   stemBeadCraftUI.startThemedCraft();
-  goTo(STEM_BEAD_CRAFT);
+  goTo(GAME_STATE.STEM_BEAD_CRAFT);
 }
 
 function setup() {
@@ -86,46 +91,49 @@ function setup() {
 
 function draw() {
   switch (gameState) {
-    case INTRO:
+    case GAME_STATE.INTRO:
       introUI.draw();
       break;
-    case TUTORIAL:
+    case GAME_STATE.TUTORIAL:
       tutorialUI.draw();
       break;
-    case GARDEN:
+    case GAME_STATE.GARDEN_LIST:
       gardenUI.draw();
       gardenUI.drawDatabaseStatus();
-      potSetupUI.draw(); // 위에 팝업으로 표시
-      potDetailUI.draw(); // 위에 팝업으로 표시
-      potLockUI.draw(); // 위에 팝업으로 표시
       break;
-    case POT_DECORATE:
+    case GAME_STATE.NEW_POT:
+      gardenUI.draw();
+      gardenUI.drawDatabaseStatus();
+      potSetupUI.draw();
+      break;
+    case GAME_STATE.POT_PREVIEW:
+      gardenUI.draw();
+      gardenUI.drawDatabaseStatus();
+      potDetailUI.draw();
+      break;
+    case GAME_STATE.POT_DECORATE:
       gardenUI.draw();
       potDecorateUI.draw(); // 위에 팝업으로 표시
       break;
-    case STEM_BEAD_CRAFT:
+    case GAME_STATE.STEM_BEAD_CRAFT:
       stemBeadCraftUI.draw();
       break;
-    case STEM_FINISH:
+    case GAME_STATE.STEM_FINISH:
       stemBeadCraftUI.draw();
       stemFinishUI.draw();    // 위에 팝업으로 표시
       break;
-    case POT_LOCK:
+    case GAME_STATE.POT_LOCK:
       gardenUI.draw();
       potLockUI.draw();
       break;
-    case DEBUG_MENU:
+    case GAME_STATE.DEBUG_MENU:
       background(240);
       debugLandingSceneDraw();
       break;
-    case DEBUG:
+    case GAME_STATE.DEBUG:
       background(240);
       debugInProgressSceneDraw();
       break;
-  }
-
-
-  switch (gameState) {
   }
 }
 
@@ -135,7 +143,7 @@ function keyPressed() {
     debugLandingSceneSetup();
   }
   if (key === 's' || key === 'S') { // S 키로 스크린샷
-    if (gameState === STEM_BEAD_CRAFT && typeof stemBeadCraftUI !== 'undefined') {
+    if (gameState === GAME_STATE.STEM_BEAD_CRAFT && typeof stemBeadCraftUI !== 'undefined') {
       stemBeadCraftUI.takeScreenshot();
     } else {
       saveCanvas(`screenshot-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`, 'png');
@@ -145,27 +153,31 @@ function keyPressed() {
 
 function mousePressed() {
   switch (gameState) {
-    case TUTORIAL:
+    case GAME_STATE.TUTORIAL:
       tutorialUI.onMousePressed();
       break;
-    case GARDEN:
+    case GAME_STATE.GARDEN_LIST:
       gardenUI.onMousePressed();
-      potDetailUI.onMousePressed();
+      break;
+    case GAME_STATE.NEW_POT:
       potSetupUI.onMousePressed();
       break;
-    case POT_DECORATE:
+    case GAME_STATE.POT_PREVIEW:
+      potDetailUI.onMousePressed();
+      break;
+    case GAME_STATE.POT_DECORATE:
       potDecorateUI.onMousePressed();
       break;
-    case POT_LOCK:
+    case GAME_STATE.POT_LOCK:
       potLockUI.onMousePressed();
       break;
-    case STEM_BEAD_CRAFT:
+    case GAME_STATE.STEM_BEAD_CRAFT:
       stemBeadCraftUI.onMousePressed();
       break;
-    case DEBUG_MENU:
+    case GAME_STATE.DEBUG_MENU:
       debugLandingSceneMousePressed();
       break;
-    case DEBUG:
+    case GAME_STATE.DEBUG:
       debugInProgressSceneMousePressed();
       break;
   }
@@ -173,13 +185,13 @@ function mousePressed() {
 
 function mouseDragged() {
   switch (gameState) {
-    case GARDEN:
+    case GAME_STATE.GARDEN_LIST:
       gardenUI.onMouseDragged();
       break;
-    case POT_DECORATE:
+    case GAME_STATE.POT_DECORATE:
       potDecorateUI.onMouseDragged();
       break;
-    case DEBUG:
+    case GAME_STATE.DEBUG:
       debugInProgressSceneMouseDragged();
       break;
   }
@@ -187,13 +199,13 @@ function mouseDragged() {
 
 function mouseReleased() {
   switch (gameState) {
-    case GARDEN:
+    case GAME_STATE.GARDEN_LIST:
       gardenUI.onMouseReleased();
       break;
-    case POT_DECORATE:
+    case GAME_STATE.POT_DECORATE:
       potDecorateUI.onMouseReleased();
       break;
-    case DEBUG:
+    case GAME_STATE.DEBUG:
       debugInProgressSceneMouseReleased();
       break;
   }
@@ -201,12 +213,12 @@ function mouseReleased() {
 
 function mouseWheel(e) {
   switch (gameState) {
-    case GARDEN:
+    case GAME_STATE.GARDEN_LIST:
       return gardenUI.onMouseWheel(e);
-    case POT_DECORATE:
+    case GAME_STATE.POT_DECORATE:
       potDecorateUI.onMouseWheel(e.delta);
       return false;
-    case DEBUG:
+    case GAME_STATE.DEBUG:
       debugInProgressSceneMouseWheel(e.delta);
       return false;
   }

@@ -145,7 +145,7 @@ class StemFinishUI {
     text('← 돌아가기', popX + 61, popY + 32);
     if (isClicked(popX + 16, popY + 16, 90, 32)) {
       this.hide();
-      goTo(STEM_BEAD_CRAFT); // 게임 재개
+      goTo(GAME_STATE.STEM_BEAD_CRAFT); // 게임 재개
     }
 
     // ── 타이틀 ──
@@ -197,7 +197,7 @@ class StemFinishUI {
     this.#applyStemToCurrentPot();
     this.hide();
     potDetailUI.show(this.currentPot);
-    goTo(GARDEN);
+    goTo(GAME_STATE.POT_PREVIEW);
   }
 
   async #returnToGarden() {
@@ -206,7 +206,7 @@ class StemFinishUI {
     this.#applyStemToCurrentPot();
     this.hide();
     potDetailUI.hide();
-    goTo(GARDEN);
+    goTo(GAME_STATE.GARDEN_LIST);
   }
 
   #applyStemToCurrentPot() {

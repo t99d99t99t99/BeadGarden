@@ -24,101 +24,21 @@ class PotDetailUI {
   }
 
   drawPotPreview(x, y, w, h) {
-    let bgCol  = BG_COLORS[this.pot.bgIndex    ?? 0];
-    fill(bgCol); noStroke();
-    rect(x, y, w, h, 8);
-
     drawingContext.save();
     drawingContext.beginPath();
     drawingContext.rect(x, y, w, h);
     drawingContext.clip();
 
-    let cx = x + w / 2;
-    let asset = getPotAssetForPot(this.pot);
-    let potMaxWidth  = Math.round(w * 0.30);
-    let potMaxHeight = Math.round(h * 0.37);
-    let potSize = getPotAssetDrawSize(asset, potMaxWidth, potMaxHeight);
-    let renderedPotHeight = potSize.height || 70;
-    let stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
-    let baseY = y + h - 14 - renderedPotHeight - stemYOffset;
-    let hasStem = this.pot.stems && this.pot.stems.length > 0;
+    drawPotComposition(this.pot, x, y, w, h, {
+      bottomMargin: 14,
+    });
 
-    if (!drawPotAsset(
-      asset,
-      asset?.theme,
-      cx,
-      baseY + potSize.height / 2,
-      potMaxWidth,
-      potMaxHeight,
-      this.pot.colorIndex ?? 0
-    )) {
-      fill(POT_COLORS[this.pot.colorIndex ?? 0]); noStroke();
-      drawPotShapeAt(cx, baseY, this.pot.shapeIndex ?? 0, 0.75);
-    }
+    let hasStem = this.pot.stems && this.pot.stems.length > 0;
 
     if (!hasStem) {
       fill(180); textSize(13); textStyle(NORMAL); textAlign(CENTER);
       text('아직 비즈 식물의 줄기가 없어요.\n새로운 비즈 줄기를 만들어서 식물을 심어주세요.',
-        cx, y + h * 0.44);
-    } else {
-      for (let i = 0; i < this.pot.stems.length; i++) {
-        let stem = this.pot.stems[i];
-        let angle = radians(stem.stemAngle ?? stem.angle ?? this.#defaultStemAngle(i));
-        let baseX = constrain(
-          cx + (stem.baseOffset ?? this.#defaultStemOffset(i)) * 0.65,
-          x + 24,
-          x + w - 24
-        );
-        let len = this.#boundedStemLength(
-          x,
-          y,
-          w,
-          h,
-          baseX,
-          baseY,
-          angle,
-          min(stem.stemLength ?? 210, h * 0.50)
-        );
-        let fitted = fitStemPathLength(
-          baseX,
-          baseY,
-          angle,
-          len,
-          (geometry) => this.#stemPathPoints(
-            geometry,
-            stem.stemShape ?? 0,
-            stem
-          )
-        );
-        let points = fitted.points;
-        let col   = getStemColor(this.pot, stem.stemColor);
-        stroke(col); strokeWeight(2);
-        this.#drawStemPath(points);
-        let beads = stem.beads ?? [];
-        let beadCount = beads.length || stem.beadCount || 5;
-        let placements = beadPathPlacements(points, beads, beadCount, 14, 0.5, 'start');
-        for (let j = 0; j < beadCount; j++) {
-          let placement = placements[j];
-          let bead = beads[j];
-          if (bead?.assetId) {
-            let asset = getBeadAtlasEntry(bead.assetId);
-            if (asset) {
-              drawBeadAtlas(
-                asset,
-                placement.x,
-                placement.y,
-                placement.width,
-                placement.height,
-                placement.angle
-              );
-              continue;
-            }
-          }
-          noStroke();
-          fill(bead?.color ?? 200);
-          ellipse(placement.x, placement.y, placement.height);
-        }
-      }
+        x + w / 2, y + h * 0.44);
     }
 
     drawingContext.restore();
@@ -273,7 +193,7 @@ class PotDetailUI {
     if (mouseX > popX + popW - 40 && mouseX < popX + popW - 10 &&
         mouseY > popY + 8 && mouseY < popY + 38) {
       this.hide();
-      goTo(GARDEN);
+      goTo(GAME_STATE.GARDEN_LIST);
       return;
     }
 
@@ -287,7 +207,7 @@ class PotDetailUI {
         let pot = this.pot;
         this.hide();
         potDecorateUI.show('edit', pot);
-        goTo(POT_DECORATE);
+        goTo(GAME_STATE.POT_DECORATE);
         return;
       }
 
@@ -309,7 +229,7 @@ class PotDetailUI {
             mouseY > lockY && mouseY < lockY + lockBtnH) {
           this.hide();
           potLockUI.show(this.pot);
-          goTo(POT_LOCK);
+          goTo(GAME_STATE.POT_LOCK);
           return;
         }
       }

@@ -11,7 +11,13 @@ function debugLandingSceneSetup() {
     if (typeof potSetupUI !== "undefined") {
         potSetupUI.hide();
     }
-    gameState = DEBUG_MENU;
+    if (typeof potDetailUI !== "undefined") {
+        potDetailUI.hide();
+    }
+    if (typeof potLockUI !== "undefined") {
+        potLockUI.hide();
+    }
+    goTo(GAME_STATE.DEBUG_MENU);
 }
 
 function debugLandingSceneDraw() {

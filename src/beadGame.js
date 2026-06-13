@@ -285,7 +285,7 @@ class BeadGame {
      * @param {Matter.Vector | null} position
      */
     tryHoldWireAt(position) {
-        if (gameState !== DEBUG && gameState !== STEM_BEAD_CRAFT) {
+        if (gameState !== GAME_STATE.DEBUG && gameState !== GAME_STATE.STEM_BEAD_CRAFT) {
             return;
         }
 
