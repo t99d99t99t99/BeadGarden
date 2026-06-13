@@ -227,8 +227,9 @@ class PotDetailUI {
         let lockBtnX = popX + popW - lockBtnW - 18;
         if (mouseX > lockBtnX && mouseX < lockBtnX + lockBtnW &&
             mouseY > lockY && mouseY < lockY + lockBtnH) {
+          const pot = this.pot;
           this.hide();
-          potLockUI.show(this.pot);
+          potLockUI.show(pot);
           goTo(GAME_STATE.POT_LOCK);
           return;
         }

@@ -5,6 +5,7 @@ class PotLockUI {
   }
 
   show(pot) {
+    if (!pot) return;
     this.isVisible = true;
     this.pot = pot;
   }
