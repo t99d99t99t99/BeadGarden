@@ -8,6 +8,9 @@ const DEBUG_DATABASE_BUTTON = { x: 520, y: 542, w: 400, h: 56 };
 
 function debugLandingSceneSetup() {
     debugInProgressSceneReset();
+    if (typeof potSetupUI !== "undefined") {
+        potSetupUI.hide();
+    }
     gameState = DEBUG_MENU;
 }
 

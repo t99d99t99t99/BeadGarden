@@ -44,7 +44,6 @@ class PotSetupUI {
     this.nameInput.style('box-sizing',    'border-box');
     this.nameInput.style('background',    '#ffffff');
     this.nameInput.style('z-index',       '10');
-    this.nameInput.position(popX + 28, popY + 108);
 
     // 한 줄 설명 input
     this.descInput = createInput('');
@@ -60,7 +59,8 @@ class PotSetupUI {
     this.descInput.style('box-sizing',    'border-box');
     this.descInput.style('background',    '#f9f9f9');
     this.descInput.style('z-index',       '10');
-    this.descInput.position(popX + 28, popY + 184);
+
+    this.updateInputLayout();
   }
 
   hide() {
@@ -143,6 +143,8 @@ class PotSetupUI {
 
   draw() {
     if (!this.isVisible) return;
+
+    this.updateInputLayout();
 
     // 배경 dim
     fill(0, 0, 0, 120); noStroke();
@@ -265,5 +267,29 @@ class PotSetupUI {
 
     // 커서
     if (cancelHov || confirmHov) cursor(HAND); else cursor(ARROW);
+  }
+
+  updateInputLayout() {
+    if (!this.nameInput || !this.descInput) return;
+
+    const canvasElement = document.querySelector('canvas');
+    if (!canvasElement) return;
+
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const scale = canvasRect.width / width;
+    const popX = width / 2 - 520 / 2;
+    const popY = height / 2 - 540 / 2;
+
+    this.positionInput(this.nameInput, popX + 28, popY + 108, canvasRect, scale);
+    this.positionInput(this.descInput, popX + 28, popY + 184, canvasRect, scale);
+  }
+
+  positionInput(input, x, y, canvasRect, scale) {
+    input.position(
+      canvasRect.left + window.scrollX + x * scale,
+      canvasRect.top + window.scrollY + y * scale
+    );
+    input.style('transform-origin', 'top left');
+    input.style('transform', `scale(${scale})`);
   }
 }
