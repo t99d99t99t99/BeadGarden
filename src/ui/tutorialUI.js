@@ -8,28 +8,28 @@ class TutorialUI {
     this.steps = [
       {
         label: 'Step 1 화분 상세 팝업',
-        desc:  '화분을 클릭하여\n+ 새 비즈 줄기 만들기 를 클릭해 게임을 시작해요.',
-        img:   null,
+        desc: '화분을 클릭하여\n+ 새 비즈 줄기 만들기 를 클릭해 게임을 시작해요.',
+        img: null,
       },
       {
         label: 'Step 2 철사 잡기',
-        desc:  '철사 앞 부분에 손을 뻗고\n엄지와 검지를 모으면👌\n철사를 잡을 수 있어요.',
-        img:   null,
+        desc: '철사 앞 부분에 손을 뻗고\n엄지와 검지를 모으면👌\n철사를 잡을 수 있어요.',
+        img: null,
       },
       {
         label: 'Step 3 비즈 꿰기',
-        desc:  '철사 끝을 비즈 중앙에 통과시켜\n비즈를 꿰어요.',
-        img:   null,
+        desc: '철사 끝을 비즈 중앙에 통과시켜\n비즈를 꿰어요.',
+        img: null,
       },
       {
         label: 'Step 4 비즈 삭제',
-        desc:  '프리뷰에 있는 비즈를 클릭하여\n삭제할 수 있어요.',
-        img:   null,
+        desc: '프리뷰에 있는 비즈를 클릭하여\n삭제할 수 있어요.',
+        img: null,
       },
       {
         label: 'Step 5 비즈 완성',
-        desc:  '최소 10개 이상 비즈를 꿰고,\n완성하기 를 클릭해요.',
-        img:   null,
+        desc: '최소 10개 이상 비즈를 꿰고,\n완성하기 를 클릭해요.',
+        img: null,
       },
     ];
 
@@ -38,7 +38,7 @@ class TutorialUI {
       const path = `assets/tutorial_${i + 1}.png`;
       loadImage(path, img => {
         this.steps[i].img = img;
-      }, () => {});
+      }, () => { });
     }
   }
 
@@ -80,18 +80,16 @@ class TutorialUI {
     background(237, 242, 226);
 
     const step = this.steps[this.currentStep];
-    const pad  = 40;
+    const pad = 40;
 
     // ── 타이틀 ──
     noStroke();
     fill(160, 80, 200);
-    textFont('Dot Matrix');
     textStyle(NORMAL); textSize(22); textAlign(LEFT, CENTER);
     text('Tutorial', pad + 10, 70);
-    textFont('DungGeunMo');
 
     // ── 건너뛰기 버튼 ──
-    const skipX   = width - pad - 140, skipY = 32;
+    const skipX = width - pad - 140, skipY = 32;
     const skipHov = isHovered(skipX, skipY, 140, 48);
     const isLastStep = this.currentStep === this.steps.length - 1;
     let skipLabel, skipBtnW = 140;
@@ -178,8 +176,8 @@ class TutorialUI {
     }
 
     if (!isHovered(20, arrowY, arrowW, arrowH) &&
-        !isHovered(width - 72, arrowY, arrowW, arrowH) &&
-        !skipHov) {
+      !isHovered(width - 72, arrowY, arrowW, arrowH) &&
+      !skipHov) {
       cursor(ARROW);
     }
   }

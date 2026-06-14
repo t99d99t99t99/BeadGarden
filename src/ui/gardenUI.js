@@ -1,31 +1,31 @@
 class GardenUI {
   constructor() {
-    this.pots          = [];
-    this.scrollX       = 0;
+    this.pots = [];
+    this.scrollX = 0;
     this.targetScrollX = 0;
-    this.cardW         = 200;
-    this.cardGap       = 80;
-    this.hoveredPot    = null;
-    this.isDragging    = false;
-    this.dragStartX    = 0;
-    this.dragScrollX   = 0;
-    this._potCardY     = new Map();
+    this.cardW = 200;
+    this.cardGap = 80;
+    this.hoveredPot = null;
+    this.isDragging = false;
+    this.dragStartX = 0;
+    this.dragScrollX = 0;
+    this._potCardY = new Map();
 
     // 데코 이미지
     this.decoImgs = {};
     const decoList = {
-      starPink:   'assets/star/star-1.png',
-      starLine:   'assets/star/starLine.png',
-      leaf:       'assets/plant/leafbottom.png',
-      leafTop:    'assets/plant/leaftop.png',
+      starPink: 'assets/star/star-1.png',
+      starLine: 'assets/star/starLine.png',
+      leaf: 'assets/plant/leafbottom.png',
+      leafTop: 'assets/plant/leaftop.png',
     };
     for (const [key, path] of Object.entries(decoList)) {
-      loadImage(path, img => { this.decoImgs[key] = img; }, () => {});
+      loadImage(path, img => { this.decoImgs[key] = img; }, () => { });
     }
 
     // 배경 이미지
     this.bgImg = null;
-    loadImage('assets/garden_bg.png', img => { this.bgImg = img; }, () => {});
+    loadImage('assets/garden_bg.png', img => { this.bgImg = img; }, () => { });
 
   }
 
@@ -56,12 +56,12 @@ class GardenUI {
   // ── 화분 카드 (박스 없이 떠 있는 형태) ──────────────────────────────────────
   drawCard(pot, x) {
     const potBaseY = this._cardY(pot);
-    const cx       = x + this.cardW / 2;
-    const isHov    = (this.hoveredPot === pot);
+    const cx = x + this.cardW / 2;
+    const isHov = (this.hoveredPot === pot);
 
     // 화분 이미지 실제 높이 계산
-    const potW    = this.cardW * 0.5;
-    const asset   = getPotAssetForPot(pot);
+    const potW = this.cardW * 0.5;
+    const asset = getPotAssetForPot(pot);
     const potSize = getPotAssetDrawSize(asset, potW, potW, true);
 
     drawPotComposition(pot, x, potBaseY - 180, this.cardW, 280, {
@@ -104,7 +104,7 @@ class GardenUI {
       case 1: { // 곡선
         const pts = [];
         const dx = tx - bx, dy = ty - baseY;
-        const len = Math.sqrt(dx*dx + dy*dy);
+        const len = Math.sqrt(dx * dx + dy * dy);
         if (len === 0) return [{ x: bx, y: baseY }];
 
         const tangent = { x: dx / len, y: dy / len };
@@ -135,8 +135,8 @@ class GardenUI {
         const quadratic = (start, control, end, t) => {
           const u = 1 - t;
           return {
-            x: u*u*start.x + 2*u*t*control.x + t*t*end.x,
-            y: u*u*start.y + 2*u*t*control.y + t*t*end.y,
+            x: u * u * start.x + 2 * u * t * control.x + t * t * end.x,
+            y: u * u * start.y + 2 * u * t * control.y + t * t * end.y,
           };
         };
         const start = { x: bx, y: baseY };
@@ -152,25 +152,25 @@ class GardenUI {
       case 2: { // 지그재그
         const pts = [], samples = 5 * 12;
         const dx = tx - bx, dy = ty - baseY;
-        const len = Math.sqrt(dx*dx + dy*dy) || 1;
-        const nx = -dy/len, ny = dx/len;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const nx = -dy / len, ny = dx / len;
         const amplitude = stemData.waveWidth ?? 13;
         for (let k = 0; k <= samples; k++) {
           const t = k / samples;
           const wave = (2 / Math.PI) * Math.asin(Math.sin(t * 5 * TWO_PI));
-          pts.push({ x: lerp(bx,tx,t) + nx*amplitude*wave, y: lerp(baseY,ty,t) + ny*amplitude*wave });
+          pts.push({ x: lerp(bx, tx, t) + nx * amplitude * wave, y: lerp(baseY, ty, t) + ny * amplitude * wave });
         }
         return pts;
       }
       case 3: { // 물결
         const pts = [], samples = 3 * 12;
         const dx = tx - bx, dy = ty - baseY;
-        const len = Math.sqrt(dx*dx + dy*dy) || 1;
-        const nx = -dy/len, ny = dx/len;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const nx = -dy / len, ny = dx / len;
         const amplitude = stemData.waveWidth ?? 12;
         for (let k = 0; k <= samples; k++) {
           const t = k / samples;
-          pts.push({ x: lerp(bx,tx,t) + nx*amplitude*Math.sin(t*3*TWO_PI), y: lerp(baseY,ty,t) + ny*amplitude*Math.sin(t*3*TWO_PI) });
+          pts.push({ x: lerp(bx, tx, t) + nx * amplitude * Math.sin(t * 3 * TWO_PI), y: lerp(baseY, ty, t) + ny * amplitude * Math.sin(t * 3 * TWO_PI) });
         }
         return pts;
       }
@@ -183,19 +183,19 @@ class GardenUI {
   _drawStems(cx, baseY, pot) {
     if (!pot.stems || pot.stems.length === 0) return;
 
-    const defaultAngles  = [340, 0, 20, -20, 350];
+    const defaultAngles = [340, 0, 20, -20, 350];
     const defaultOffsets = [-20, 0, 20, -10, 10];
-    const stemLen        = 130;
+    const stemLen = 130;
 
     for (let i = 0; i < pot.stems.length; i++) {
-      const stem      = pot.stems[i];
-      const angleDeg  = stem.angle ?? stem.stemAngle ?? defaultAngles[i % defaultAngles.length];
-      const offset    = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
-      const shapeIdx  = stem.stemShape ?? 0;
-      const bx        = cx + offset * 0.6;
-      const angleRad  = radians(angleDeg);
-      const col       = getStemColor(pot, stem.stemColor);
-      const fitted    = fitStemPathLength(
+      const stem = pot.stems[i];
+      const angleDeg = stem.angle ?? stem.stemAngle ?? defaultAngles[i % defaultAngles.length];
+      const offset = stem.baseOffset ?? defaultOffsets[i % defaultOffsets.length];
+      const shapeIdx = stem.stemShape ?? 0;
+      const bx = cx + offset * 0.6;
+      const angleRad = radians(angleDeg);
+      const col = getStemColor(pot, stem.stemColor);
+      const fitted = fitStemPathLength(
         bx,
         baseY,
         angleRad,
@@ -209,7 +209,7 @@ class GardenUI {
           stem
         )
       );
-      const pts       = fitted.points;
+      const pts = fitted.points;
 
       // 줄기 선 그리기
       stroke(col); strokeWeight(1.5); noFill();
@@ -223,9 +223,9 @@ class GardenUI {
       const placements = beadPathPlacements(pts, beads, count, 14);
       for (let j = 0; j < count; j++) {
         const placement = placements[j];
-        const bead  = beads[j];
+        const bead = beads[j];
         const asset = bead?.assetId ? getBeadAtlasEntry(bead.assetId) : null;
-        const img   = bead?.beadId  ? beadImages[bead.beadId] : null;
+        const img = bead?.beadId ? beadImages[bead.beadId] : null;
         if (asset) {
           drawBeadAtlas(
             asset,
@@ -252,8 +252,8 @@ class GardenUI {
 
   // ── 화분 이미지 렌더링 ────────────────────────────────────────────────────────
   _drawPotImage(cx, baseY, pot) {
-    const potW  = this.cardW * 0.5;
-    const potH  = potW;
+    const potW = this.cardW * 0.5;
+    const potH = potW;
     const asset = getPotAssetForPot(pot);
     const potSize = getPotAssetDrawSize(asset, potW, potH);
 
@@ -286,30 +286,28 @@ class GardenUI {
 
     // ── 헤더 ──
     // BEAD GARDEN — Dot Matrix 폰트
-    textFont('Dot Matrix');
     fill(220, 40, 180);
     textStyle(NORMAL); textSize(22); textAlign(CENTER);
     text('BEAD  GARDEN', width / 2, 46);
-    textFont('DungGeunMo');
 
     fill(220, 40, 180);
     textSize(24); textStyle(BOLD); textAlign(CENTER);
     text('오늘은 어떤 비즈 식물을 심어볼까요?', width / 2, 82);
 
     // ── 우상단 데코 (별) ──
-    this._drawDeco('starPink', width - 80,  68, 28, 28,  0.15);
-    this._drawDeco('starLine', width - 50,  92, 20, 20, -0.1);
+    this._drawDeco('starPink', width - 80, 68, 28, 28, 0.15);
+    this._drawDeco('starLine', width - 50, 92, 20, 20, -0.1);
 
     // ── 좌하단 데코 (잎/꽃) ──
-    this._drawDeco('leaf',    62,  height - 175, 22, 22, -0.3);
-    this._drawDeco('leafTop', 104, height - 152, 18, 18,  0.2);
-    this._drawDeco('leaf',    140, height - 128, 20, 20, -0.1);
+    this._drawDeco('leaf', 62, height - 175, 22, 22, -0.3);
+    this._drawDeco('leafTop', 104, height - 152, 18, 18, 0.2);
+    this._drawDeco('leaf', 140, height - 128, 20, 20, -0.1);
 
     // ── 화분 카드 (박스 없이 떠있는 형태) ──
     this.hoveredPot = null;
     for (let i = 0; i < this.pots.length; i++) {
-      const pot      = this.pots[i];
-      const x        = this._cardX(i);
+      const pot = this.pots[i];
+      const x = this._cardX(i);
       const potBaseY = this._cardY(pot);
 
       if (x + this.cardW < 40 || x > width - 40) continue;
@@ -319,7 +317,7 @@ class GardenUI {
       // 호버 감지: 줄기 위 ~ 텍스트 아래
       const cx = x + this.cardW / 2;
       if (mouseX > cx - 70 && mouseX < cx + 70 &&
-          mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
+        mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
         this.hoveredPot = pot;
         cursor(HAND);
       }
@@ -338,7 +336,7 @@ class GardenUI {
     if (this.targetScrollX > 0) {
       const lx = 48;
       const lHov = isHovered(lx, arrowY, arrowW, arrowH);
-      fill(lHov ? color(255,255,255,220) : color(255,255,255,140)); noStroke();
+      fill(lHov ? color(255, 255, 255, 220) : color(255, 255, 255, 140)); noStroke();
       rect(lx, arrowY, arrowW, arrowH, 8);
       fill(80); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
       text('‹', lx + arrowW / 2, arrowY + arrowH / 2);
@@ -348,7 +346,7 @@ class GardenUI {
     if (this.targetScrollX < maxScroll) {
       const rx = width - 92;
       const rHov = isHovered(rx, arrowY, arrowW, arrowH);
-      fill(rHov ? color(255,255,255,220) : color(255,255,255,140)); noStroke();
+      fill(rHov ? color(255, 255, 255, 220) : color(255, 255, 255, 140)); noStroke();
       rect(rx, arrowY, arrowW, arrowH, 8);
       fill(80); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
       text('›', rx + arrowW / 2, arrowY + arrowH / 2);
@@ -362,9 +360,9 @@ class GardenUI {
       const dotStartX = width / 2 - (dotCount * dotSpacing) / 2;
       const dotY = height - 108;
       for (let i = 0; i < dotCount; i++) {
-        const dotRatio    = i / max(1, dotCount - 1);
+        const dotRatio = i / max(1, dotCount - 1);
         const scrollRatio = this.scrollX / max(1, maxScroll);
-        const isActive    = abs(dotRatio - scrollRatio) < (1 / max(1, dotCount - 1)) * 0.6;
+        const isActive = abs(dotRatio - scrollRatio) < (1 / max(1, dotCount - 1)) * 0.6;
         fill(isActive ? color(200, 40, 180) : color(200, 180, 210)); noStroke();
         ellipse(dotStartX + i * dotSpacing, dotY, isActive ? 8 : 6);
       }
@@ -414,7 +412,7 @@ class GardenUI {
     const btnX = width / 2 - btnW / 2;
     const btnY = height - 72;
     if (mouseX > btnX && mouseX < btnX + btnW &&
-        mouseY > btnY && mouseY < btnY + btnH) {
+      mouseY > btnY && mouseY < btnY + btnH) {
       potSetupUI.show();
       goTo(GAME_STATE.NEW_POT);
       return;
@@ -422,9 +420,9 @@ class GardenUI {
     if (potSetupUI.isVisible || potDetailUI.isVisible) return;
 
     // 화살표 버튼
-    const maxScroll  = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
-    const arrowY     = height / 2 - 26;
-    const arrowW     = 44, arrowH = 52;
+    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+    const arrowY = height / 2 - 26;
+    const arrowW = 44, arrowH = 52;
     const scrollStep = this.cardW + this.cardGap;
 
     if (mouseX > 48 && mouseX < 48 + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
@@ -437,8 +435,8 @@ class GardenUI {
       return;
     }
 
-    this.isDragging  = true;
-    this.dragStartX  = mouseX;
+    this.isDragging = true;
+    this.dragStartX = mouseX;
     this.dragScrollX = this.targetScrollX;
   }
 
@@ -464,12 +462,12 @@ class GardenUI {
     }
     if (abs(mouseX - this.dragStartX) < 5) {
       for (let i = 0; i < this.pots.length; i++) {
-        const pot      = this.pots[i];
-        const x        = this._cardX(i);
-        const cx       = x + this.cardW / 2;
+        const pot = this.pots[i];
+        const x = this._cardX(i);
+        const cx = x + this.cardW / 2;
         const potBaseY = this._cardY(pot);
         if (mouseX > cx - 70 && mouseX < cx + 70 &&
-            mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
+          mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
           potSetupUI.hide();
           potDetailUI.show(pot);
           goTo(GAME_STATE.POT_PREVIEW);
