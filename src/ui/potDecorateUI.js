@@ -439,7 +439,8 @@ class PotDecorateUI {
     x,
     y,
     widthValue = 330,
-    decimalPlaces = 0
+    decimalPlaces = 0,
+    valueLabels = null
   ) {
     let stem = this.workingStems[this.selectedStemIndex];
     if (!stem) return;
@@ -452,8 +453,10 @@ class PotDecorateUI {
     fill(30); noStroke();
     textSize(13); textStyle(NORMAL); textAlign(LEFT, CENTER);
     text(label, x, y + 4);
-    fill(120); textAlign(RIGHT, CENTER);
-    text(Number(value).toFixed(decimalPlaces), x + widthValue, y + 4);
+    if (!valueLabels) {
+      fill(120); textAlign(RIGHT, CENTER);
+      text(Number(value).toFixed(decimalPlaces), x + widthValue, y + 4);
+    }
 
     stroke(205); strokeWeight(6); strokeCap(ROUND);
     line(x, trackY, x + widthValue, trackY);
@@ -461,6 +464,19 @@ class PotDecorateUI {
     line(x, trackY, x + widthValue * normalized, trackY);
     noStroke(); fill(80, 100, 220);
     circle(x + widthValue * normalized, trackY, 18);
+
+    if (valueLabels) {
+      fill(120); noStroke();
+      textSize(11); textStyle(NORMAL);
+      textAlign(LEFT, TOP);
+      text(valueLabels.start, x, trackY + 12);
+      if (valueLabels.middle) {
+        textAlign(CENTER, TOP);
+        text(valueLabels.middle, x + widthValue / 2, trackY + 12);
+      }
+      textAlign(RIGHT, TOP);
+      text(valueLabels.end, x + widthValue, trackY + 12);
+    }
 
     this.sliderHitAreas.push({
       key,
@@ -674,28 +690,34 @@ class PotDecorateUI {
       let controlsY = stemSecY + 224;
       if (this.selectedStemShape === 1) {
         this._drawStemSlider(
-          '꺾임',
+          '모서리',
           'curveSharpness',
           0,
           100,
           1,
           panX,
-          controlsY
+          controlsY,
+          330,
+          0,
+          { start: '둥글게', end: '각지게' }
         );
         controlsY += 70;
         this._drawStemSlider(
-          '깊이',
+          '휘어짐',
           'curveDepth',
           -100,
           100,
           1,
           panX,
-          controlsY
+          controlsY,
+          330,
+          0,
+          { start: '왼쪽으로', middle: '0', end: '오른쪽으로' }
         );
         controlsY += 76;
       } else if (this.selectedStemShape === 2) {
         this._drawStemSlider(
-          '너비',
+          '휘어짐',
           'waveWidth',
           0,
           12,
@@ -708,7 +730,7 @@ class PotDecorateUI {
         controlsY += 76;
       } else if (this.selectedStemShape === 3) {
         this._drawStemSlider(
-          '너비',
+          '휘어짐',
           'waveWidth',
           0,
           20,

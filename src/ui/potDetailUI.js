@@ -1,19 +1,19 @@
 class PotDetailUI {
   constructor() {
     this.isVisible = false;
-    this.pot       = null;
+    this.pot = null;
   }
 
   show(pot) {
     this.isVisible = true;
     this.pot = pot ?? {
-      name:       '내 첫 번째 화분',
-      desc:       '화분의 한 줄 설명이 적힙니다.',
-      createdAt:  '2025.05.15',
-      stems:      [],
-      locked:     false,
+      name: '내 첫 번째 화분',
+      desc: '화분의 한 줄 설명이 적힙니다.',
+      createdAt: '2025.05.15',
+      stems: [],
+      locked: false,
       colorIndex: 0,
-      bgIndex:    0,
+      bgIndex: 0,
       shapeIndex: 0,
     };
   }
@@ -178,20 +178,20 @@ class PotDetailUI {
   onMousePressed() {
     if (!this.isVisible || !this.pot) return;
 
-    let popW     = 600;
-    let hasStem  = this.pot.stems && this.pot.stems.length > 0;
+    let popW = 600;
+    let hasStem = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let canEdit  = !isLocked;
-    let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
-    let popX     = width  / 2 - popW / 2;
-    let popY     = height / 2 - popH / 2;
-    let imgX     = popX + 18, imgY = popY + 100;
-    let imgW     = popW - 36, imgH = 340;
-    let btnY     = imgY + imgH + 16;
+    let canEdit = !isLocked;
+    let popH = canEdit ? (hasStem ? 660 : 560) : 560;
+    let popX = width / 2 - popW / 2;
+    let popY = height / 2 - popH / 2;
+    let imgX = popX + 18, imgY = popY + 100;
+    let imgW = popW - 36, imgH = 340;
+    let btnY = imgY + imgH + 16;
 
     // X 버튼
     if (mouseX > popX + popW - 40 && mouseX < popX + popW - 10 &&
-        mouseY > popY + 8 && mouseY < popY + 38) {
+      mouseY > popY + 8 && mouseY < popY + 38) {
       this.hide();
       goTo(GAME_STATE.GARDEN_LIST);
       return;
@@ -203,7 +203,7 @@ class PotDetailUI {
       let decorX = imgX + imgW - decorW - 8;
       let decorBtnY = imgY + 12;
       if (mouseX > decorX && mouseX < decorX + decorW &&
-          mouseY > decorBtnY && mouseY < decorBtnY + decorH) {
+        mouseY > decorBtnY && mouseY < decorBtnY + decorH) {
         let pot = this.pot;
         this.hide();
         potDecorateUI.show('edit', pot);
@@ -213,7 +213,7 @@ class PotDetailUI {
 
       // 새 비즈 줄기 만들기 버튼
       if (mouseX > popX + 18 && mouseX < popX + 18 + popW - 36 &&
-          mouseY > btnY && mouseY < btnY + 48) {
+        mouseY > btnY && mouseY < btnY + 48) {
         let pot = this.pot;
         this.hide();
         startStemCraftForPot(pot);
@@ -222,11 +222,11 @@ class PotDetailUI {
 
       // 화분 잠그기 버튼 (줄기 있을 때만)
       if (hasStem) {
-        let lockY    = btnY + 64;
+        let lockY = btnY + 64;
         let lockBtnW = 110, lockBtnH = 36;
         let lockBtnX = popX + popW - lockBtnW - 18;
         if (mouseX > lockBtnX && mouseX < lockBtnX + lockBtnW &&
-            mouseY > lockY && mouseY < lockY + lockBtnH) {
+          mouseY > lockY && mouseY < lockY + lockBtnH) {
           const pot = this.pot;
           this.hide();
           potLockUI.show(pot);
@@ -240,13 +240,13 @@ class PotDetailUI {
   draw() {
     if (!this.isVisible || !this.pot) return;
 
-    let popW     = 600;
-    let hasStem  = this.pot.stems && this.pot.stems.length > 0;
+    let popW = 600;
+    let hasStem = this.pot.stems && this.pot.stems.length > 0;
     let isLocked = this.pot.locked;
-    let canEdit  = !isLocked;
-    let popH     = canEdit ? (hasStem ? 660 : 560) : 560;
-    let popX     = width  / 2 - popW / 2;
-    let popY     = height / 2 - popH / 2;
+    let canEdit = !isLocked;
+    let popH = canEdit ? (hasStem ? 660 : 560) : 560;
+    let popX = width / 2 - popW / 2;
+    let popY = height / 2 - popH / 2;
 
     // 배경 dim
     fill(0, 0, 0, 100); noStroke();
@@ -322,7 +322,7 @@ class PotDetailUI {
       rect(decorX, decorBtnY, decorW, decorH, 18);
       fill(decorHov ? color(80, 60, 200) : 60); noStroke();
       textSize(13); textStyle(NORMAL); textAlign(CENTER, CENTER);
-      text('화분 꾸미기', decorX + decorW / 2, decorBtnY + decorH / 2);
+      text('화분·줄기 꾸미기', decorX + decorW / 2, decorBtnY + decorH / 2);
       if (decorHov) _hoveredBtn = true;
 
       // 새 비즈 줄기 만들기 버튼 — 핑크 마젠타, 호버 시 어두워짐
@@ -357,7 +357,7 @@ class PotDetailUI {
 
     } else {
       // 잠금됨 표시
-      let lockY    = btnY + 8;
+      let lockY = btnY + 8;
       let lockBtnW = 110, lockBtnH = 36;
       let lockBtnX = popX + popW - lockBtnW - 18;
       fill(40); textSize(14); textStyle(NORMAL); textAlign(LEFT);

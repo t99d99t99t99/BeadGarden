@@ -436,7 +436,7 @@ class StemBeadCraftUI {
     textSize(13);
     textStyle(BOLD);
     textAlign(CENTER, CENTER);
-    text('새로운 비즈 생성하기', btnX + btnW / 2, btnY + btnH / 2);
+    text('비즈 다시 뿌리기', btnX + btnW / 2, btnY + btnH / 2);
 
     if (isButtonPressed && !this.newBeadButtonWasPressed &&
       typeof beadGame !== 'undefined' && typeof beadGame.regenerateUnpiercedBeads === 'function') {
