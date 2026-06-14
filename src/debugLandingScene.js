@@ -5,6 +5,7 @@ const DEBUG_TEST_BUTTONS = [
 ];
 const DEBUG_LANDING_EXIT_BUTTON = { x: 1208, y: 18, w: 214, h: 36, label: "Exit debugging" };
 const DEBUG_DATABASE_BUTTON = { x: 520, y: 542, w: 400, h: 56 };
+const DEBUG_IDLE_RESET_BUTTON = { x: 520, y: 646, w: 400, h: 56 };
 
 function debugLandingSceneSetup() {
     debugInProgressSceneReset();
@@ -25,6 +26,7 @@ function debugLandingSceneDraw() {
         debugLandingSceneDrawButton(button);
     }
     debugLandingSceneDrawDatabaseButton();
+    debugLandingSceneDrawIdleResetButton();
     debugLandingSceneDrawButton(DEBUG_LANDING_EXIT_BUTTON);
 }
 
@@ -37,6 +39,11 @@ function debugLandingSceneMousePressed() {
     if (debugLandingSceneMouseInRect(DEBUG_DATABASE_BUTTON)) {
         let nextMode = getDatabaseMode() === DATABASE_SERVER ? DATABASE_LOCAL : DATABASE_SERVER;
         setDatabaseMode(nextMode);
+        return;
+    }
+
+    if (debugLandingSceneMouseInRect(DEBUG_IDLE_RESET_BUTTON)) {
+        idleResetTimer.toggle();
         return;
     }
 
@@ -63,6 +70,14 @@ function debugLandingSceneDrawDatabaseButton() {
     textStyle(NORMAL);
     text(getDatabaseStatus(), width / 2, DEBUG_DATABASE_BUTTON.y + DEBUG_DATABASE_BUTTON.h + 18);
     pop();
+}
+
+function debugLandingSceneDrawIdleResetButton() {
+    let enabled = idleResetTimer.isEnabled();
+    debugLandingSceneDrawButton({
+        ...DEBUG_IDLE_RESET_BUTTON,
+        label: `Idle reset timer: ${enabled ? "Enabled" : "Disabled"} (click to toggle)`,
+    });
 }
 
 function debugLandingSceneDrawButton(button) {

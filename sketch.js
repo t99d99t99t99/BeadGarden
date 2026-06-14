@@ -13,7 +13,7 @@ const GAME_STATE = Object.freeze({
   DEBUG: 'debug',
 });
 
-// 각 상태별 UI 클래스의 인스턴스 생성
+// 각 상태별 UI 클래스의 인스턴스를 담을 변수 정의
 let gameState = GAME_STATE.INTRO;
 let prevState = GAME_STATE.INTRO; // 튜토리얼 진입 전 이전 상태 추적
 let backgroundNum = 0;
@@ -28,6 +28,8 @@ let stemFinishUI;
 let potLockUI;
 let beadGame;
 
+let idleResetTimer;
+
 /**
  * 
  * @param {string} state
@@ -36,6 +38,7 @@ function goTo(state) {
   if (!Object.values(GAME_STATE).includes(state)) {
     throw new Error(`Unknown game state: ${state}`);
   }
+  if (state === GAME_STATE.INTRO && introUI) introUI.enter();
   if (state === GAME_STATE.TUTORIAL && typeof tutorialUI !== 'undefined') tutorialUI.enter();
   gameState = state;
 }
@@ -72,6 +75,8 @@ function setup() {
     .then(() => preloadBeadImages())
     .catch(err => console.error('[Firestore] 비즈 카탈로그 로드 오류:', err));
 
+  idleResetTimer = new IdleResetTimer();
+
   introUI = new IntroUI();
   tutorialUI = new TutorialUI();
   gardenUI = new GardenUI();
@@ -90,6 +95,8 @@ function setup() {
 }
 
 function draw() {
+  idleResetTimer.tryReset();
+
   switch (gameState) {
     case GAME_STATE.INTRO:
       introUI.draw();
@@ -138,6 +145,8 @@ function draw() {
 }
 
 function keyPressed() {
+  idleResetTimer.onInput();
+
   console.log(keyCode);
   if (keyCode == 220) { // 역슬래시 버튼으로 디버그 모드
     debugLandingSceneSetup();
@@ -152,6 +161,8 @@ function keyPressed() {
 }
 
 function mousePressed() {
+  idleResetTimer.onInput();
+
   switch (gameState) {
     case GAME_STATE.TUTORIAL:
       tutorialUI.onMousePressed();
@@ -184,6 +195,8 @@ function mousePressed() {
 }
 
 function mouseDragged() {
+  idleResetTimer.onInput();
+
   switch (gameState) {
     case GAME_STATE.GARDEN_LIST:
       gardenUI.onMouseDragged();
@@ -198,6 +211,8 @@ function mouseDragged() {
 }
 
 function mouseReleased() {
+  idleResetTimer.onInput();
+
   switch (gameState) {
     case GAME_STATE.GARDEN_LIST:
       gardenUI.onMouseReleased();
@@ -212,6 +227,8 @@ function mouseReleased() {
 }
 
 function mouseWheel(e) {
+  idleResetTimer.onInput();
+
   switch (gameState) {
     case GAME_STATE.GARDEN_LIST:
       return gardenUI.onMouseWheel(e);
