@@ -86,7 +86,7 @@ class StemBeadCraftUI {
     let isPinching = this.isPinching();
     let isHoldingWire = this.isHoldingWire();
     let isWireFull = this.isWireFull();
-    let msg = '👌손가락을 모아 O 부분의 철사를 잡으세요.';
+    let msg = '👌 손가락을 모아 O 부분의 철사를 잡으세요.';
 
     if (isWireFull) {
       msg = '비즈가 너무 많아요! 철사가 가득 찼어요.';
@@ -114,7 +114,7 @@ class StemBeadCraftUI {
   }
 
   #drawIdleGuideMessage(centerX, centerY) {
-    let beforeMarker = '👌손가락을 모아 ';
+    let beforeMarker = '👌 손가락을 모아 ';
     let marker = '◯';
     let afterMarker = ' 부분의 철사를 잡으세요.';
     let totalWidth = textWidth(beforeMarker) + textWidth(marker) + textWidth(afterMarker);
@@ -161,11 +161,11 @@ class StemBeadCraftUI {
     }
 
     noStroke();
-    fill(255, 70, 70);
+    fill(228, 0, 255);
     textSize(13);
     textStyle(BOLD);
-    textAlign(CENTER, BOTTOM);
-    text('여기를 잡으세요', position.x, position.y - diameter / 2 - 10);
+    textAlign(CENTER, BASELINE);
+    text('여기를 잡으세요', position.x, position.y - 24);
     pop();
   }
 
