@@ -76,6 +76,12 @@ class StemFinishUI {
     fill(BG_COLORS[pot?.bgIndex ?? 0]); noStroke();
     rect(x, y, w, h, 8);
 
+    // 미리보기 영역 클리핑 — 줄기가 박스 밖으로 나오지 않도록
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.roundRect(x, y, w, h, 8);
+    drawingContext.clip();
+
     const layout = createPotRenderLayout(
       { ...pot, stems: [...prevStems, newStemData].filter(Boolean) },
       x, y, w, h
@@ -84,10 +90,8 @@ class StemFinishUI {
     // 이전 줄기 — 회색 실루엣
     const prevRendered = buildPotRenderStems({ ...pot, stems: prevStems }, layout);
     for (const stem of prevRendered) {
-      // 줄기 선
       stroke(195); strokeWeight(3); noFill();
       drawPotRenderPath(stem.displayPoints);
-      // 비즈 실루엣 (회색 원)
       const beads = stem.data.beads ?? [];
       const count = beads.length || stem.data.beadCount || 0;
       for (let i = 0; i < count; i++) {
@@ -98,7 +102,8 @@ class StemFinishUI {
       }
     }
 
-    // 화분 에셋
+    // 화분 에셋 — 회색 tint로 실루엣
+    tint(190, 190, 190);
     if (!drawPotAsset(
       layout.asset,
       layout.asset?.theme,
@@ -109,9 +114,11 @@ class StemFinishUI {
       pot?.colorIndex ?? 0,
       layout.preserveAtlasScale
     )) {
-      fill(POT_COLORS[pot?.colorIndex ?? 0]); noStroke();
+      noTint();
+      fill(190); noStroke();
       drawPotShapeAt(layout.potDrawX, layout.potTopY, pot?.shapeIndex ?? 0, w / 400);
     }
+    noTint();
 
     // 새 줄기 — 컬러 + 비즈
     if (newStemData) {
@@ -127,6 +134,8 @@ class StemFinishUI {
         drawPotRenderBeads(newStem);
       }
     }
+
+    drawingContext.restore();
   }
 
   draw() {
