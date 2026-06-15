@@ -1,7 +1,7 @@
 class PotSetupUI {
   constructor() {
     this.isVisible = false;
-    this.selectedConcept = 1; // 0: 식물, 1: 스타(기본), 2: 바다
+    this.selectedConcept = -1; // -1: 미선택, 0: 식물, 1: 스타, 2: 바다
     this.nameInput = null;
 
     this.concepts = [
@@ -22,7 +22,7 @@ class PotSetupUI {
   show() {
     if (this.nameInput) { this.nameInput.remove(); this.nameInput = null; }
     this.isVisible = true;
-    this.selectedConcept = 1;
+    this.selectedConcept = -1;
 
     // 화분 이름 input
     this.nameInput = createInput('');
@@ -89,7 +89,7 @@ class PotSetupUI {
     // 다음 버튼
     let data = this.getData();
     let confirmX = popX + 196, confirmY = popY + 452;
-    if (data.name.length > 0 &&
+    if (data.name.length > 0 && this.selectedConcept !== -1 &&
       mouseX > confirmX && mouseX < confirmX + 296 &&
       mouseY > confirmY && mouseY < confirmY + 48) {
       // Firestore에 화분 생성 후 꾸미기 화면으로 이동
@@ -229,7 +229,7 @@ class PotSetupUI {
 
     // 다음 버튼
     let confirmX = popX + 196, confirmY = popY + 452;
-    let canConfirm = this.nameInput && this.nameInput.value().trim().length > 0;
+    let canConfirm = this.nameInput && this.nameInput.value().trim().length > 0 && this.selectedConcept !== -1;
     let confirmHov = canConfirm && isHovered(confirmX, confirmY, 296, 48);
     fill(canConfirm ? (confirmHov ? color(180, 0, 180) : color(255, 0, 255)) : 160); noStroke();
     rect(confirmX, confirmY, 296, 48, 24);
