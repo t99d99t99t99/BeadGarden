@@ -82,9 +82,11 @@ class StemFinishUI {
     drawingContext.roundRect(x, y, w, h, 8);
     drawingContext.clip();
 
+    const potLayoutOptions = { potMaxWidth: 90, potMaxHeight: 80, bottomMargin: 0 };
     const layout = createPotRenderLayout(
       { ...pot, stems: [...prevStems, newStemData].filter(Boolean) },
-      x, y, w, h
+      x, y, w, h,
+      potLayoutOptions
     );
 
     // 이전 줄기 — 회색 실루엣
