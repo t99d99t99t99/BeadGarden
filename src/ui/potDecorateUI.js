@@ -427,7 +427,7 @@ class PotDecorateUI {
       let cy = y + 12;
       fill(colors[i]);
       if (i === selected) {
-        stroke(47, 134, 255); strokeWeight(2.5);
+        stroke(255, 0, 255); strokeWeight(2.5);
       } else {
         stroke(200); strokeWeight(1);
       }
@@ -552,18 +552,10 @@ class PotDecorateUI {
     fill(255); stroke(220); strokeWeight(1);
     rect(popX, popY, popW, popH, 12);
 
-    // X 버튼
-    let xBtnX = popX + popW - 40, xBtnY = popY + 8, xBtnSize = 28;
-    let xHov = isHovered(xBtnX, xBtnY, xBtnSize, xBtnSize);
-    fill(xHov ? 210 : 235); noStroke();
-    ellipse(xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2, xBtnSize);
-    fill(80); textSize(16); textAlign(CENTER, CENTER);
-    text('×', xBtnX + xBtnSize / 2, xBtnY + xBtnSize / 2);
-
     // 타이틀
     noStroke(); fill(30);
     textStyle(BOLD); textSize(18); textAlign(CENTER);
-    text(`${this.currentPot?.name ?? '화분'} 꾸미기`, width / 2, popY + 38);
+    text(`[${this.currentPot?.name ?? '화분'}] 꾸미기`, width / 2, popY + 38);
 
     // 구분선
     stroke(220); strokeWeight(1);
@@ -605,9 +597,9 @@ class PotDecorateUI {
       let isSel = (this.selectedPotAsset === i);
 
       // 셀 배경
-      fill(isSel ? color(230, 232, 255) : 248);
-      stroke(isSel ? color(60, 60, 220) : 210);
-      strokeWeight(isSel ? 2 : 1);
+      fill(isSel ? color(255, 230, 255) : 248);
+      stroke(isSel ? color(255, 0, 255) : 210);
+      strokeWeight(isSel ? 2.5 : 1);
       rect(sx, sy, cellW, cellH, 8);
 
       // 화분 이미지
@@ -625,16 +617,11 @@ class PotDecorateUI {
 
       // 선택 체크
       if (isSel) {
-        fill(60, 60, 220); noStroke();
+        fill(255, 0, 255); noStroke();
         rect(sx + cellW - 20, sy + 4, 16, 16, 3);
         fill(255); textSize(10); textAlign(CENTER, CENTER);
         text('✓', sx + cellW - 12, sy + 12);
       }
-
-      // 라벨
-      noStroke(); fill(isSel ? color(60, 60, 200) : 120);
-      textSize(10); textStyle(NORMAL); textAlign(CENTER);
-      text(pots[i], sx + cellW / 2, sy + cellH + 12);
 
       if (this.#consumeOptionClick(sx, sy, cellW, cellH)) this.selectedPotAsset = i;
     }
@@ -787,16 +774,20 @@ class PotDecorateUI {
     this.pendingOptionClick = null;
 
     // ── 하단 버튼 ──
-    // 건너뛰기
+    // 이전으로
     let skipX = popX + 28, skipY = popY + popH - 62;
     let skipHov = isHovered(skipX, skipY, 140, 44);
     fill(skipHov ? 160 : 180); noStroke();
     rect(skipX, skipY, 140, 44, 22);
     fill(255); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
-    text('건너뛰기', skipX + 70, skipY + 22);
+    text('← 이전으로', skipX + 70, skipY + 22);
+
+    // 저장하기 위 안내문구
+    let saveX = popX + popW - 168, saveY = popY + popH - 62;
+    noStroke(); fill(150); textSize(11); textStyle(NORMAL); textAlign(RIGHT);
+    text('화분의 디자인은 언제든지 수정할 수 있어요.', saveX + 140, saveY - 10);
 
     // 저장하기
-    let saveX = popX + popW - 168, saveY = popY + popH - 62;
     let saveHov = isHovered(saveX, saveY, 140, 44);
     fill(saveHov ? 55 : 30); noStroke();
     rect(saveX, saveY, 140, 44, 22);
@@ -805,7 +796,7 @@ class PotDecorateUI {
 
     if (this.pendingStemDeletion) {
       this.#drawStemDeleteConfirmation();
-    } else if (xHov || skipHov || saveHov || this.#isPointInRect(mouseX, mouseY, this.deleteStemButtonRect)) {
+    } else if (skipHov || saveHov || this.#isPointInRect(mouseX, mouseY, this.deleteStemButtonRect)) {
       cursor(HAND);
     } else {
       cursor(ARROW);
@@ -857,19 +848,13 @@ class PotDecorateUI {
       return;
     }
 
-    // X 버튼
-    if (mouseX > popX + popW - 40 && mouseX < popX + popW - 12 &&
-      mouseY > popY + 8 && mouseY < popY + 36) {
-      this.hide();
-      goTo(GAME_STATE.GARDEN_LIST);
-      return;
-    }
-
+    // 이전으로 버튼
     let skipX = popX + 28, skipY = popY + popH - 62;
     if (mouseX > skipX && mouseX < skipX + 140 &&
       mouseY > skipY && mouseY < skipY + 44) {
       this.#restoreSavedState();
-      this.#returnToPotDetail();
+      this.hide();
+      goTo(GAME_STATE.GARDEN_LIST);
       return;
     }
 
