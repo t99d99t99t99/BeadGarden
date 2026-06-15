@@ -432,7 +432,7 @@ class GardenUI {
     const maxScroll = max(0, this._sortedPots().length * (this.cardW + this.cardGap) - width + 120);
     const arrowY = height / 2 - 26;
     const arrowW = 44, arrowH = 52;
-    const scrollStep = this.cardW + this.cardGap;
+    const scrollStep = width - 120; // 페이지 단위 이동
 
     if (mouseX > 48 && mouseX < 48 + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
       this.targetScrollX = constrain(this.targetScrollX - scrollStep, 0, maxScroll);
@@ -459,7 +459,7 @@ class GardenUI {
     if (potSetupUI.isVisible || potDetailUI.isVisible) return;
     const dx = e.deltaX ?? 0;
     const dy = e.delta ?? e.deltaY ?? 0;
-    const delta = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+    const delta = dx + dy; // 가로·세로 스크롤 모두 가로 이동에 반영
     const maxScroll = max(0, this._sortedPots().length * (this.cardW + this.cardGap) - width + 120);
     this.targetScrollX = constrain(this.targetScrollX + delta * 0.8, 0, maxScroll);
     return false;
