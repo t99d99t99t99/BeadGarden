@@ -419,7 +419,7 @@ class PotDecorateUI {
   // ── 색상 팔레트 그리기 ──
   _drawColorPalette(label, colors, selected, x, y, onSelect) {
     fill(30); noStroke();
-    textSize(13); textStyle(NORMAL); textAlign(LEFT);
+    textSize(14); textStyle(BOLD); textAlign(LEFT);
     text(label, x, y);
 
     for (let i = 0; i < colors.length; i++) {
@@ -656,16 +656,16 @@ class PotDecorateUI {
       let secY = stemSecY;
 
       // ── 줄기 위치 (맨 위) ──
-      secY += 18;
-      fill(30); noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT);
+      secY += 24;
+      fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
       text('줄기 위치', panX, secY);
-      secY += 16;
-      fill(150); textStyle(NORMAL); textSize(11);
-      text('미리보기 속 줄기를 좌우로 드래그하거나 아래 조절바를 드래그하여 줄기 배치를 바꾸세요.', panX, secY);
       secY += 20;
+      fill(150); textStyle(NORMAL); textSize(12);
+      text('미리보기 속 줄기를 좌우로 드래그하거나 아래 조절바를 드래그하여 줄기 배치를 바꾸세요.', panX, secY);
+      secY += 24;
       this._drawStemSlider('', 'baseOffset', -60, 60, 1, panX, secY, 330, 0,
         { start: '왼쪽', end: '오른쪽' });
-      secY += 58;
+      secY += 68;
 
       // ── 줄기 색상 ──
       this._drawColorPalette(
@@ -676,12 +676,12 @@ class PotDecorateUI {
           this.workingStems[this.selectedStemIndex].stemColor = i;
         }
       );
-      secY += 88;
+      secY += 100;
 
       // ── 줄기 형태 ──
-      fill(30); textStyle(NORMAL); textSize(13); textAlign(LEFT);
+      fill(30); textStyle(BOLD); textSize(14); textAlign(LEFT);
       text('줄기 형태', panX, secY);
-      secY += 16;
+      secY += 20;
       for (let i = 0; i < this.stemShapes.length; i++) {
         let sx = panX + i * 98;
         let isSelected = (this.selectedStemShape === i);
@@ -691,40 +691,40 @@ class PotDecorateUI {
         rect(sx, secY, 82, 52, 6);
         this._drawStemShapeButton(i, sx, secY, 82, 52);
         noStroke(); fill(isSelected ? color(255, 0, 255) : 100);
-        textSize(11); textAlign(CENTER);
-        text(this.stemShapes[i], sx + 41, secY + 64);
+        textSize(12); textAlign(CENTER);
+        text(this.stemShapes[i], sx + 41, secY + 68);
         if (this.#consumeOptionClick(sx, secY, 82, 52)) {
           this.selectedStemShape = i;
           this.workingStems[this.selectedStemIndex].stemShape = i;
         }
       }
-      secY += 84;
+      secY += 92;
 
       // ── 형태별 슬라이더 ──
       if (this.selectedStemShape === 1) {
         this._drawStemSlider('모서리', 'curveSharpness', 0, 100, 1, panX, secY, 330, 0,
           { start: '둥글게', end: '각지게' });
-        secY += 70;
+        secY += 76;
         this._drawStemSlider('휘어짐', 'curveDepth', -100, 100, 1, panX, secY, 330, 0,
           { start: '왼쪽으로', middle: '0', end: '오른쪽으로' });
-        secY += 76;
+        secY += 82;
       } else if (this.selectedStemShape === 2) {
         this._drawStemSlider('휘어짐', 'waveWidth', 0, 12, 0.5, panX, secY, 330, 1);
-        secY += 76;
+        secY += 82;
       } else if (this.selectedStemShape === 3) {
         this._drawStemSlider('휘어짐', 'waveWidth', 0, 20, 0.5, panX, secY, 330, 1);
-        secY += 76;
+        secY += 82;
       } else {
-        secY += 8;
+        secY += 12;
       }
 
       // ── 각도 다이얼 ──
-      fill(30); noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT);
+      fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
       text('줄기 기울기', panX, secY);
-      fill(150); textStyle(NORMAL); textSize(13);
-      text(`${this.stemAngle}°`, panX + 88, secY);
-      this._drawAngleDial(panX + 70, secY + 80, 60);
-      secY += 190;
+      fill(150); textStyle(NORMAL); textSize(14);
+      text(`${this.stemAngle}°`, panX + 96, secY);
+      this._drawAngleDial(panX + 70, secY + 86, 60);
+      secY += 200;
 
       // ── 삭제 버튼 ──
       let deleteW = 180, deleteH = 40;
