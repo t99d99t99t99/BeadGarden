@@ -45,6 +45,15 @@ class GardenUI {
     return this._potCardY.get(id);
   }
 
+  // 최신 순(createdAt 내림차순)으로 정렬된 화분 목록
+  _sortedPots() {
+    return [...this.pots].sort((a, b) => {
+      const ta = a.createdAt?.toMillis?.() ?? new Date(a.createdAt ?? 0).getTime();
+      const tb = b.createdAt?.toMillis?.() ?? new Date(b.createdAt ?? 0).getTime();
+      return tb - ta;
+    });
+  }
+
   _editionLabel(pot) {
     const c = pot.concept ?? '';
     if (c.includes('식물')) return '식물 에디션';
@@ -59,12 +68,10 @@ class GardenUI {
     const cx = x + this.cardW / 2;
     const isHov = (this.hoveredPot === pot);
 
-    // 화분 이미지 실제 높이 계산
     const potW = this.cardW * 0.5;
-    const asset = getPotAssetForPot(pot);
-    const potSize = getPotAssetDrawSize(asset, potW, potW, true);
+    const compY = potBaseY - 180, compH = 280;
 
-    drawPotComposition(pot, x, potBaseY - 180, this.cardW, 280, {
+    drawPotComposition(pot, x, compY, this.cardW, compH, {
       background: false,
       potMaxWidth: potW,
       potMaxHeight: potW,
@@ -72,7 +79,8 @@ class GardenUI {
       beadHeight: 14,
       stemWeight: 1.5,
     });
-    const potBottom = potBaseY + potSize.height + 10; // 화분 하단 + 여백
+    // 텍스트는 항상 composition 박스 아래에 배치 (화분 모양에 무관하게 겹치지 않음)
+    const potBottom = compY + compH + 14;
 
     // 호버 시 글로우 효과
     if (isHov) {
@@ -305,8 +313,9 @@ class GardenUI {
 
     // ── 화분 카드 (박스 없이 떠있는 형태) ──
     this.hoveredPot = null;
-    for (let i = 0; i < this.pots.length; i++) {
-      const pot = this.pots[i];
+    const sortedPots = this._sortedPots();
+    for (let i = 0; i < sortedPots.length; i++) {
+      const pot = sortedPots[i];
       const x = this._cardX(i);
       const potBaseY = this._cardY(pot);
 
@@ -420,7 +429,7 @@ class GardenUI {
     if (potSetupUI.isVisible || potDetailUI.isVisible) return;
 
     // 화살표 버튼
-    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+    const maxScroll = max(0, this._sortedPots().length * (this.cardW + this.cardGap) - width + 120);
     const arrowY = height / 2 - 26;
     const arrowW = 44, arrowH = 52;
     const scrollStep = this.cardW + this.cardGap;
@@ -442,7 +451,7 @@ class GardenUI {
 
   onMouseDragged() {
     if (!this.isDragging) return;
-    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+    const maxScroll = max(0, this._sortedPots().length * (this.cardW + this.cardGap) - width + 120);
     this.targetScrollX = constrain(this.dragScrollX - (mouseX - this.dragStartX), 0, maxScroll);
   }
 
@@ -451,7 +460,7 @@ class GardenUI {
     const dx = e.deltaX ?? 0;
     const dy = e.delta ?? e.deltaY ?? 0;
     const delta = Math.abs(dx) > Math.abs(dy) ? dx : dy;
-    const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
+    const maxScroll = max(0, this._sortedPots().length * (this.cardW + this.cardGap) - width + 120);
     this.targetScrollX = constrain(this.targetScrollX + delta * 0.8, 0, maxScroll);
     return false;
   }
@@ -461,8 +470,9 @@ class GardenUI {
       this.isDragging = false; return;
     }
     if (abs(mouseX - this.dragStartX) < 5) {
-      for (let i = 0; i < this.pots.length; i++) {
-        const pot = this.pots[i];
+      const sortedPots = this._sortedPots();
+      for (let i = 0; i < sortedPots.length; i++) {
+        const pot = sortedPots[i];
         const x = this._cardX(i);
         const cx = x + this.cardW / 2;
         const potBaseY = this._cardY(pot);
