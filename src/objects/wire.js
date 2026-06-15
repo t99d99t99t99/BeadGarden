@@ -39,7 +39,7 @@ class Wire {
         this.safeMargin = 120;
         this.smoothedHeldEndPosition = { ...this.heldEndRestPosition };
         this.smoothedUnheldEndPosition = { ...this.unheldEndRestPosition };
-        this.liftAmount = 0;
+        this.liftAmount = 1;
         this.graphPoints = [];
         this.shadowPoints = [];
         this.unheldEndStop = Matter.Bodies.circle(
@@ -90,7 +90,7 @@ class Wire {
      * @param {Number} y
      */
     setHeldEnd(x, y) {
-        this.heldEndPosition = this.#clampHeldEnd({ x, y }, true);
+        this.heldEndPosition = this.#clampHeldEnd({ x, y }, false);
     }
 
     release() {
@@ -108,13 +108,13 @@ class Wire {
 
     update() {
         let held = this.isHeld();
-        let heldTarget = this.#clampHeldEnd(held ? this.#currentHeldEnd() : this.heldEndRestPosition, held);
+        let heldTarget = this.#clampHeldEnd(held ? this.#currentHeldEnd() : this.heldEndRestPosition, false);
         let unheldTarget = held ? {
             x: heldTarget.x + this.endOffsetFromHeld.x,
             y: heldTarget.y + this.endOffsetFromHeld.y
         } : this.unheldEndRestPosition;
 
-        this.liftAmount += ((held ? 1 : 0) - this.liftAmount) * 0.16;
+        this.liftAmount += (1 - this.liftAmount) * 0.16;
         this.smoothedHeldEndPosition.x += (heldTarget.x - this.smoothedHeldEndPosition.x) * 0.22;
         this.smoothedHeldEndPosition.y += (heldTarget.y - this.smoothedHeldEndPosition.y) * 0.22;
         this.smoothedUnheldEndPosition.x += (unheldTarget.x - this.smoothedUnheldEndPosition.x) * 0.22;
@@ -141,16 +141,17 @@ class Wire {
     display() {
         // 선을 출력하기
         let points = this.graphPoints.length > 0 ? this.graphPoints : this.#graphPoints();
-        let shadowPoints = this.shadowPoints.length > 0 ? this.shadowPoints : this.#shadowPoints();
 
         push();
         noFill();
 
-        stroke(0, 0, 0, 45);
-        strokeWeight(this.thickness + 5);
-        strokeCap(ROUND);
-        strokeJoin(ROUND);
-        this.#drawCurve(shadowPoints);
+        // Do not remove it: shadow rendering is intentionally disabled for now.
+        // let shadowPoints = this.shadowPoints.length > 0 ? this.shadowPoints : this.#shadowPoints();
+        // stroke(0, 0, 0, 45);
+        // strokeWeight(this.thickness + 5);
+        // strokeCap(ROUND);
+        // strokeJoin(ROUND);
+        // this.#drawCurve(shadowPoints);
 
         stroke(60, 60, 60);
         strokeWeight(this.thickness);
@@ -185,16 +186,16 @@ class Wire {
      * @returns {Number}
      */
     reachableHeldEndMaxY() {
-        return this.#heldEndTargetMaxY() - this.wireLength * 0.28;
+        return this.#heldEndTargetMaxY();
     }
 
     #currentHeldEnd() {
         if (this.heldEndPosition !== null) {
-            return this.#clampHeldEnd(this.heldEndPosition, true);
+            return this.#clampHeldEnd(this.heldEndPosition, false);
         }
 
         if (typeof mouseX === "number" && typeof mouseY === "number") {
-            return this.#clampHeldEnd({ x: mouseX, y: mouseY }, true);
+            return this.#clampHeldEnd({ x: mouseX, y: mouseY }, false);
         }
 
         return this.heldEndRestPosition;
@@ -283,12 +284,13 @@ class Wire {
         let start = this.smoothedUnheldEndPosition;
         let end = this.smoothedHeldEndPosition;
         let liftHeight = this.wireLength * 0.28 * this.liftAmount;
+        let heldEndLift = this.#mirroredSigmoid(1);
 
         for (let i = 0; i <= this.segNum; ++i) {
             let t = i / this.segNum;
             let x = start.x + (end.x - start.x) * t;
             let shadowY = start.y + (end.y - start.y) * t;
-            let y = shadowY - liftHeight * this.#mirroredSigmoid(t);
+            let y = shadowY - liftHeight * (this.#mirroredSigmoid(t) - heldEndLift);
 
             points.push({ x, y });
         }
