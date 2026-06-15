@@ -7,6 +7,7 @@ const GAME_STATE = Object.freeze({
   POT_PREVIEW: 'pot-preview',
   POT_DECORATE: 'pot-decorate',
   POT_LOCK: 'pot-lock',
+  STEM_CRAFT_INTRO: 'stem-craft-intro',
   STEM_BEAD_CRAFT: 'stem-bead-craft',
   STEM_FINISH: 'stem-finish',
   DEBUG_MENU: 'debug-menu',
@@ -23,6 +24,7 @@ let gardenUI;
 let potSetupUI;
 let potDecorateUI;
 let potDetailUI;
+let stemCraftIntroUI;
 let stemBeadCraftUI;
 let stemFinishUI;
 let potLockUI;
@@ -59,10 +61,11 @@ function startStemCraftForPot(pot) {
   if (!pot) return;
   pot.theme = normalizePotTheme(pot);
   potDetailUI.pot = pot;
-  potDetailUI.hide(); // 가든으로 돌아올 때 팝업이 남지 않도록
+  potDetailUI.hide();
   stemBeadCraftUI.setPot(pot);
   stemBeadCraftUI.startThemedCraft();
-  goTo(GAME_STATE.STEM_BEAD_CRAFT);
+  stemCraftIntroUI.show();
+  goTo(GAME_STATE.STEM_CRAFT_INTRO);
 }
 
 function setup() {
@@ -84,6 +87,7 @@ function setup() {
   potDecorateUI = new PotDecorateUI();
   potDetailUI = new PotDetailUI();
   potLockUI = new PotLockUI();
+  stemCraftIntroUI = new StemCraftIntroUI();
   stemBeadCraftUI = new StemBeadCraftUI();
   stemFinishUI = new StemFinishUI();
   beadGame = new BeadGame();
@@ -121,6 +125,10 @@ function draw() {
     case GAME_STATE.POT_DECORATE:
       gardenUI.draw();
       potDecorateUI.draw(); // 위에 팝업으로 표시
+      break;
+    case GAME_STATE.STEM_CRAFT_INTRO:
+      stemBeadCraftUI.draw();
+      stemCraftIntroUI.draw();
       break;
     case GAME_STATE.STEM_BEAD_CRAFT:
       stemBeadCraftUI.draw();
@@ -181,6 +189,9 @@ function mousePressed() {
       break;
     case GAME_STATE.POT_LOCK:
       potLockUI.onMousePressed();
+      break;
+    case GAME_STATE.STEM_CRAFT_INTRO:
+      stemCraftIntroUI.onMousePressed();
       break;
     case GAME_STATE.STEM_BEAD_CRAFT:
       stemBeadCraftUI.onMousePressed();
