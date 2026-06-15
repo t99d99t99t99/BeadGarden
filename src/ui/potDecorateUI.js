@@ -96,6 +96,16 @@ class PotDecorateUI {
     this.isVisible = false;
   }
 
+  // 외부에서 특정 줄기를 선택 상태로 설정
+  selectStem(index) {
+    this.selectedStemIndex = index;
+    const stem = this.workingStems[index];
+    if (!stem) return;
+    this.selectedStemColor = stem.stemColor;
+    this.selectedStemShape = stem.stemShape;
+    this.stemAngle = stem.stemAngle ?? stem.angle ?? 0;
+  }
+
   getData() {
     return {
       potAssetIndex: this.selectedPotAsset,
