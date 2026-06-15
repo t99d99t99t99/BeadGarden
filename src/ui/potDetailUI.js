@@ -139,7 +139,7 @@ class PotDetailUI {
 
     // 화분 이름
     noStroke(); fill(30);
-    textStyle(BOLD); textSize(20); textAlign(LEFT);
+    textStyle(BOLD); textSize(17); textAlign(LEFT);
     text(this.pot.name, panX, panY + 28);
 
     // 구분선
@@ -165,9 +165,9 @@ class PotDetailUI {
 
     // 오른쪽 열: 화분 이미지 다운로드 + 회색 QR 박스
     const qrSize = 78;
-    const qrX = panX + panW - qrSize, qrY = infoY - 16;
+    const qrX = panX + panW - qrSize - 5, qrY = infoY - 10;
     fill(140); textSize(11); textAlign(CENTER);
-    text('화분 이미지\n다운로드', qrX + qrSize / 2, qrY - 6);
+    text('화분 이미지 다운로드', qrX + qrSize / 2, qrY - 6);
     fill(210); noStroke();
     rect(qrX, qrY, qrSize, qrSize, 6);
 

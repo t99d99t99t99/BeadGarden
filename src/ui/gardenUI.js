@@ -362,6 +362,10 @@ class GardenUI {
       if (rHov) cursor(HAND);
     }
 
+    // "스크롤하여 다른 화분을 둘러보세요!" 텍스트
+    textAlign(CENTER, BASELINE); noStroke(); fill(166, 170, 162); textSize(12);
+    text("화면을 스크롤하여 비즈 가든을 둘러보세요.", width / 2, height - 120);
+
     // 스크롤 점 인디케이터
     if (maxScroll > 0) {
       const dotCount = min(this.pots.length, 12);
