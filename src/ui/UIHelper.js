@@ -201,7 +201,7 @@ function createPotRenderLayout(pot, x, y, w, h, options = {}) {
   );
   const stemYOffset = (asset?.stemYRatio ?? 0) * potSize.height;
   const openingCenterRatio = asset?.stemOpeningCenterRatio ?? 0.5;
-  const potTopY = y + h - (options.bottomMargin ?? 45) - potMaxHeight;
+  const potTopY = y + h - (options.bottomMargin ?? 45) - potSize.height;
   const cx = x + w / 2;
   return {
     asset,
