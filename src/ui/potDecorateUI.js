@@ -470,9 +470,9 @@ class PotDecorateUI {
 
     stroke(205); strokeWeight(6); strokeCap(ROUND);
     line(x, trackY, x + widthValue, trackY);
-    stroke(80, 100, 220); strokeWeight(6);
+    stroke(255, 0, 255); strokeWeight(6);
     line(x, trackY, x + widthValue * normalized, trackY);
-    noStroke(); fill(80, 100, 220);
+    noStroke(); fill(255, 0, 255);
     circle(x + widthValue * normalized, trackY, 18);
 
     if (valueLabels) {
@@ -507,13 +507,13 @@ class PotDecorateUI {
     ellipse(x, y, r * 2);
 
     // 선택 부채꼴
-    fill(180); noStroke();
+    fill(255, 0, 255, 120); noStroke();
     arc(x, y, r * 2, r * 2, -HALF_PI, -HALF_PI + radians(this.stemAngle), PIE);
 
     // 바늘
     let nx = x + cos(radians(this.stemAngle) - HALF_PI) * (r - 10);
     let ny = y + sin(radians(this.stemAngle) - HALF_PI) * (r - 10);
-    stroke(50); strokeWeight(3);
+    stroke(255, 0, 255); strokeWeight(3);
     line(x, y, nx, ny);
 
     // 드래그로 각도 조절
@@ -653,117 +653,88 @@ class PotDecorateUI {
         stemSecY + 20
       );
     } else {
-      // 줄기 색상
+      let secY = stemSecY;
+
+      // ── 줄기 위치 (맨 위) ──
+      secY += 18;
+      fill(30); noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT);
+      text('줄기 위치', panX, secY);
+      secY += 16;
+      fill(150); textStyle(NORMAL); textSize(11);
+      text('미리보기 속 줄기를 좌우로 드래그하거나 아래 조절바를 드래그하여 줄기 배치를 바꾸세요.', panX, secY);
+      secY += 20;
+      this._drawStemSlider('', 'baseOffset', -60, 60, 1, panX, secY, 330, 0,
+        { start: '왼쪽', end: '오른쪽' });
+      secY += 58;
+
+      // ── 줄기 색상 ──
       this._drawColorPalette(
         '줄기 색상', this.stemColors, this.selectedStemColor,
-        panX, stemSecY + 28,
+        panX, secY,
         (i) => {
           this.selectedStemColor = i;
           this.workingStems[this.selectedStemIndex].stemColor = i;
         }
       );
+      secY += 88;
 
-      // 줄기 형태
+      // ── 줄기 형태 ──
       fill(30); textStyle(NORMAL); textSize(13); textAlign(LEFT);
-      text('줄기 형태', panX, stemSecY + 116);
+      text('줄기 형태', panX, secY);
+      secY += 16;
       for (let i = 0; i < this.stemShapes.length; i++) {
         let sx = panX + i * 98;
-        let sy = stemSecY + 132;
         let isSelected = (this.selectedStemShape === i);
-        fill(isSelected ? 240 : 248);
-        stroke(isSelected ? 60 : 210);
-        strokeWeight(isSelected ? 2 : 1);
-        rect(sx, sy, 82, 52, 6);
-        this._drawStemShapeButton(i, sx, sy, 82, 52);
-        noStroke(); fill(100);
+        fill(isSelected ? color(255, 230, 255) : 248);
+        stroke(isSelected ? color(255, 0, 255) : 210);
+        strokeWeight(isSelected ? 2.5 : 1);
+        rect(sx, secY, 82, 52, 6);
+        this._drawStemShapeButton(i, sx, secY, 82, 52);
+        noStroke(); fill(isSelected ? color(255, 0, 255) : 100);
         textSize(11); textAlign(CENTER);
-        text(this.stemShapes[i], sx + 41, sy + 64);
-        if (this.#consumeOptionClick(sx, sy, 82, 52)) {
+        text(this.stemShapes[i], sx + 41, secY + 64);
+        if (this.#consumeOptionClick(sx, secY, 82, 52)) {
           this.selectedStemShape = i;
           this.workingStems[this.selectedStemIndex].stemShape = i;
         }
       }
+      secY += 84;
 
-      let controlsY = stemSecY + 224;
+      // ── 형태별 슬라이더 ──
       if (this.selectedStemShape === 1) {
-        this._drawStemSlider(
-          '모서리',
-          'curveSharpness',
-          0,
-          100,
-          1,
-          panX,
-          controlsY,
-          330,
-          0,
-          { start: '둥글게', end: '각지게' }
-        );
-        controlsY += 70;
-        this._drawStemSlider(
-          '휘어짐',
-          'curveDepth',
-          -100,
-          100,
-          1,
-          panX,
-          controlsY,
-          330,
-          0,
-          { start: '왼쪽으로', middle: '0', end: '오른쪽으로' }
-        );
-        controlsY += 76;
+        this._drawStemSlider('모서리', 'curveSharpness', 0, 100, 1, panX, secY, 330, 0,
+          { start: '둥글게', end: '각지게' });
+        secY += 70;
+        this._drawStemSlider('휘어짐', 'curveDepth', -100, 100, 1, panX, secY, 330, 0,
+          { start: '왼쪽으로', middle: '0', end: '오른쪽으로' });
+        secY += 76;
       } else if (this.selectedStemShape === 2) {
-        this._drawStemSlider(
-          '휘어짐',
-          'waveWidth',
-          0,
-          12,
-          0.5,
-          panX,
-          controlsY,
-          330,
-          1
-        );
-        controlsY += 76;
+        this._drawStemSlider('휘어짐', 'waveWidth', 0, 12, 0.5, panX, secY, 330, 1);
+        secY += 76;
       } else if (this.selectedStemShape === 3) {
-        this._drawStemSlider(
-          '휘어짐',
-          'waveWidth',
-          0,
-          20,
-          0.5,
-          panX,
-          controlsY,
-          330,
-          1
-        );
-        controlsY += 76;
+        this._drawStemSlider('휘어짐', 'waveWidth', 0, 20, 0.5, panX, secY, 330, 1);
+        secY += 76;
+      } else {
+        secY += 8;
       }
 
-      // 각도 다이얼
-      fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
-      text('줄기 기울기', panX, controlsY);
-      fill(150); textStyle(NORMAL); textSize(14);
-      text(`${this.stemAngle}°`, panX + 92, controlsY);
-      this._drawAngleDial(panX + 70, controlsY + 84, 64);
+      // ── 각도 다이얼 ──
+      fill(30); noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT);
+      text('줄기 기울기', panX, secY);
+      fill(150); textStyle(NORMAL); textSize(13);
+      text(`${this.stemAngle}°`, panX + 88, secY);
+      this._drawAngleDial(panX + 70, secY + 80, 60);
+      secY += 190;
 
-      let positionY = controlsY + 204;
-      fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
-      text('줄기 위치', panX, positionY);
-      fill(180); textStyle(NORMAL); textSize(12);
-      text('미리보기 속 줄기를 좌우로 드래그하여 줄기의 배치를 바꾸세요.', panX, positionY + 24);
-
-      let deleteY = positionY + 70;
-      let deleteW = 180;
-      let deleteH = 40;
-      let deleteHov = isHovered(panX, deleteY, deleteW, deleteH);
-      fill(deleteHov ? color(185, 45, 65) : color(215, 70, 85));
-      noStroke();
-      rect(panX, deleteY, deleteW, deleteH, 20);
+      // ── 삭제 버튼 ──
+      let deleteW = 180, deleteH = 40;
+      let deleteHov = isHovered(panX, secY, deleteW, deleteH);
+      fill(deleteHov ? color(185, 45, 65) : color(215, 70, 85)); noStroke();
+      rect(panX, secY, deleteW, deleteH, 20);
       fill(255); textStyle(BOLD); textSize(13); textAlign(CENTER, CENTER);
-      text('선택한 줄기 삭제', panX + deleteW / 2, deleteY + deleteH / 2);
-      this.deleteStemButtonRect = { x: panX, y: deleteY, w: deleteW, h: deleteH };
-      contentBottomOffset = deleteY + deleteH - panY + 24;
+      text('선택한 줄기 삭제', panX + deleteW / 2, secY + deleteH / 2);
+      this.deleteStemButtonRect = { x: panX, y: secY, w: deleteW, h: deleteH };
+      contentBottomOffset = secY + deleteH - panY + 24;
     }
 
     let visibleContentH = popH - 132;

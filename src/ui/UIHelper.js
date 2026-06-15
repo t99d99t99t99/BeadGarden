@@ -469,14 +469,14 @@ function drawPotComposition(pot, x, y, w, h, options = {}) {
 
   for (let i = 0; i < stems.length; i++) {
     if (i === options.selectedStemIndex) {
-      stroke(100, 100, 220, 80);
+      stroke(255, 0, 255, 90);
       strokeWeight(14);
       drawPotRenderPath(stems[i].displayPoints);
     } else if (
       options.highlightHover &&
       distanceToPotRenderPath(mouseX, mouseY, stems[i].displayPoints) < 15
     ) {
-      stroke(180, 180, 220, 60);
+      stroke(255, 180, 255, 60);
       strokeWeight(10);
       drawPotRenderPath(stems[i].displayPoints);
     }
