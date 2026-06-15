@@ -57,6 +57,13 @@ class PotDetailUI {
     const hasStem = (this.pot.stems ?? []).length > 0;
     const canEdit = !this.pot.locked;
 
+    if (mouseX < popX || mouseX > popX + popW ||
+      mouseY < popY || mouseY > popY + popH) {
+      this.hide();
+      goTo(GAME_STATE.GARDEN_LIST);
+      return;
+    }
+
     // X 버튼
     if (mouseX > popX + popW - 38 && mouseX < popX + popW - 12 &&
       mouseY > popY + 10 && mouseY < popY + 36) {
