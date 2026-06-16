@@ -27,6 +27,7 @@ class PotDecorateUI {
     this.sliderHitAreas = [];
     this.deleteStemButtonRect = null;
     this.pendingStemDeletion = false;
+    this.hoveredStemButtonIndex = -1;
 
     // 드래그용
     this.isDraggingAngle = false;
@@ -53,6 +54,7 @@ class PotDecorateUI {
     this.sliderHitAreas = [];
     this.deleteStemButtonRect = null;
     this.pendingStemDeletion = false;
+    this.hoveredStemButtonIndex = -1;
     this.workingStems = (pot?.stems ?? []).map((stem, index) => this.#normalizeStem(stem, index));
 
     // 컨셉에 따라 사용 가능한 화분 에셋 목록 결정
@@ -128,6 +130,7 @@ class PotDecorateUI {
       stems: this.workingStems,
     }, x, y, w, h, {
       selectedStemIndex: this.selectedStemIndex,
+      hoveredStemIndex: this.hoveredStemButtonIndex,
       highlightHover: true,
     });
   }
@@ -386,6 +389,148 @@ class PotDecorateUI {
     pop();
   }
 
+  #stemSectionY(panY) {
+    const pots = this.availablePots ?? [];
+    const potGridRows = Math.ceil(pots.length / 4);
+    const potGridBottom = panY + 34 + potGridRows * (90 + 18 + 16);
+    const nextOptionY = potGridBottom + 16;
+    return nextOptionY + 100;
+  }
+
+  #stemButtonBounds(index, x, y) {
+    const buttonW = 54;
+    const buttonH = 150;
+    const gap = 14;
+    return {
+      x: x + index * (buttonW + gap),
+      y,
+      w: buttonW,
+      h: buttonH,
+    };
+  }
+
+  #stemButtonIndexAt(x, y, clipRect = null) {
+    if (this.workingStems.length === 0) return -1;
+    if (clipRect && !this.#isPointInRect(mouseX, mouseY, clipRect)) return -1;
+
+    for (let i = 0; i < this.workingStems.length; i++) {
+      if (this.#isPointInRect(mouseX, mouseY, this.#stemButtonBounds(i, x, y))) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  #drawStemSelectionButtons(x, y) {
+    if (this.workingStems.length === 0) return y;
+
+    const buttonH = 150;
+    for (let i = 0; i < this.workingStems.length; i++) {
+      const bounds = this.#stemButtonBounds(i, x, y);
+      const isSelected = this.selectedStemIndex === i;
+      const isHovered = this.#isPointInRect(mouseX, mouseY, bounds);
+
+      fill(isSelected ? color(255, 230, 255) : isHovered ? 252 : 255);
+      stroke(isSelected ? color(255, 0, 255) : isHovered ? color(230, 190, 230) : 225);
+      strokeWeight(isSelected ? 2.5 : 1);
+      rect(bounds.x, bounds.y, bounds.w, bounds.h, 5);
+
+      this.#drawStraightStemButtonPreview(this.workingStems[i], bounds);
+
+      noFill();
+      stroke(isSelected ? color(255, 0, 255) : isHovered ? color(230, 190, 230) : 225);
+      strokeWeight(isSelected ? 2.5 : 1);
+      rect(bounds.x, bounds.y, bounds.w, bounds.h, 5);
+
+      if (this.#consumeOptionClick(bounds.x, bounds.y, bounds.w, bounds.h)) {
+        this.selectStem(i);
+        this.isDraggingStem = false;
+        this.draggingStemIndex = -1;
+      }
+    }
+
+    return y + buttonH + 28;
+  }
+
+  #drawStraightStemButtonPreview(stem, bounds) {
+    const padding = 8;
+    const cx = bounds.x + bounds.w / 2;
+    const tipY = bounds.y + 20;
+    const allBeads = stem.beads ?? [];
+    const previewBeads = allBeads.slice().reverse();
+    const previewBeadCount = allBeads.length > 0
+      ? previewBeads.length
+      : stem.beadCount ?? 0;
+    const beadStep = 18.5;
+    const renderedLength = max(bounds.h, previewBeadCount * beadStep + 12);
+    const baseY = tipY + renderedLength;
+    const data = {
+      ...stem,
+      beads: previewBeads,
+      beadCount: previewBeadCount,
+      stemShape: 0,
+      stemAngle: 0,
+      angle: 0,
+    };
+    const points = [
+      { x: cx, y: tipY },
+      { x: cx, y: baseY },
+    ];
+    const placements = beadPathPlacements(
+      points,
+      data.beads,
+      data.beads.length || data.beadCount || 0,
+      18,
+      0.5,
+      'start'
+    );
+    const visiblePlacements = [];
+    const visibleBeads = [];
+    for (let i = 0; i < placements.length; i++) {
+      if (!this.#stemButtonPlacementIntersects(bounds, placements[i])) continue;
+      visiblePlacements.push(placements[i]);
+      visibleBeads.push(data.beads[i]);
+    }
+    const visibleData = {
+      ...data,
+      beads: visibleBeads,
+      beadCount: visiblePlacements.length,
+    };
+    const previewStem = {
+      data: visibleData,
+      points,
+      beadPlacements: visiblePlacements,
+      displayPoints: this.#pathPointsThroughDistance(
+        points,
+        min(stemPathLength(points), bounds.h - padding)
+      ),
+    };
+
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.roundRect(bounds.x, bounds.y, bounds.w, bounds.h, 5);
+    drawingContext.clip();
+
+    stroke(getStemColor(this.currentPot, data.stemColor));
+    strokeWeight(4);
+    drawPotRenderPath(previewStem.displayPoints);
+    this.#drawStemBeads(previewStem);
+
+    drawingContext.restore();
+  }
+
+  #stemButtonPlacementIntersects(bounds, placement) {
+    if (!placement) return false;
+    const halfW = (placement.width ?? placement.height ?? 0) / 2;
+    const halfH = (placement.height ?? placement.width ?? 0) / 2;
+    return (
+      placement.x + halfW >= bounds.x &&
+      placement.x - halfW <= bounds.x + bounds.w &&
+      placement.y + halfH >= bounds.y &&
+      placement.y - halfH <= bounds.y + bounds.h
+    );
+  }
+
   _isStemHovered(x1, y1, x2, y2, idx) {
     // 마우스가 줄기 선 근처(15px)에 있는지 판단
     let d = this._distToSegment(mouseX, mouseY, x1, y1, x2, y2);
@@ -561,14 +706,22 @@ class PotDecorateUI {
     stroke(220); strokeWeight(1);
     line(popX + 20, popY + 52, popX + popW - 20, popY + 52);
 
+    // ── 오른쪽: 설정 패널 위치 ──
+    let panX = popX + 440;
+    let panY = popY + 62 - this.scrollY;
+    let controlsClip = {
+      x: popX + 431,
+      y: popY + 53,
+      w: popW - 431,
+      h: popH - 123,
+    };
+    const stemSecYForHover = this.#stemSectionY(panY);
+    this.hoveredStemButtonIndex = this.#stemButtonIndexAt(panX, stemSecYForHover + 20, controlsClip);
+
     // ── 왼쪽: 미리보기 ──
     let prevX = popX + 20, prevY = popY + 62;
     let prevW = 400, prevH = 520;
     this.drawPreview(prevX, prevY, prevW, prevH);
-
-    // ── 오른쪽: 설정 패널 (스크롤 적용) ──
-    let panX = popX + 440;
-    let panY = popY + 62 - this.scrollY;
 
     // 세로 구분선
     stroke(220); strokeWeight(1);
@@ -578,7 +731,7 @@ class PotDecorateUI {
     // 오른쪽 패널 클리핑 — 팝업 경계 밖으로 콘텐츠가 삐져나오지 않도록
     drawingContext.save();
     drawingContext.beginPath();
-    drawingContext.rect(popX + 431, popY + 53, popW - 431, popH - 123);
+    drawingContext.rect(controlsClip.x, controlsClip.y, controlsClip.w, controlsClip.h);
     drawingContext.clip();
 
     // 화분 선택 타이틀
@@ -638,23 +791,22 @@ class PotDecorateUI {
     );
 
     // 줄기 세부 설정
-    let stemSecY = nextOptionY + 100;
+    let stemSecY = this.#stemSectionY(panY);
     let contentBottomOffset = stemSecY - panY + 60;
     fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
     text('줄기 세부 설정', panX, stemSecY);
 
-    if (this.selectedStemIndex === -1) {
+    let stemButtonsBottom = stemSecY + 20;
+    if (this.workingStems.length > 0) {
+      stemButtonsBottom = this.#drawStemSelectionButtons(panX, stemSecY + 20);
+      contentBottomOffset = stemButtonsBottom - panY + 24;
+    } else if (this.selectedStemIndex === -1) {
       fill(160); textStyle(NORMAL); textSize(12);
-      text(
-        this.workingStems.length > 0
-          ? '미리보기 속 줄기를 선택하면 세부 설정이 열려요.'
-          : '아직 꾸밀 수 있는 줄기가 없어요.',
-        panX,
-        stemSecY + 20
-      );
-    } else {
-      let secY = stemSecY;
+      text('아직 꾸밀 수 있는 줄기가 없어요.', panX, stemSecY + 20);
+    }
 
+    if (this.selectedStemIndex !== -1) {
+      let secY = this.workingStems.length > 0 ? stemButtonsBottom + 4 : stemSecY;
       // ── 줄기 위치 (맨 위) ──
       secY += 24;
       fill(30); noStroke(); textStyle(BOLD); textSize(14); textAlign(LEFT);
@@ -767,7 +919,12 @@ class PotDecorateUI {
 
     if (this.pendingStemDeletion) {
       this.#drawStemDeleteConfirmation();
-    } else if (skipHov || saveHov || this.#isPointInRect(mouseX, mouseY, this.deleteStemButtonRect)) {
+    } else if (
+      skipHov ||
+      saveHov ||
+      this.hoveredStemButtonIndex >= 0 ||
+      this.#isPointInRect(mouseX, mouseY, this.deleteStemButtonRect)
+    ) {
       cursor(HAND);
     } else {
       cursor(ARROW);
