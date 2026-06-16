@@ -20,14 +20,14 @@ class HandDetector {
         this.pinchReleaseDistanceMultiplier = 1.35;
         this.pinchState = false;
         this.previousPinchAngle = 90;
-        this.inferenceWidth = 320;
+        this.inferenceWidth = 256;
         this.trackedTips = {
             thumb: this.#emptyTrackedPoint(),
             indexFinger: this.#emptyTrackedPoint()
         };
         this.lastTrackingFrame = -1;
-        this.trackingResponse = 0.72;
-        this.maximumPredictionMs = 120;
+        this.trackingResponse = 0.9;
+        this.maximumPredictionMs = 150;
         this.snapshotFrame = -1;
         this.snapshot = {
             thumb: null,
@@ -54,10 +54,22 @@ class HandDetector {
         this.started = true;
 
         try {
-            this.video = createCapture(HAND_DETECTOR_GLOBAL.VIDEO || "video");
             let inferenceHeight = Math.round(
                 this.inferenceWidth * this.#canvasHeight() / this.#canvasWidth()
             );
+            this.video = createCapture({
+                video: {
+                    width: { ideal: this.inferenceWidth },
+                    height: { ideal: inferenceHeight },
+                    frameRate: { ideal: 30, max: 30 },
+                    facingMode: "user"
+                },
+                audio: false
+            });
+            if (this.video.elt) {
+                this.video.elt.setAttribute("playsinline", "");
+                this.video.elt.muted = true;
+            }
             this.video.size(this.inferenceWidth, inferenceHeight);
             this.video.hide();
 

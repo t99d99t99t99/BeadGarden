@@ -31,6 +31,36 @@ let potLockUI;
 let beadGame;
 
 let idleResetTimer;
+const CANVAS_ASPECT_RATIO = 16 / 9;
+
+function largestCanvasSize() {
+  const viewportWidth = Math.max(
+    1,
+    window.visualViewport?.width ||
+    window.innerWidth ||
+    document.documentElement.clientWidth ||
+    1440
+  );
+  const viewportHeight = Math.max(
+    1,
+    window.visualViewport?.height ||
+    window.innerHeight ||
+    document.documentElement.clientHeight ||
+    810
+  );
+
+  let canvasWidth = viewportWidth;
+  let canvasHeight = canvasWidth / CANVAS_ASPECT_RATIO;
+  if (canvasHeight > viewportHeight) {
+    canvasHeight = viewportHeight;
+    canvasWidth = canvasHeight * CANVAS_ASPECT_RATIO;
+  }
+
+  return {
+    width: Math.floor(canvasWidth),
+    height: Math.floor(canvasHeight)
+  };
+}
 
 /**
  * 
@@ -92,7 +122,9 @@ function startStemCraftForPot(pot) {
 }
 
 function setup() {
-  createCanvas(1440, 810);
+  pixelDensity(1);
+  const canvasSize = largestCanvasSize();
+  createCanvas(canvasSize.width, canvasSize.height);
   // 전역 폰트: DungGeunMo (CDN 로드, 한글 픽셀 폰트)
   textFont('DungGeunMo');
   initializeBeadAtlasSprites();
@@ -119,6 +151,11 @@ function setup() {
   listenPots(pots => {
     gardenUI.pots = pots;
   });
+}
+
+function windowResized() {
+  const canvasSize = largestCanvasSize();
+  resizeCanvas(canvasSize.width, canvasSize.height);
 }
 
 function draw() {
