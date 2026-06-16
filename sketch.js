@@ -32,6 +32,14 @@ let beadGame;
 
 let idleResetTimer;
 const CANVAS_ASPECT_RATIO = 16 / 9;
+const CANVAS_PIXEL_DENSITY_CAP = 2;
+
+function targetCanvasPixelDensity() {
+  const density = typeof displayDensity === 'function'
+    ? displayDensity()
+    : window.devicePixelRatio || 1;
+  return Math.max(1, Math.min(CANVAS_PIXEL_DENSITY_CAP, density));
+}
 
 function largestCanvasSize() {
   const viewportWidth = Math.max(
@@ -122,7 +130,7 @@ function startStemCraftForPot(pot) {
 }
 
 function setup() {
-  pixelDensity(1);
+  pixelDensity(targetCanvasPixelDensity());
   const canvasSize = largestCanvasSize();
   createCanvas(canvasSize.width, canvasSize.height);
   // 전역 폰트: DungGeunMo (CDN 로드, 한글 픽셀 폰트)
@@ -154,6 +162,7 @@ function setup() {
 }
 
 function windowResized() {
+  pixelDensity(targetCanvasPixelDensity());
   const canvasSize = largestCanvasSize();
   resizeCanvas(canvasSize.width, canvasSize.height);
 }
