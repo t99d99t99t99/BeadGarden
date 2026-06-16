@@ -3,6 +3,7 @@ const DATABASE_LOCAL = 'local';
 const LOCAL_DATABASE_KEY = 'beadgarden_local_database_v1';
 const DATABASE_MODE_STORAGE_KEY = 'beadgarden_debug_database_mode';
 const DATABASE_CONNECT_TIMEOUT_MS = 5000;
+const STORAGE_UPLOAD_TIMEOUT_MS = 30000;
 
 let databaseMode = readStoredDatabaseMode();
 let databaseStatus = databaseMode === DATABASE_LOCAL ? 'Using local database' : 'Connecting to server';
@@ -145,10 +146,18 @@ function switchToLocalDatabase(err) {
 }
 
 function withDatabaseTimeout(promise) {
+  return withOperationTimeout(
+    promise,
+    DATABASE_CONNECT_TIMEOUT_MS,
+    'Database connection timed out'
+  );
+}
+
+function withOperationTimeout(promise, timeoutMs, message) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(
-      () => reject(new Error('Database connection timed out')),
-      DATABASE_CONNECT_TIMEOUT_MS
+      () => reject(new Error(message)),
+      timeoutMs
     );
 
     Promise.resolve(promise).then(
@@ -342,6 +351,79 @@ async function lockPot(potId) {
 
 async function unlockPot(potId) {
   await updatePotWithFallback(potId, { locked: false });
+}
+
+async function uploadPotImageDownload(pot, imageBlob, imageHash) {
+  if (databaseMode === DATABASE_LOCAL) {
+    throw new Error('LOCAL_DATABASE_MODE');
+  }
+  if (!pot?.firestoreId) {
+    throw new Error('MISSING_POT_ID');
+  }
+  if (!imageBlob || !imageHash) {
+    throw new Error('MISSING_POT_IMAGE');
+  }
+  if (pot.imageDownload?.hash === imageHash && pot.imageDownload?.url) {
+    return pot.imageDownload;
+  }
+
+  await ensureFirebaseReady();
+  if (typeof firebase === 'undefined' || typeof firebase.storage !== 'function') {
+    throw new Error('Firebase Storage is unavailable');
+  }
+
+  const path = `pot-images/${sanitizeStoragePathSegment(pot.firestoreId)}/${imageHash}.png`;
+  const ref = firebase.storage().ref(path);
+
+  await withOperationTimeout(
+    ref.put(imageBlob, {
+      contentType: 'image/png',
+      customMetadata: {
+        potId: String(pot.firestoreId),
+        imageHash,
+      },
+    }),
+    STORAGE_UPLOAD_TIMEOUT_MS,
+    'Pot image upload timed out'
+  );
+  const url = await withOperationTimeout(
+    ref.getDownloadURL(),
+    STORAGE_UPLOAD_TIMEOUT_MS,
+    'Storage download URL lookup timed out'
+  );
+
+  const imageDownload = {
+    hash: imageHash,
+    path,
+    url,
+    updatedAt: Date.now(),
+  };
+
+  await withDatabaseTimeout(db.collection('pots').doc(pot.firestoreId).update({
+    imageDownload: {
+      hash: imageHash,
+      path,
+      url,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    },
+  }));
+
+  pot.imageDownload = imageDownload;
+  updateLocalDatabase(data => {
+    const index = data.pots.findIndex(item => item.firestoreId === pot.firestoreId);
+    if (index >= 0) {
+      data.pots[index] = {
+        ...data.pots[index],
+        imageDownload,
+      };
+    }
+  });
+
+  return imageDownload;
+}
+
+function sanitizeStoragePathSegment(value) {
+  return String(value).replace(/[^A-Za-z0-9._-]/g, '_');
 }
 
 async function deletePot(potId) {

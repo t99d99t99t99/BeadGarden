@@ -2,10 +2,14 @@ class PotDetailUI {
   constructor() {
     this.isVisible = false;
     this.pot = null;
+    this.imageDownloadPopup = this.#emptyImageDownloadPopup();
+    this.imageDownloadRequestId = 0;
   }
 
   show(pot) {
     this.isVisible = true;
+    this.imageDownloadRequestId++;
+    this.imageDownloadPopup = this.#emptyImageDownloadPopup();
     this.pot = pot ?? {
       name: '내 첫 번째 화분',
       desc: '',
@@ -21,6 +25,8 @@ class PotDetailUI {
   hide() {
     this.isVisible = false;
     this.pot = null;
+    this.imageDownloadRequestId++;
+    this.imageDownloadPopup = this.#emptyImageDownloadPopup();
   }
 
   drawPotPreview(x, y, w, h) {
@@ -50,15 +56,277 @@ class PotDetailUI {
     return { popW, popH, popX, popY, preX, preY, preW, preH, panX, panY, panW };
   }
 
+  #emptyImageDownloadPopup() {
+    return {
+      visible: false,
+      status: 'idle',
+      message: '',
+      qrMatrix: null,
+      url: null,
+    };
+  }
+
+  #downloadButtonRect(layout) {
+    const infoY = layout.panY + 72;
+    const w = 154, h = 36;
+    return {
+      x: layout.panX + layout.panW - w,
+      y: infoY - 14,
+      w,
+      h,
+    };
+  }
+
+  #imageDownloadPopupLayout(layout) {
+    const w = 236, h = 302;
+    const x = layout.panX + layout.panW - w;
+    const y = layout.panY + 124;
+    return {
+      x,
+      y,
+      w,
+      h,
+      close: { x: x + w - 33, y: y + 12, w: 22, h: 22 },
+      qr: { x: x + 34, y: y + 55, size: 168 },
+    };
+  }
+
+  #containsRect(bounds) {
+    return mouseX >= bounds.x && mouseX <= bounds.x + bounds.w &&
+      mouseY >= bounds.y && mouseY <= bounds.y + bounds.h;
+  }
+
   #formatPotDate(value) {
     if (typeof value === 'string') return value;
     return formatDate(value ?? '');
   }
 
+  #isLocalDataMode() {
+    return typeof getDatabaseMode === 'function' &&
+      typeof DATABASE_LOCAL !== 'undefined' &&
+      getDatabaseMode() === DATABASE_LOCAL;
+  }
+
+  #showImageDownloadError(message) {
+    this.imageDownloadPopup = {
+      visible: true,
+      status: 'error',
+      message,
+      qrMatrix: null,
+      url: null,
+    };
+  }
+
+  #closeImageDownloadPopup() {
+    this.imageDownloadRequestId++;
+    this.imageDownloadPopup = this.#emptyImageDownloadPopup();
+  }
+
+  #startImageDownload(layout) {
+    if (this.imageDownloadPopup.status === 'loading') return;
+
+    if (this.#isLocalDataMode()) {
+      this.#showImageDownloadError('로컬 데이터 모드에서는\n이미지 QR을 만들 수 없어요.');
+      return;
+    }
+    if (!this.pot?.firestoreId) {
+      this.#showImageDownloadError('서버에 저장된 화분만\n이미지 QR을 만들 수 있어요.');
+      return;
+    }
+    if (typeof uploadPotImageDownload !== 'function') {
+      this.#showImageDownloadError('Firebase 업로드 기능을\n사용할 수 없어요.');
+      return;
+    }
+
+    const requestId = ++this.imageDownloadRequestId;
+    const pot = this.pot;
+    this.imageDownloadPopup = {
+      visible: true,
+      status: 'loading',
+      message: '화분 이미지를 준비하고 있어요...',
+      qrMatrix: null,
+      url: null,
+    };
+
+    this.#capturePotImageBlob(layout)
+      .then(async blob => {
+        const hash = await this.#hashBlob(blob);
+        if (pot.imageDownload?.hash === hash && pot.imageDownload?.url) {
+          return pot.imageDownload;
+        }
+        return uploadPotImageDownload(pot, blob, hash);
+      })
+      .then(imageDownload => {
+        if (requestId !== this.imageDownloadRequestId || this.pot !== pot) return;
+        this.imageDownloadPopup = {
+          visible: true,
+          status: 'ready',
+          message: 'QR코드를 스캔하여\n화분 이미지를 저장하세요.',
+          qrMatrix: createQrCodeMatrix(imageDownload.url),
+          url: imageDownload.url,
+        };
+      })
+      .catch(err => {
+        console.error('[PotDetailUI] 화분 이미지 다운로드 QR 생성 실패:', err);
+        if (requestId !== this.imageDownloadRequestId || this.pot !== pot) return;
+        const message = err?.message === 'LOCAL_DATABASE_MODE'
+          ? '로컬 데이터 모드에서는\n이미지 QR을 만들 수 없어요.'
+          : '이미지 QR 생성에 실패했어요.\n네트워크와 Firebase 설정을 확인하세요.';
+        this.#showImageDownloadError(message);
+      });
+  }
+
+  #capturePotImageBlob(layout) {
+    const image = get(
+      Math.round(layout.preX),
+      Math.round(layout.preY),
+      Math.round(layout.preW),
+      Math.round(layout.preH)
+    );
+    const canvas = image?.canvas;
+    if (!canvas) {
+      return Promise.reject(new Error('Could not capture pot image'));
+    }
+
+    return new Promise((resolve, reject) => {
+      if (typeof canvas.toBlob === 'function') {
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('Could not encode pot image'));
+        }, 'image/png');
+        return;
+      }
+
+      try {
+        resolve(this.#dataUrlToBlob(canvas.toDataURL('image/png')));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  #dataUrlToBlob(dataUrl) {
+    const [meta, base64] = dataUrl.split(',');
+    const mime = /data:([^;]+)/.exec(meta)?.[1] ?? 'image/png';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  async #hashBlob(blob) {
+    const buffer = await blob.arrayBuffer();
+    if (typeof crypto !== 'undefined' && crypto.subtle?.digest) {
+      const digest = await crypto.subtle.digest('SHA-256', buffer);
+      return Array.from(new Uint8Array(digest))
+        .map(byte => byte.toString(16).padStart(2, '0'))
+        .join('');
+    }
+    return this.#fallbackHash(buffer);
+  }
+
+  #fallbackHash(buffer) {
+    let hash = 0x811c9dc5;
+    for (const byte of new Uint8Array(buffer)) {
+      hash ^= byte;
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return `fnv1a-${buffer.byteLength}-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  }
+
+  #drawDownloadButton(layout) {
+    const bounds = this.#downloadButtonRect(layout);
+    const hovered = this.#containsRect(bounds);
+    fill(hovered ? 175 : 190);
+    noStroke();
+    rect(bounds.x, bounds.y, bounds.w, bounds.h, 9);
+    fill(255);
+    textSize(12);
+    textStyle(BOLD);
+    textAlign(CENTER, CENTER);
+    text('화분 이미지 다운로드', bounds.x + bounds.w / 2, bounds.y + bounds.h / 2);
+    return hovered;
+  }
+
+  #drawImageDownloadPopup(layout) {
+    if (!this.imageDownloadPopup.visible) return false;
+
+    const popup = this.#imageDownloadPopupLayout(layout);
+    const closeHovered = this.#containsRect(popup.close);
+
+    drawingContext.save();
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(0,0,0,0.18)';
+    fill(255);
+    noStroke();
+    rect(popup.x, popup.y, popup.w, popup.h, 12);
+    drawingContext.restore();
+
+    fill(closeHovered ? 70 : 120);
+    noStroke();
+    textSize(26);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    text('×', popup.close.x + popup.close.w / 2, popup.close.y + popup.close.h / 2 - 1);
+
+    if (this.imageDownloadPopup.status === 'ready' && this.imageDownloadPopup.qrMatrix) {
+      this.#drawQrMatrix(this.imageDownloadPopup.qrMatrix, popup.qr.x, popup.qr.y, popup.qr.size);
+    } else {
+      fill(216);
+      noStroke();
+      rect(popup.qr.x, popup.qr.y, popup.qr.size, popup.qr.size, 1);
+      fill(this.imageDownloadPopup.status === 'error' ? color(255, 84, 94) : 90);
+      textSize(13);
+      textStyle(BOLD);
+      textAlign(CENTER, CENTER);
+      text(
+        this.imageDownloadPopup.status === 'loading' ? '이미지 준비 중' : '안내',
+        popup.qr.x + popup.qr.size / 2,
+        popup.qr.y + popup.qr.size / 2
+      );
+    }
+
+    fill(80);
+    textSize(12);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    text(
+      this.imageDownloadPopup.message,
+      popup.x + popup.w / 2,
+      popup.y + popup.h - 42
+    );
+
+    return closeHovered;
+  }
+
+  #drawQrMatrix(matrix, x, y, size) {
+    const quietZone = 4;
+    const totalModules = matrix.length + quietZone * 2;
+    const moduleSize = size / totalModules;
+
+    fill(255);
+    noStroke();
+    rect(x, y, size, size);
+
+    fill(30);
+    for (let row = 0; row < matrix.length; row++) {
+      for (let col = 0; col < matrix.length; col++) {
+        if (!matrix[row][col]) continue;
+        rect(
+          x + (col + quietZone) * moduleSize,
+          y + (row + quietZone) * moduleSize,
+          Math.ceil(moduleSize),
+          Math.ceil(moduleSize)
+        );
+      }
+    }
+  }
+
   onMousePressed() {
     if (!this.isVisible || !this.pot) return;
 
-    const { popW, popH, popX, popY, preX, preY, preW, preH, panX, panY, panW } = this.#layout();
+    const layout = this.#layout();
+    const { popW, popH, popX, popY, panX, panY, panW } = layout;
     const hasStem = (this.pot.stems ?? []).length > 0;
     const canEdit = !this.pot.locked;
 
@@ -69,11 +337,25 @@ class PotDetailUI {
       return;
     }
 
+    if (this.imageDownloadPopup.visible) {
+      const popup = this.#imageDownloadPopupLayout(layout);
+      if (this.#containsRect(popup.close)) {
+        this.#closeImageDownloadPopup();
+        return;
+      }
+      if (this.#containsRect(popup)) return;
+    }
+
     // X 버튼
     if (mouseX > popX + popW - 38 && mouseX < popX + popW - 12 &&
       mouseY > popY + 10 && mouseY < popY + 36) {
       this.hide();
       goTo(GAME_STATE.GARDEN_LIST);
+      return;
+    }
+
+    if (this.#containsRect(this.#downloadButtonRect(layout))) {
+      this.#startImageDownload(layout);
       return;
     }
 
@@ -118,7 +400,8 @@ class PotDetailUI {
   draw() {
     if (!this.isVisible || !this.pot) return;
 
-    const { popW, popH, popX, popY, preX, preY, preW, preH, panX, panY, panW } = this.#layout();
+    const layout = this.#layout();
+    const { popW, popH, popX, popY, preX, preY, preW, preH, panX, panY, panW } = layout;
     const hasStem = (this.pot.stems ?? []).length > 0;
     const isLocked = this.pot.locked;
     const canEdit = !isLocked;
@@ -174,15 +457,7 @@ class PotDetailUI {
     text(`${(this.pot.stems ?? []).length}개`, valueX, infoY + 24);
     text(this.pot.concept ?? '식물 에디션', valueX, infoY + 48);
 
-    // placeholder: 화분 이미지 다운로드 버튼
-    const downloadW = 154, downloadH = 36;
-    const downloadX = panX + panW - downloadW;
-    const downloadY = infoY - 14;
-    fill(190); noStroke();
-    rect(downloadX, downloadY, downloadW, downloadH, 9);
-    fill(255); textSize(12); textStyle(BOLD);
-    textAlign(CENTER, CENTER);
-    text('화분 이미지 다운로드', downloadX + downloadW / 2, downloadY + downloadH / 2);
+    const downloadHov = this.#drawDownloadButton(layout);
 
     stroke(220); strokeWeight(1);
     line(panX, infoY + 70, panX + panW, infoY + 70);
@@ -242,8 +517,10 @@ class PotDetailUI {
 
       // 커서
       const anyHov = btn1Hov || btn2Hov || xHov ||
+        downloadHov ||
         (hasStem && isHovered(lockBtnX, lockBtnY, lockBtnW, lockBtnH));
-      if (anyHov) cursor(HAND); else cursor(ARROW);
+      const popupCloseHov = this.#drawImageDownloadPopup(layout);
+      if (anyHov || popupCloseHov) cursor(HAND); else cursor(ARROW);
     } else {
       // 잠금됨 표시
       const lockSectionY = panY + 420;
@@ -260,7 +537,8 @@ class PotDetailUI {
       textAlign(CENTER, CENTER);
       text('🔒 잠금됨', lockBtnX + lockBtnW / 2, lockSectionY + 4 + lockBtnH / 2);
 
-      if (xHov) cursor(HAND); else cursor(ARROW);
+      const popupCloseHov = this.#drawImageDownloadPopup(layout);
+      if (xHov || downloadHov || popupCloseHov) cursor(HAND); else cursor(ARROW);
     }
   }
 }
