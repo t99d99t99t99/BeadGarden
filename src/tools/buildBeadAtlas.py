@@ -14,7 +14,8 @@ from scipy.spatial import ConvexHull
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSET_ROOT = ROOT / "assets"
-SOURCE_SHEET = ASSET_ROOT / "beads.png"
+SOURCE_BEAD_ROOT = ASSET_ROOT / "beads"
+SOURCE_SHEET = ASSET_ROOT / "atlases" / "beads.png"
 OUTPUT_MANIFEST = ROOT / "src" / "assets" / "beadAtlasManifest.js"
 
 THEME_BANDS = {
@@ -157,7 +158,7 @@ def collision_metadata(sheet, x, y, width, height):
 
 
 def match_theme(sheet, theme, boxes):
-    files = sorted((ASSET_ROOT / theme).glob("*.png"))
+    files = sorted((SOURCE_BEAD_ROOT / theme).glob("*.png"))
     files_by_hash = {}
     for path in files:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()

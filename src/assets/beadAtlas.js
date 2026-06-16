@@ -87,7 +87,7 @@ const BEAD_ATLAS_ID_ALIASES = Object.freeze({
 });
 
 function preloadBeadSpriteSheets() {
-  beadBodySheet = loadImage('assets/beads.png');
+  beadBodySheet = loadImage('assets/atlases/beads.png');
 }
 
 function initializeBeadAtlasSprites() {

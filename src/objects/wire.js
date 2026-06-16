@@ -8,7 +8,7 @@ const BEAD_BLOCKER_SIZE = 16;
 let beadBlockerImage = null;
 
 function preloadWireAssets() {
-    beadBlockerImage = loadImage("assets/bead_blocker.png");
+    beadBlockerImage = loadImage("assets/objects/bead_blocker.png");
 }
 
 class Wire {

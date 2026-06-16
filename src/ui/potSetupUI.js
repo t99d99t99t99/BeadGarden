@@ -5,9 +5,9 @@ class PotSetupUI {
     this.nameInput = null;
 
     this.concepts = [
-      { label: '식물 에디션', theme: POT_THEMES.PLANT, imgPath: 'assets/concept_plant.png' },
-      { label: '스타 에디션', theme: POT_THEMES.STAR, imgPath: 'assets/concept_star.png' },
-      { label: '바다 에디션', theme: POT_THEMES.OCEAN, imgPath: 'assets/concept_ocean.png' },
+      { label: '식물 에디션', theme: POT_THEMES.PLANT, imgPath: 'assets/concepts/concept_plant.png' },
+      { label: '스타 에디션', theme: POT_THEMES.STAR, imgPath: 'assets/concepts/concept_star.png' },
+      { label: '바다 에디션', theme: POT_THEMES.OCEAN, imgPath: 'assets/concepts/concept_ocean.png' },
     ];
 
     // 컨셉 프리뷰 이미지 로드

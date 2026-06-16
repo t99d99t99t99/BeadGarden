@@ -14,10 +14,10 @@ class GardenUI {
     // 데코 이미지
     this.decoImgs = {};
     const decoList = {
-      starPink: 'assets/star/star-1.png',
-      starLine: 'assets/star/starLine.png',
-      leaf: 'assets/plant/leafbottom.png',
-      leafTop: 'assets/plant/leaftop.png',
+      starPink: 'assets/beads/star/star-1.png',
+      starLine: 'assets/beads/star/starLine.png',
+      leaf: 'assets/beads/plant/leafbottom.png',
+      leafTop: 'assets/beads/plant/leaftop.png',
     };
     for (const [key, path] of Object.entries(decoList)) {
       loadImage(path, img => { this.decoImgs[key] = img; }, () => { });
@@ -25,7 +25,7 @@ class GardenUI {
 
     // 배경 이미지
     this.bgImg = null;
-    loadImage('assets/garden_bg.png', img => { this.bgImg = img; }, () => { });
+    loadImage('assets/backgrounds/garden_bg.png', img => { this.bgImg = img; }, () => { });
 
   }
 

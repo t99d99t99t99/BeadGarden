@@ -43,7 +43,7 @@ async function loadBeadCatalog() {
 function preloadBeadImages() {
   for (const [beadId, data] of Object.entries(beadCatalog)) {
     if (data.imagePath) {
-      beadImages[beadId] = loadImage(data.imagePath);
+      beadImages[beadId] = loadImage(normalizeAssetPath(data.imagePath));
     }
   }
 }
@@ -51,7 +51,19 @@ function preloadBeadImages() {
 function getBeadsByTheme(theme) {
   return Object.entries(beadCatalog)
     .filter(([, data]) => data.theme === 'basic' || data.theme === theme)
-    .map(([id, data]) => ({ beadId: id, ...data }));
+    .map(([id, data]) => ({
+      beadId: id,
+      ...data,
+      imagePath: normalizeAssetPath(data.imagePath),
+    }));
+}
+
+function normalizeAssetPath(imagePath) {
+  if (typeof imagePath !== 'string') return imagePath;
+
+  return imagePath
+    .replace(/^assets\/(plant|star|ocean)\//, 'assets/beads/$1/')
+    .replace(/^assets\/pots\/(?!source\/)/, 'assets/pots/source/');
 }
 
 // ── Device ID ────────────────────────────────────────────────────────────────

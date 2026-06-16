@@ -3,7 +3,7 @@ class IntroUI {
     this.startTime = millis();
     this.duration = 3000; // 3초 후 자동 전환
     this.bgImg = null;
-    loadImage('assets/intro_bg.png',
+    loadImage('assets/backgrounds/intro_bg.png',
       img => { this.bgImg = img; },
       () => { console.warn('[IntroUI] intro_bg.png 로드 실패'); }
     );

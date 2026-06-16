@@ -73,7 +73,7 @@ const POT_ASSETS_BY_CONCEPT = Object.freeze({
 });
 
 function preloadPotImages() {
-  potSpriteSheet = loadImage('assets/pots.png');
+  potSpriteSheet = loadImage('assets/atlases/pots.png');
 }
 
 function initializePotAtlasSprites() {

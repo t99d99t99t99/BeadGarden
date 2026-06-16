@@ -10,6 +10,8 @@ const fs    = require('fs');
 const path  = require('path');
 
 const ASSET_DIR = path.join(__dirname, '../../assets');
+const BEAD_ASSET_DIR = path.join(ASSET_DIR, 'beads');
+const POT_ASSET_DIR = path.join(ASSET_DIR, 'pots/source');
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
@@ -28,14 +30,14 @@ function makeDisplayName(base) {
 }
 
 async function main() {
-  const themes = fs.readdirSync(ASSET_DIR).filter(d =>
-    fs.statSync(path.join(ASSET_DIR, d)).isDirectory()
+  const themes = fs.readdirSync(BEAD_ASSET_DIR).filter(d =>
+    fs.statSync(path.join(BEAD_ASSET_DIR, d)).isDirectory()
   );
 
   let total = 0, success = 0, failed = 0;
 
   for (const theme of themes) {
-    const themeDir = path.join(ASSET_DIR, theme);
+    const themeDir = path.join(BEAD_ASSET_DIR, theme);
     const files    = fs.readdirSync(themeDir).filter(f => /\.(png|jpg|webp)$/i.test(f));
 
     console.log(`\n📂 ${theme}/ — ${files.length}개 파일`);
@@ -43,28 +45,19 @@ async function main() {
     for (const filename of files) {
       const base     = path.basename(filename, path.extname(filename));
       // 앱에서 사용할 상대 경로 (index.html 기준)
-      const imagePath = `assets/${theme}/${filename}`;
+      const imagePath = `assets/beads/${theme}/${filename}`;
       total++;
 
       try {
-        if (theme === 'pots') {
-          const potId = `pot_${base}`;
-          await db.collection('potAssets').doc(potId).set({
-            name:      makeDisplayName(base),
-            imagePath,
-          });
-          console.log(`  ✅ ${potId}`);
-        } else {
-          const beadId = makeBeadId(theme, filename);
-          await db.collection('beads').doc(beadId).set({
-            name:      makeDisplayName(base),
-            theme,
-            imagePath,
-            width:     40,
-            height:    40,
-          });
-          console.log(`  ✅ ${beadId}`);
-        }
+        const beadId = makeBeadId(theme, filename);
+        await db.collection('beads').doc(beadId).set({
+          name:      makeDisplayName(base),
+          theme,
+          imagePath,
+          width:     40,
+          height:    40,
+        });
+        console.log(`  ✅ ${beadId}`);
         success++;
       } catch (err) {
         console.error(`  ❌ ${filename}: ${err.message}`);
@@ -73,6 +66,29 @@ async function main() {
 
       await sleep(50);
     }
+  }
+
+  const potFiles = fs.readdirSync(POT_ASSET_DIR).filter(f => /\.(png|jpg|webp)$/i.test(f));
+  console.log(`\n📂 pots/source — ${potFiles.length}개 파일`);
+  for (const filename of potFiles) {
+    const base = path.basename(filename, path.extname(filename));
+    const imagePath = `assets/pots/source/${filename}`;
+    const potId = `pot_${base}`;
+    total++;
+
+    try {
+      await db.collection('potAssets').doc(potId).set({
+        name: makeDisplayName(base),
+        imagePath,
+      });
+      console.log(`  ✅ ${potId}`);
+      success++;
+    } catch (err) {
+      console.error(`  ❌ ${filename}: ${err.message}`);
+      failed++;
+    }
+
+    await sleep(50);
   }
 
   console.log(`\n🎉 완료: 성공 ${success} / 실패 ${failed} / 전체 ${total}`);

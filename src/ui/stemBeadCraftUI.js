@@ -12,21 +12,21 @@ class StemBeadCraftUI {
     this.audioStarted = false;
     this.sounds = {
       bgm: {
-        [POT_THEMES.PLANT]: this.#loadAudioFile('assets/music/forest_bgm.mp3'),
-        [POT_THEMES.STAR]: this.#loadAudioFile('assets/music/star_bgm.mp3'),
-        [POT_THEMES.OCEAN]: this.#loadAudioFile('assets/music/ocean_bgm.mp3'),
+        [POT_THEMES.PLANT]: this.#loadAudioFile('assets/audio/music/forest_bgm.mp3'),
+        [POT_THEMES.STAR]: this.#loadAudioFile('assets/audio/music/star_bgm.mp3'),
+        [POT_THEMES.OCEAN]: this.#loadAudioFile('assets/audio/music/ocean_bgm.mp3'),
       },
-      beadPierced: this.#loadAudioFile('assets/music/bead_pierced.mp3'),
-      stemComplete: this.#loadAudioFile('assets/music/stem_complete.mp3'),
+      beadPierced: this.#loadAudioFile('assets/audio/music/bead_pierced.mp3'),
+      stemComplete: this.#loadAudioFile('assets/audio/music/stem_complete.mp3'),
     };
 
     // 테마별 배경 이미지 로드
     this.bgImgs = {};
-    loadImage('assets/stemBeadCraft_plant_bg.png', img => { this.bgImgs[POT_THEMES.PLANT] = img; }, () => { });
-    loadImage('assets/stemBeadCraft_star_bg.png', img => { this.bgImgs[POT_THEMES.STAR] = img; }, () => { });
-    loadImage('assets/stemBeadCraft_ocean_bg.png', img => { this.bgImgs[POT_THEMES.OCEAN] = img; }, () => { });
+    loadImage('assets/backgrounds/stemBeadCraft_plant_bg.png', img => { this.bgImgs[POT_THEMES.PLANT] = img; }, () => { });
+    loadImage('assets/backgrounds/stemBeadCraft_star_bg.png', img => { this.bgImgs[POT_THEMES.STAR] = img; }, () => { });
+    loadImage('assets/backgrounds/stemBeadCraft_ocean_bg.png', img => { this.bgImgs[POT_THEMES.OCEAN] = img; }, () => { });
 
-    const graphicPath = 'assets/stem_bead_play/';
+    const graphicPath = 'assets/ui/stem-bead-craft/';
     const graphicFiles = {
       boxMessage: 'box_message.png',
       boxPreview: 'box_preview.png',

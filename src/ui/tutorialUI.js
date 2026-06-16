@@ -35,7 +35,7 @@ class TutorialUI {
 
     // 이미지 로드 (없으면 플레이스홀더)
     for (let i = 0; i < this.steps.length; i++) {
-      const path = `assets/tutorial_${i + 1}.png`;
+      const path = `assets/tutorial/tutorial_${i + 1}.png`;
       loadImage(path, img => {
         this.steps[i].img = img;
       }, () => { });
@@ -146,7 +146,7 @@ class TutorialUI {
       pop();
     } else {
       fill(160); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
-      text(`assets/tutorial_${this.currentStep + 1}.png`, width / 2, imgY + imgH / 2);
+      text(`assets/tutorial/tutorial_${this.currentStep + 1}.png`, width / 2, imgY + imgH / 2);
     }
 
     // ── < > 화살표 ── (onMousePressed에서도 같은 값 사용)
