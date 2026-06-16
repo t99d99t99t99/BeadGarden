@@ -61,6 +61,9 @@ class StemBeadCraftUI {
 
   // 핀치 상태 읽기
   isPinching() {
+    if (!this.#usesHandInput()) {
+      return false;
+    }
     if (typeof handDetector !== 'undefined' && typeof handDetector.pinched === 'function') {
       return handDetector.pinched();
     }
@@ -481,7 +484,7 @@ class StemBeadCraftUI {
   }
 
   drawHandMarkers() {
-    if (typeof handDetector === 'undefined') {
+    if (!this.#usesHandInput() || typeof handDetector === 'undefined') {
       return;
     }
 
@@ -593,9 +596,13 @@ class StemBeadCraftUI {
 
     // beadGame: 비즈 배치, 철사, 손가락 표시기 전부 여기서 그려줌
     if (typeof beadGame !== 'undefined') {
-      beadGame.update(handDetector);
+      const handInput = this.#usesHandInput() && typeof handDetector !== 'undefined'
+        ? handDetector
+        : null;
+      beadGame.update(handInput);
       beadGame.draw();
       this.drawHoldPointHighlight();
+      this.#resetIdleTimerOnFingerMotion();
       this.drawHandMarkers();
     } else {
       fill(200); textSize(14); textStyle(NORMAL); textAlign(CENTER);
@@ -655,5 +662,22 @@ class StemBeadCraftUI {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     saveCanvas(`screenshot-${timestamp}`, 'png');
     console.log('스크린샷이 저장되었습니다.');
+  }
+
+  #usesHandInput() {
+    return typeof gameState !== 'undefined' && gameState === GAME_STATE.STEM_BEAD_CRAFT;
+  }
+
+  #resetIdleTimerOnFingerMotion() {
+    if (!this.#usesHandInput() ||
+      typeof handDetector === 'undefined' ||
+      typeof idleResetTimer === 'undefined' ||
+      typeof handDetector.consumeFingerMotionActivity !== 'function') {
+      return;
+    }
+
+    if (handDetector.consumeFingerMotionActivity()) {
+      idleResetTimer.onInput();
+    }
   }
 }

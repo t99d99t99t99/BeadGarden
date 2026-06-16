@@ -40,6 +40,10 @@ function goTo(state) {
   if (!Object.values(GAME_STATE).includes(state)) {
     throw new Error(`Unknown game state: ${state}`);
   }
+  if (gameState === GAME_STATE.STEM_BEAD_CRAFT && state !== GAME_STATE.STEM_BEAD_CRAFT &&
+    typeof handDetector !== 'undefined') {
+    handDetector.stop();
+  }
   if (state === GAME_STATE.INTRO && introUI) introUI.enter();
   if (state === GAME_STATE.TUTORIAL && typeof tutorialUI !== 'undefined') tutorialUI.enter();
   gameState = state;
@@ -150,6 +154,8 @@ function draw() {
       debugInProgressSceneDraw();
       break;
   }
+
+  idleResetTimer.showTimer();
 }
 
 function keyPressed() {
