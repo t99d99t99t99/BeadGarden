@@ -69,6 +69,8 @@ class GardenUI {
     const isHov = (this.hoveredPot === pot);
 
     const potW = this.cardW * 0.5;
+    const asset = getPotAssetForPot(pot);
+    const potSize = getPotAssetDrawSize(asset, potW, potW, true);
     const compY = potBaseY - 180, compH = 280;
 
     drawPotComposition(pot, x, compY, this.cardW, compH, {
@@ -83,11 +85,13 @@ class GardenUI {
     const potBottom = compY + compH + 14;
 
     // 호버 시 글로우 효과
+    /*
     if (isHov) {
       noFill(); stroke(180, 80, 200, 40); strokeWeight(30);
       ellipse(cx, potBaseY + potSize.height / 2, 80, 30);
       noStroke();
     }
+      */
 
     // 화분 이름 (화분 아래)
     noStroke();
@@ -99,10 +103,11 @@ class GardenUI {
     fill(130); textStyle(NORMAL); textSize(11);
     text(`줄기 ${(pot.stems ?? []).length}개 (${this._editionLabel(pot)})`, cx, potBottom + 30);
 
-    // 호버 시 "클릭하여 열기 →"
+    // 호버 시 "클릭하여 열기→"
     if (isHov) {
-      fill(150, 80, 200); textSize(11);
-      text('클릭하여 열기 →', cx, potBottom + 46);
+      textSize(11);
+      text('클릭하여 열기→', cx, potBottom + 46);
+      stroke(130); strokeWeight(2); line(cx - 38, potBottom + 46, cx + 38, potBottom + 46);
     }
   }
 
@@ -321,8 +326,6 @@ class GardenUI {
 
       if (x + this.cardW < 40 || x > width - 40) continue;
 
-      this.drawCard(pot, x);
-
       // 호버 감지: 줄기 위 ~ 텍스트 아래
       const cx = x + this.cardW / 2;
       if (mouseX > cx - 70 && mouseX < cx + 70 &&
@@ -330,6 +333,8 @@ class GardenUI {
         this.hoveredPot = pot;
         cursor(HAND);
       }
+
+      this.drawCard(pot, x);
     }
 
     if (!this.hoveredPot && !potSetupUI.isVisible && !potDetailUI.isVisible) cursor(ARROW);
