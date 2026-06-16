@@ -602,7 +602,7 @@ class StemBeadCraftUI {
       beadGame.update(handInput);
       beadGame.draw();
       this.drawHoldPointHighlight();
-      this.#resetIdleTimerOnFingerMotion();
+      this.#resetIdleTimerOnPinchOrHold();
       this.drawHandMarkers();
     } else {
       fill(200); textSize(14); textStyle(NORMAL); textAlign(CENTER);
@@ -668,15 +668,13 @@ class StemBeadCraftUI {
     return typeof gameState !== 'undefined' && gameState === GAME_STATE.STEM_BEAD_CRAFT;
   }
 
-  #resetIdleTimerOnFingerMotion() {
+  #resetIdleTimerOnPinchOrHold() {
     if (!this.#usesHandInput() ||
-      typeof handDetector === 'undefined' ||
-      typeof idleResetTimer === 'undefined' ||
-      typeof handDetector.consumeFingerMotionActivity !== 'function') {
+      typeof idleResetTimer === 'undefined') {
       return;
     }
 
-    if (handDetector.consumeFingerMotionActivity()) {
+    if (this.isPinching() || this.isHoldingWire()) {
       idleResetTimer.onInput();
     }
   }

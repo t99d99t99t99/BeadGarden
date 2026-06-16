@@ -35,10 +35,6 @@ class HandDetector {
             pointer: null,
             pinched: false
         };
-        this.fingerActivityThreshold = 4;
-        this.previousFingerActivityPoints = [];
-        this.lastFingerActivityAt = 0;
-        this.consumedFingerActivityAt = 0;
     }
 
     /**
@@ -119,9 +115,6 @@ class HandDetector {
         this.snapshotFrame = -1;
         this.pinchState = false;
         this.previousPinchAngle = 90;
-        this.previousFingerActivityPoints = [];
-        this.lastFingerActivityAt = 0;
-        this.consumedFingerActivityAt = 0;
     }
 
     /**
@@ -192,19 +185,6 @@ class HandDetector {
     pointerPosition() {
         let pointer = this.#frameSnapshot().pointer;
         return pointer ? { ...pointer } : null;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    consumeFingerMotionActivity() {
-        this.#ensureStarted();
-        if (this.lastFingerActivityAt <= this.consumedFingerActivityAt) {
-            return false;
-        }
-
-        this.consumedFingerActivityAt = this.lastFingerActivityAt;
-        return true;
     }
 
     /**
@@ -295,7 +275,6 @@ class HandDetector {
      */
     #recordInferenceResult() {
         let now = performance.now();
-        this.#recordFingerMotionActivity(now);
         for (let finger of ["thumb", "indexFinger"]) {
             let position = this.#rawTipPosition(finger);
             let tracked = this.trackedTips[finger];
@@ -319,41 +298,6 @@ class HandDetector {
             tracked.updatedAt = now;
         }
         this.#updatePinchState();
-    }
-
-    /**
-     * @param {Number} now
-     * @returns {void}
-     */
-    #recordFingerMotionActivity(now) {
-        let points = this.#fingerActivityPoints();
-        if (points.length === 0) {
-            this.previousFingerActivityPoints = [];
-            return;
-        }
-
-        if (this.previousFingerActivityPoints.length === 0 ||
-            points.some((point, index) => this.#distance(
-                point,
-                this.previousFingerActivityPoints[index]
-            ) >= this.fingerActivityThreshold)) {
-            this.lastFingerActivityAt = now;
-        }
-
-        this.previousFingerActivityPoints = points.map((point) => ({ ...point }));
-    }
-
-    /**
-     * @returns {Matter.Vector[]}
-     */
-    #fingerActivityPoints() {
-        let hand = this.#currentHand();
-        if (!hand) return [];
-
-        return [4, 8, 12, 16, 20]
-            .map((index) => this.#toCanvasPoint(this.#keypointByIndex(hand, index)))
-            .filter((point) => point !== null)
-            .map((point) => ({ ...point }));
     }
 
     /**
