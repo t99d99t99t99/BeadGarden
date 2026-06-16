@@ -50,6 +50,11 @@ class PotDetailUI {
     return { popW, popH, popX, popY, preX, preY, preW, preH, panX, panY, panW };
   }
 
+  #formatPotDate(value) {
+    if (typeof value === 'string') return value;
+    return formatDate(value ?? '');
+  }
+
   onMousePressed() {
     if (!this.isVisible || !this.pot) return;
 
@@ -96,18 +101,17 @@ class PotDetailUI {
     }
 
     // 화분 잠그기 버튼
-    if (hasStem) {
-      const lockBtnW = 100, lockBtnH = 36;
-      const lockBtnX = panX + panW - lockBtnW;
-      const lockBtnY = panY + 430;
-      if (mouseX > lockBtnX && mouseX < lockBtnX + lockBtnW &&
-        mouseY > lockBtnY && mouseY < lockBtnY + lockBtnH) {
-        const pot = this.pot;
-        this.hide();
-        potLockUI.show(pot);
-        goTo(GAME_STATE.POT_LOCK);
-        return;
-      }
+    const lockBtnW = 100, lockBtnH = 36;
+    const lockBtnX = panX + panW - lockBtnW;
+    const lockBtnY = panY + 420 + 14;
+    if (hasStem &&
+      mouseX > lockBtnX && mouseX < lockBtnX + lockBtnW &&
+      mouseY > lockBtnY && mouseY < lockBtnY + lockBtnH) {
+      const pot = this.pot;
+      this.hide();
+      potLockUI.show(pot);
+      goTo(GAME_STATE.POT_LOCK);
+      return;
     }
   }
 
@@ -145,38 +149,43 @@ class PotDetailUI {
     // ── 오른쪽: 정보 패널 ──
 
     // 화분 이름
-    noStroke(); fill(30);
-    textStyle(BOLD); textSize(17); textAlign(LEFT);
-    text(this.pot.name, panX, panY + 28);
+    noStroke(); fill(216, 0, 255);
+    textStyle(BOLD); textSize(19); textAlign(LEFT, CENTER);
+    text(this.pot.name || '화분 이름', panX, panY + 28);
 
     // 구분선
     stroke(220); strokeWeight(1);
-    line(panX, panY + 42, panX + panW, panY + 42);
+    line(panX, panY + 46, panX + panW, panY + 46);
 
     // 정보 테이블
-    const infoY = panY + 66;
+    const infoY = panY + 72;
     const labelX = panX;
     const valueX = panX + 72;
 
     // 왼쪽 열: 심은날짜 / 줄기 / 디자인
     noStroke();
-    fill(140); textSize(12); textStyle(NORMAL); textAlign(LEFT);
+    fill(140); textSize(12); textStyle(NORMAL); textAlign(LEFT, CENTER);
     text('심은 날짜', labelX, infoY);
-    text('줄기', labelX, infoY + 26);
-    text('디자인', labelX, infoY + 52);
+    text('줄기', labelX, infoY + 24);
+    text('디자인', labelX, infoY + 48);
 
-    fill(40); textSize(12);
-    text(formatDate(this.pot.createdAt ?? ''), valueX, infoY);
-    text(`${(this.pot.stems ?? []).length}개`, valueX, infoY + 26);
-    text(this.pot.concept ?? '식물 에디션', valueX, infoY + 52);
+    fill(140); textSize(12);
+    text(this.#formatPotDate(this.pot.createdAt), valueX, infoY);
+    text(`${(this.pot.stems ?? []).length}개`, valueX, infoY + 24);
+    text(this.pot.concept ?? '식물 에디션', valueX, infoY + 48);
 
-    // 오른쪽 열: 화분 이미지 다운로드 + 회색 QR 박스
-    const qrSize = 78;
-    const qrX = panX + panW - qrSize - 5, qrY = infoY - 10;
-    fill(140); textSize(11); textAlign(CENTER);
-    text('화분 이미지 다운로드', qrX + qrSize / 2, qrY - 6);
-    fill(210); noStroke();
-    rect(qrX, qrY, qrSize, qrSize, 6);
+    // placeholder: 화분 이미지 다운로드 버튼
+    const downloadW = 154, downloadH = 36;
+    const downloadX = panX + panW - downloadW;
+    const downloadY = infoY - 14;
+    fill(190); noStroke();
+    rect(downloadX, downloadY, downloadW, downloadH, 9);
+    fill(255); textSize(12); textStyle(BOLD);
+    textAlign(CENTER, CENTER);
+    text('화분 이미지 다운로드', downloadX + downloadW / 2, downloadY + downloadH / 2);
+
+    stroke(220); strokeWeight(1);
+    line(panX, infoY + 70, panX + panW, infoY + 70);
 
     // ── 버튼 영역 ──
     if (canEdit) {
@@ -205,18 +214,31 @@ class PotDetailUI {
       noStroke(); fill(40); textSize(13); textStyle(BOLD); textAlign(LEFT);
       text('화분 잠금', panX, lockSectionY + 12);
       fill(140); textSize(11); textStyle(NORMAL);
-      text('잠금 시 화분에 더 이상 줄기를 추가하거나', panX, lockSectionY + 30);
-      text('꾸밀 수 없어요.', panX, lockSectionY + 46);
+      if (hasStem) {
+        text('잠금 시 화분에 더 이상 줄기를 추가하거나', panX, lockSectionY + 30);
+        text('꾸밀 수 없어요.', panX, lockSectionY + 46);
+      } else {
+        text('줄기를 하나 이상 심은 뒤 잠글 수 있어요.', panX, lockSectionY + 30);
+        text('먼저 새 비즈 줄기를 만들어주세요.', panX, lockSectionY + 46);
+      }
 
       const lockBtnW = 100, lockBtnH = 36;
       const lockBtnX = panX + panW - lockBtnW;
       const lockBtnY = lockSectionY + 14;
       const lockHov = hasStem && isHovered(lockBtnX, lockBtnY, lockBtnW, lockBtnH);
-      fill(hasStem ? (lockHov ? 40 : 20) : 185); noStroke();
+      if (hasStem) {
+        fill(lockHov ? 40 : 20);
+        noStroke();
+      } else {
+        fill(232);
+        stroke(205);
+        strokeWeight(1);
+      }
       rect(lockBtnX, lockBtnY, lockBtnW, lockBtnH, 18);
-      fill(255); textSize(12); textStyle(NORMAL);
+      noStroke();
+      fill(hasStem ? 255 : 145); textSize(12); textStyle(NORMAL);
       textAlign(CENTER, CENTER);
-      text('화분 잠그기', lockBtnX + lockBtnW / 2, lockBtnY + lockBtnH / 2);
+      text(hasStem ? '화분 잠그기' : '줄기 필요', lockBtnX + lockBtnW / 2, lockBtnY + lockBtnH / 2);
 
       // 커서
       const anyHov = btn1Hov || btn2Hov || xHov ||
