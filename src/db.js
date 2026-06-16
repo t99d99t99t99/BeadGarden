@@ -1,10 +1,11 @@
 const DATABASE_SERVER = 'server';
 const DATABASE_LOCAL = 'local';
 const LOCAL_DATABASE_KEY = 'beadgarden_local_database_v1';
+const DATABASE_MODE_STORAGE_KEY = 'beadgarden_debug_database_mode';
 const DATABASE_CONNECT_TIMEOUT_MS = 5000;
 
-let databaseMode = DATABASE_SERVER;
-let databaseStatus = 'Connecting to server';
+let databaseMode = readStoredDatabaseMode();
+let databaseStatus = databaseMode === DATABASE_LOCAL ? 'Using local database' : 'Connecting to server';
 let potsListener = null;
 let firestoreUnsubscribe = null;
 let potsListenerGeneration = 0;
@@ -79,6 +80,7 @@ function getDatabaseStatus() {
 
 async function setDatabaseMode(mode) {
   if (mode === DATABASE_LOCAL) {
+    storeDatabaseMode(DATABASE_LOCAL);
     switchToLocalDatabase();
     restartPotsListener();
     return true;
@@ -89,6 +91,7 @@ async function setDatabaseMode(mode) {
     await ensureFirebaseReady();
     await withDatabaseTimeout(db.collection('pots').limit(1).get());
     databaseMode = DATABASE_SERVER;
+    storeDatabaseMode(DATABASE_SERVER);
     databaseStatus = 'Connected to server';
     restartPotsListener();
     return true;
@@ -96,6 +99,24 @@ async function setDatabaseMode(mode) {
     switchToLocalDatabase(err);
     restartPotsListener();
     return false;
+  }
+}
+
+function readStoredDatabaseMode() {
+  try {
+    let storedMode = localStorage.getItem(DATABASE_MODE_STORAGE_KEY);
+    return storedMode === DATABASE_LOCAL ? DATABASE_LOCAL : DATABASE_SERVER;
+  } catch (err) {
+    console.warn('[Database] Failed to read stored database mode:', err);
+    return DATABASE_SERVER;
+  }
+}
+
+function storeDatabaseMode(mode) {
+  try {
+    localStorage.setItem(DATABASE_MODE_STORAGE_KEY, mode);
+  } catch (err) {
+    console.warn('[Database] Failed to store database mode:', err);
   }
 }
 

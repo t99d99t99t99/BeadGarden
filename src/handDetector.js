@@ -1,4 +1,5 @@
 const HAND_DETECTOR_GLOBAL = /** @type {any} */ (globalThis);
+const HAND_DETECTOR_PERFORMANCE_STORAGE_KEY = "beadgarden_debug_hand_detector_performance";
 
 class HandDetector {
     constructor() {
@@ -48,6 +49,7 @@ class HandDetector {
             pinched: false,
             fingerPath: []
         };
+        this.#applyStoredPerformanceSettings();
     }
 
     /**
@@ -321,6 +323,7 @@ class HandDetector {
         }
 
         this.error = null;
+        this.#storePerformanceSettings();
         if (needsRestart && wasActive) {
             this.stop();
             this.start();
@@ -340,6 +343,51 @@ class HandDetector {
             maximumPredictionMs: 520,
             trackingResponse: 1
         });
+    }
+
+    /**
+     * @returns {void}
+     */
+    #applyStoredPerformanceSettings() {
+        try {
+            let raw = localStorage.getItem(HAND_DETECTOR_PERFORMANCE_STORAGE_KEY);
+            if (!raw) return;
+
+            let stored = JSON.parse(raw);
+            if (!stored || typeof stored !== "object") return;
+
+            this.configurePerformance({
+                runtimePreference: stored.runtimePreference,
+                modelType: stored.modelType,
+                inferenceWidth: stored.inferenceWidth,
+                cameraFrameRate: stored.cameraFrameRate,
+                minimumDetectionIntervalMs: stored.minimumDetectionIntervalMs,
+                maximumPredictionMs: stored.maximumPredictionMs,
+                trackingResponse: stored.trackingResponse
+            });
+        } catch (error) {
+            console.warn("[HandDetector] Failed to read stored performance settings:", error);
+        }
+    }
+
+    /**
+     * @returns {void}
+     */
+    #storePerformanceSettings() {
+        try {
+            let settings = this.performanceSettings();
+            localStorage.setItem(HAND_DETECTOR_PERFORMANCE_STORAGE_KEY, JSON.stringify({
+                runtimePreference: settings.runtimePreference,
+                modelType: settings.modelType,
+                inferenceWidth: settings.inferenceWidth,
+                cameraFrameRate: settings.cameraFrameRate,
+                minimumDetectionIntervalMs: settings.minimumDetectionIntervalMs,
+                maximumPredictionMs: settings.maximumPredictionMs,
+                trackingResponse: settings.trackingResponse
+            }));
+        } catch (error) {
+            console.warn("[HandDetector] Failed to store performance settings:", error);
+        }
     }
 
     /**
