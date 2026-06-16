@@ -20,20 +20,33 @@ class HandDetector {
         this.pinchReleaseDistanceMultiplier = 1.35;
         this.pinchState = false;
         this.previousPinchAngle = 90;
-        this.inferenceWidth = 256;
+        this.runtimePreference = "tfjs";
+        this.modelType = "lite";
+        this.inferenceWidth = 192;
+        this.cameraFrameRate = 30;
         this.trackedTips = {
             thumb: this.#emptyTrackedPoint(),
             indexFinger: this.#emptyTrackedPoint()
         };
         this.lastTrackingFrame = -1;
-        this.trackingResponse = 0.9;
-        this.maximumPredictionMs = 150;
+        this.trackingResponse = 1;
+        this.maximumPredictionMs = 520;
+        this.minimumDetectionIntervalMs = 0;
+        this.detectionLoopId = 0;
+        this.detecting = false;
+        this.sessionId = 0;
+        this.activeRuntime = null;
+        this.activeModelType = null;
+        this.lastDetectionDurationMs = 0;
+        this.averageDetectionDurationMs = 0;
+        this.detectionCount = 0;
         this.snapshotFrame = -1;
         this.snapshot = {
             thumb: null,
             index: null,
             pointer: null,
-            pinched: false
+            pinched: false,
+            fingerPath: []
         };
     }
 
@@ -52,6 +65,10 @@ class HandDetector {
 
         this.loading = true;
         this.started = true;
+        let sessionId = ++this.sessionId;
+        this.lastDetectionDurationMs = 0;
+        this.averageDetectionDurationMs = 0;
+        this.detectionCount = 0;
 
         try {
             let inferenceHeight = Math.round(
@@ -61,7 +78,7 @@ class HandDetector {
                 video: {
                     width: { ideal: this.inferenceWidth },
                     height: { ideal: inferenceHeight },
-                    frameRate: { ideal: 30, max: 30 },
+                    frameRate: { ideal: this.cameraFrameRate, max: this.cameraFrameRate },
                     facingMode: "user"
                 },
                 audio: false
@@ -73,23 +90,28 @@ class HandDetector {
             this.video.size(this.inferenceWidth, inferenceHeight);
             this.video.hide();
 
-            let handPose = ml5Library.handPose({
-                flipped: true,
-                maxHands: 1
-            });
+            this.#loadHandPoseModel(ml5Library)
+                .then((loaded) => {
+                    let model = loaded.model;
+                    if (sessionId !== this.sessionId || !this.started) {
+                        if (model && typeof model.detectStop === "function") {
+                            model.detectStop();
+                        }
+                        return;
+                    }
 
-            let ready = handPose.ready ? handPose.ready.then(() => handPose) : handPose;
-            Promise.resolve(ready)
-                .then((model) => {
                     this.handPose = model;
+                    this.activeRuntime = loaded.options.runtime;
+                    this.activeModelType = loaded.options.modelType;
                     this.ready = true;
                     this.loading = false;
-                    this.handPose.detectStart(this.video, (results) => {
-                        this.hands = results || [];
-                        this.#recordInferenceResult();
-                    });
+                    this.#startDetectionLoop();
                 })
                 .catch((error) => {
+                    if (sessionId !== this.sessionId) {
+                        return;
+                    }
+
                     this.error = error;
                     this.loading = false;
                     console.error("HandDetector failed to load ml5.handPose:", error);
@@ -105,6 +127,10 @@ class HandDetector {
      * @returns {void}
      */
     stop() {
+        this.sessionId++;
+        this.detecting = false;
+        this.detectionLoopId++;
+
         if (this.handPose && typeof this.handPose.detectStop === "function") {
             this.handPose.detectStop();
         }
@@ -119,6 +145,8 @@ class HandDetector {
         this.ready = false;
         this.started = false;
         this.loading = false;
+        this.activeRuntime = null;
+        this.activeModelType = null;
         this.trackedTips = {
             thumb: this.#emptyTrackedPoint(),
             indexFinger: this.#emptyTrackedPoint()
@@ -127,6 +155,13 @@ class HandDetector {
         this.snapshotFrame = -1;
         this.pinchState = false;
         this.previousPinchAngle = 90;
+        this.snapshot = {
+            thumb: null,
+            index: null,
+            pointer: null,
+            pinched: false,
+            fingerPath: []
+        };
     }
 
     /**
@@ -164,17 +199,7 @@ class HandDetector {
      * @returns {Matter.Vector[]}
      */
     thumbToIndexPath() {
-        this.#ensureStarted();
-        let hand = this.#currentHand();
-        if (!hand) return [];
-
-        let points = [4, 2, 0, 6, 8]
-            .map((index) => this.#toCanvasPoint(this.#keypointByIndex(hand, index)));
-        if (points.some((point) => point === null)) {
-            return [];
-        }
-
-        return points.map((point) => ({ ...point }));
+        return this.#frameSnapshot().fingerPath.map((point) => ({ ...point }));
     }
 
     /**
@@ -197,6 +222,289 @@ class HandDetector {
     pointerPosition() {
         let pointer = this.#frameSnapshot().pointer;
         return pointer ? { ...pointer } : null;
+    }
+
+    /**
+     * @returns {object}
+     */
+    performanceSettings() {
+        return {
+            runtimePreference: this.runtimePreference,
+            modelType: this.modelType,
+            activeRuntime: this.activeRuntime,
+            activeModelType: this.activeModelType,
+            inferenceWidth: this.inferenceWidth,
+            cameraFrameRate: this.cameraFrameRate,
+            minimumDetectionIntervalMs: this.minimumDetectionIntervalMs,
+            maximumPredictionMs: this.maximumPredictionMs,
+            trackingResponse: this.trackingResponse,
+            lastDetectionDurationMs: this.lastDetectionDurationMs,
+            averageDetectionDurationMs: this.averageDetectionDurationMs,
+            detectionCount: this.detectionCount,
+            ready: this.ready,
+            started: this.started,
+            loading: this.loading,
+            detecting: this.detecting,
+            errorMessage: this.error ? String(this.error.message || this.error) : ""
+        };
+    }
+
+    /**
+     * @param {object} settings
+     * @returns {void}
+     */
+    configurePerformance(settings) {
+        if (!settings) return;
+
+        let needsRestart = false;
+        let wasActive = this.started || this.loading;
+
+        if (Object.prototype.hasOwnProperty.call(settings, "runtimePreference")) {
+            let runtimePreference = settings.runtimePreference === "mediapipe"
+                ? "mediapipe"
+                : "tfjs";
+            if (runtimePreference !== this.runtimePreference) {
+                this.runtimePreference = runtimePreference;
+                needsRestart = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(settings, "modelType")) {
+            let modelType = settings.modelType === "full" ? "full" : "lite";
+            if (modelType !== this.modelType) {
+                this.modelType = modelType;
+                needsRestart = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(settings, "inferenceWidth")) {
+            let inferenceWidth = this.#clampNumber(settings.inferenceWidth, 96, 640, this.inferenceWidth);
+            if (inferenceWidth !== this.inferenceWidth) {
+                this.inferenceWidth = inferenceWidth;
+                needsRestart = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(settings, "cameraFrameRate")) {
+            let cameraFrameRate = this.#clampNumber(settings.cameraFrameRate, 10, 60, this.cameraFrameRate);
+            if (cameraFrameRate !== this.cameraFrameRate) {
+                this.cameraFrameRate = cameraFrameRate;
+                needsRestart = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(settings, "minimumDetectionIntervalMs")) {
+            this.minimumDetectionIntervalMs = this.#clampNumber(
+                settings.minimumDetectionIntervalMs,
+                0,
+                250,
+                this.minimumDetectionIntervalMs
+            );
+        }
+
+        if (Object.prototype.hasOwnProperty.call(settings, "maximumPredictionMs")) {
+            this.maximumPredictionMs = this.#clampNumber(
+                settings.maximumPredictionMs,
+                0,
+                1000,
+                this.maximumPredictionMs
+            );
+        }
+
+        if (Object.prototype.hasOwnProperty.call(settings, "trackingResponse")) {
+            this.trackingResponse = this.#clampNumber(
+                settings.trackingResponse,
+                0.05,
+                1,
+                this.trackingResponse
+            );
+        }
+
+        this.error = null;
+        if (needsRestart && wasActive) {
+            this.stop();
+            this.start();
+        }
+    }
+
+    /**
+     * @returns {void}
+     */
+    resetPerformanceSettings() {
+        this.configurePerformance({
+            runtimePreference: "tfjs",
+            modelType: "lite",
+            inferenceWidth: 192,
+            cameraFrameRate: 30,
+            minimumDetectionIntervalMs: 0,
+            maximumPredictionMs: 520,
+            trackingResponse: 1
+        });
+    }
+
+    /**
+     * @param {object} ml5Library
+     * @returns {Promise<object>}
+     */
+    async #loadHandPoseModel(ml5Library) {
+        let lastError = null;
+        for (let options of this.#handPoseModelOptions()) {
+            try {
+                let handPose = ml5Library.handPose(options);
+                let model = await Promise.resolve(
+                    handPose.ready ? handPose.ready.then(() => handPose) : handPose
+                );
+                return { model, options };
+            } catch (error) {
+                lastError = error;
+                console.warn(
+                    `HandDetector failed to load ${options.runtime}/${options.modelType}; trying fallback:`,
+                    error
+                );
+            }
+        }
+
+        throw lastError || new Error("No handPose model configuration loaded.");
+    }
+
+    /**
+     * @returns {object[]}
+     */
+    #handPoseModelOptions() {
+        let fallbackRuntime = this.runtimePreference === "tfjs" ? "mediapipe" : "tfjs";
+        return [
+            {
+                runtime: this.runtimePreference,
+                modelType: this.modelType,
+                maxHands: 1,
+                flipped: true
+            },
+            {
+                runtime: fallbackRuntime,
+                modelType: this.modelType,
+                maxHands: 1,
+                flipped: true
+            }
+        ];
+    }
+
+    /**
+     * @returns {void}
+     */
+    #startDetectionLoop() {
+        if (!this.handPose || !this.video || this.detecting) {
+            return;
+        }
+
+        this.detecting = true;
+        let loopId = ++this.detectionLoopId;
+        this.#runDetectionLoop(loopId).catch((error) => {
+            if (loopId !== this.detectionLoopId) {
+                return;
+            }
+
+            this.error = error;
+            this.detecting = false;
+            console.error("HandDetector detection loop stopped:", error);
+        });
+    }
+
+    /**
+     * @param {Number} loopId
+     * @returns {Promise<void>}
+     */
+    async #runDetectionLoop(loopId) {
+        while (this.detecting &&
+            loopId === this.detectionLoopId &&
+            this.handPose &&
+            this.video) {
+            let sampledAt = performance.now();
+
+            try {
+                let results = await this.handPose.detect(this.video);
+                if (!this.detecting ||
+                    loopId !== this.detectionLoopId ||
+                    !this.handPose ||
+                    !this.video) {
+                    return;
+                }
+
+                let durationMs = performance.now() - sampledAt;
+                this.#recordDetectionDuration(durationMs);
+                this.hands = results || [];
+                this.#recordInferenceResult(sampledAt);
+            } catch (error) {
+                if (!this.detecting || loopId !== this.detectionLoopId) {
+                    return;
+                }
+
+                this.error = error;
+                console.error("HandDetector failed during hand detection:", error);
+                await this.#sleep(500);
+            }
+
+            let elapsed = performance.now() - sampledAt;
+            let delayMs = Math.max(0, this.minimumDetectionIntervalMs - elapsed);
+            if (delayMs > 0) {
+                await this.#sleep(delayMs);
+            } else {
+                await this.#nextAnimationFrame();
+            }
+        }
+    }
+
+    /**
+     * @param {Number} ms
+     * @returns {Promise<void>}
+     */
+    #sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    /**
+     * @returns {Promise<void>}
+     */
+    #nextAnimationFrame() {
+        return new Promise((resolve) => {
+            if (typeof requestAnimationFrame === "function") {
+                requestAnimationFrame(() => resolve());
+                return;
+            }
+
+            setTimeout(resolve, 0);
+        });
+    }
+
+    /**
+     * @param {Number} value
+     * @param {Number} minimum
+     * @param {Number} maximum
+     * @param {Number} fallback
+     * @returns {Number}
+     */
+    #clampNumber(value, minimum, maximum, fallback) {
+        let number = Number(value);
+        if (!Number.isFinite(number)) {
+            return fallback;
+        }
+
+        return Math.min(maximum, Math.max(minimum, number));
+    }
+
+    /**
+     * @param {Number} durationMs
+     * @returns {void}
+     */
+    #recordDetectionDuration(durationMs) {
+        if (!Number.isFinite(durationMs)) {
+            return;
+        }
+
+        this.lastDetectionDurationMs = durationMs;
+        this.detectionCount++;
+        this.averageDetectionDurationMs = this.averageDetectionDurationMs === 0
+            ? durationMs
+            : this.averageDetectionDurationMs * 0.9 + durationMs * 0.1;
     }
 
     /**
@@ -238,13 +546,37 @@ class HandDetector {
                 y: (thumb.y + index.y) / 2
             }
             : null;
+        let fingerPath = this.#rawThumbToIndexPath();
+        if (fingerPath.length > 0 && thumb) {
+            fingerPath[0] = { ...thumb };
+        }
+        if (fingerPath.length > 1 && index) {
+            fingerPath[fingerPath.length - 1] = { ...index };
+        }
         this.snapshot = {
             thumb: thumb ? { ...thumb } : null,
             index: index ? { ...index } : null,
             pointer,
-            pinched: this.pinchState
+            pinched: this.pinchState,
+            fingerPath
         };
         return this.snapshot;
+    }
+
+    /**
+     * @returns {Matter.Vector[]}
+     */
+    #rawThumbToIndexPath() {
+        let hand = this.#currentHand();
+        if (!hand) return [];
+
+        let points = [4, 2, 0, 6, 8]
+            .map((index) => this.#toCanvasPoint(this.#keypointByIndex(hand, index)));
+        if (points.some((point) => point === null)) {
+            return [];
+        }
+
+        return points.map((point) => ({ ...point }));
     }
 
     /**
@@ -285,8 +617,8 @@ class HandDetector {
     /**
      * @returns {void}
      */
-    #recordInferenceResult() {
-        let now = performance.now();
+    #recordInferenceResult(sampledAt = performance.now()) {
+        let now = sampledAt;
         for (let finger of ["thumb", "indexFinger"]) {
             let position = this.#rawTipPosition(finger);
             let tracked = this.trackedTips[finger];
