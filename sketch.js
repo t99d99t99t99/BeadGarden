@@ -65,6 +65,15 @@ function isClicked(x, y, w, h) {
     mouseY > y && mouseY < y + h;
 }
 
+function isTextInputFocused() {
+  const active = document.activeElement;
+  if (!active) return false;
+
+  return active.tagName === 'INPUT' ||
+    active.tagName === 'TEXTAREA' ||
+    active.isContentEditable;
+}
+
 function preload() {
   preloadBeadSpriteSheets();
   preloadPotImages();
@@ -175,11 +184,19 @@ function keyPressed() {
   if (keyCode == 220) { // 역슬래시 버튼으로 디버그 모드
     debugLandingSceneSetup();
   }
-  if (key === 's' || key === 'S') { // S 키로 스크린샷
+  if (!isTextInputFocused() && (key === 's' || key === 'S')) { // S 키로 스크린샷
     if (gameState === GAME_STATE.STEM_BEAD_CRAFT && typeof stemBeadCraftUI !== 'undefined') {
       stemBeadCraftUI.takeScreenshot();
     } else {
       saveCanvas(`screenshot-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`, 'png');
+    }
+  }
+
+  if (gameState === GAME_STATE.TUTORIAL) {
+    if (keyCode === RIGHT_ARROW) {
+      tutorialUI._next();
+    } else if (keyCode === LEFT_ARROW) {
+      tutorialUI._prev();
     }
   }
 }

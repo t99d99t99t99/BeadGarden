@@ -110,7 +110,7 @@ class TutorialUI {
     text(skipLabel, skipX + skipBtnW / 2, skipY + 24);
 
     // ── Step 배지 ──
-    const badgeY = 138;
+    const badgeY = 50;
     textSize(14); textStyle(NORMAL);
     const badgeW = textWidth(step.label) + 32;
     fill(255, 120, 210); noStroke();
@@ -123,21 +123,26 @@ class TutorialUI {
     text(step.desc, width / 2, badgeY + 46);
 
     // ── 이미지 영역 ──
-    const imgY = badgeY + 46 + 22 * (step.desc.split('\n').length) + 24;
-    const imgW = width - 200;
-    const imgH = height - imgY - 40;
+    const imgY = 190;
+    const imgW = min(width - 200, 900);
+    const imgH = min(height - imgY - 56, imgW * 0.75);
     const imgX = width / 2 - imgW / 2;
 
     noFill(); noStroke();
 
     if (step.img) {
       push();
-      imageMode(CENTER);
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(imgX, imgY, imgW, imgH);
+      drawingContext.clip();
+      imageMode(CORNER);
       const imgRatio = step.img.width / step.img.height;
       const boxRatio = imgW / imgH;
-      const drawW = imgRatio > boxRatio ? imgW : imgH * imgRatio;
-      const drawH = imgRatio > boxRatio ? imgW / imgRatio : imgH;
-      image(step.img, imgX + imgW / 2, imgY + imgH / 2, drawW, drawH);
+      const drawW = imgRatio > boxRatio ? imgH * imgRatio : imgW;
+      const drawH = imgRatio > boxRatio ? imgH : imgW / imgRatio;
+      image(step.img, imgX + (imgW - drawW) / 2, imgY + (imgH - drawH) / 2, drawW, drawH);
+      drawingContext.restore();
       pop();
     } else {
       fill(160); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
