@@ -78,6 +78,7 @@ function goTo(state) {
   if (!Object.values(GAME_STATE).includes(state)) {
     throw new Error(`Unknown game state: ${state}`);
   }
+  const previousState = gameState;
   const leavingStemCraftAudio =
     (gameState === GAME_STATE.STEM_CRAFT_INTRO ||
       gameState === GAME_STATE.STEM_BEAD_CRAFT ||
@@ -94,6 +95,15 @@ function goTo(state) {
   }
   if (state === GAME_STATE.INTRO && introUI) introUI.enter();
   if (state === GAME_STATE.TUTORIAL && typeof tutorialUI !== 'undefined') tutorialUI.enter();
+  if (state === GAME_STATE.POT_DECORATE &&
+    previousState === GAME_STATE.STEM_FINISH &&
+    typeof gardenUI !== 'undefined') {
+    const focusedPot = stemFinishUI?.currentPot ?? potDecorateUI?.currentPot ?? null;
+    gardenUI.enterFromStemFinish(focusedPot);
+  }
+  if (state === GAME_STATE.GARDEN_LIST && typeof gardenUI !== 'undefined') {
+    gardenUI.enterFromState(previousState);
+  }
   gameState = state;
 }
 
@@ -254,6 +264,14 @@ function keyPressed() {
 
 function mousePressed() {
   idleResetTimer.onInput();
+
+  if (gameState === GAME_STATE.GARDEN_LIST &&
+    typeof gardenUI !== 'undefined' &&
+    typeof gardenUI.isTopControlPoint === 'function' &&
+    gardenUI.isTopControlPoint(mouseX, mouseY)) {
+    gardenUI.onMousePressed();
+    return;
+  }
 
   if (gameState !== GAME_STATE.DEBUG_MENU &&
     gameState !== GAME_STATE.DEBUG &&

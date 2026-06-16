@@ -10,6 +10,16 @@ class GardenUI {
     this.dragStartX = 0;
     this.dragScrollX = 0;
     this._potCardY = new Map();
+    this.sortMode = 'recent';
+    this.sortDropdownOpen = false;
+    this.resetSortOnNextGardenEntry = false;
+    this.suppressNextReleaseClick = false;
+    this.focusPotId = null;
+    this.sortOptions = [
+      { key: 'recent', label: '최신순' },
+      { key: 'likes', label: '좋아요순' },
+      { key: 'stems', label: '줄기 많은 순' },
+    ];
 
     // 데코 이미지
     this.decoImgs = {};
@@ -50,8 +60,77 @@ class GardenUI {
     return [...this.pots].sort((a, b) => {
       const ta = a.createdAt?.toMillis?.() ?? new Date(a.createdAt ?? 0).getTime();
       const tb = b.createdAt?.toMillis?.() ?? new Date(b.createdAt ?? 0).getTime();
+      if (this.sortMode === 'likes') {
+        const likes = this._likeCount(b) - this._likeCount(a);
+        if (likes !== 0) return likes;
+      } else if (this.sortMode === 'stems') {
+        const stems = (b.stems ?? []).length - (a.stems ?? []).length;
+        if (stems !== 0) return stems;
+      }
       return tb - ta;
     });
+  }
+
+  resetSort() {
+    this.sortMode = 'recent';
+    this.sortDropdownOpen = false;
+    this.resetSortOnNextGardenEntry = false;
+    this.targetScrollX = 0;
+    this.scrollX = 0;
+  }
+
+  resetSortWhenGardenReopens() {
+    this.resetSortOnNextGardenEntry = true;
+  }
+
+  focusPot(pot) {
+    const id = this._potId(pot);
+    if (!id) return false;
+
+    this.focusPotId = id;
+    return this._applyFocusedPotScroll();
+  }
+
+  enterFromStemFinish(pot) {
+    this.resetSort();
+    this.focusPot(pot);
+  }
+
+  enterFromState(previousState) {
+    if (previousState === GAME_STATE.TUTORIAL ||
+      previousState === GAME_STATE.STEM_FINISH ||
+      this.resetSortOnNextGardenEntry) {
+      this.resetSort();
+    } else {
+      this.sortDropdownOpen = false;
+    }
+  }
+
+  _potId(pot) {
+    return pot?.firestoreId ?? pot?.localId ?? pot?.id ?? null;
+  }
+
+  _maxScrollForPotCount(count = this._sortedPots().length) {
+    return max(0, count * (this.cardW + this.cardGap) - width + 120);
+  }
+
+  _applyFocusedPotScroll() {
+    if (!this.focusPotId) return false;
+
+    const sortedPots = this._sortedPots();
+    const index = sortedPots.findIndex(pot => this._potId(pot) === this.focusPotId);
+    if (index < 0) return false;
+
+    const cardCenterAtZeroScroll = 60 + index * (this.cardW + this.cardGap) + this.cardW / 2;
+    const target = constrain(
+      cardCenterAtZeroScroll - width / 2,
+      0,
+      this._maxScrollForPotCount(sortedPots.length)
+    );
+    this.targetScrollX = target;
+    this.scrollX = target;
+    this.focusPotId = null;
+    return true;
   }
 
   _editionLabel(pot) {
@@ -124,8 +203,12 @@ class GardenUI {
     // 호버 시 "클릭하여 열기→"
     if (isHov) {
       textSize(11);
-      text('클릭하여 열기→', cx, potBottom + 68);
-      stroke(130); strokeWeight(2); line(cx - 38, potBottom + 68, cx + 38, potBottom + 68);
+      const openY = potBottom + 68;
+      const openLabel = '클릭하여 열기→';
+      text(openLabel, cx, openY);
+      const underlineW = textWidth(openLabel);
+      stroke(130); strokeWeight(2);
+      line(cx - underlineW / 2, openY + 6, cx + underlineW / 2, openY + 6);
     }
   }
 
@@ -337,6 +420,7 @@ class GardenUI {
     // ── 화분 카드 (박스 없이 떠있는 형태) ──
     this.hoveredPot = null;
     const sortedPots = this._sortedPots();
+    this._applyFocusedPotScroll();
     for (let i = 0; i < sortedPots.length; i++) {
       const pot = sortedPots[i];
       const x = this._cardX(i);
@@ -420,30 +504,185 @@ class GardenUI {
     const isOnline = typeof getDatabaseMode === 'function' &&
       getDatabaseMode() === DATABASE_SERVER;
     const label = isOnline ? '온라인' : '오프라인';
-    const markerX = 16;
-    const markerY = 16;
-    const markerW = 78;
-    const markerH = 28;
+    const marker = this._databaseStatusRect();
 
     push();
     fill(255, 255, 255, 220);
     stroke(isOnline ? color(70, 165, 95) : color(145));
     strokeWeight(1);
-    rect(markerX, markerY, markerW, markerH, 14);
+    rect(marker.x, marker.y, marker.w, marker.h, 14);
 
     noStroke();
     fill(isOnline ? color(70, 165, 95) : color(145));
-    circle(markerX + 15, markerY + markerH / 2, 8);
+    circle(marker.x + 15, marker.y + marker.h / 2, 8);
 
     fill(70);
     textSize(12);
     textStyle(BOLD);
     textAlign(CENTER, CENTER);
-    text(label, markerX + 48, markerY + markerH / 2);
+    text(label, marker.x + 48, marker.y + marker.h / 2);
+
+    this._drawTutorialButton();
+    this._drawSortDropdown();
     pop();
   }
 
+  _databaseStatusRect() {
+    return { x: 16, y: 16, w: 78, h: 28 };
+  }
+
+  _tutorialButtonRect() {
+    return { x: 16, y: 52, w: this._topControlWidth(), h: 30 };
+  }
+
+  _sortButtonRect() {
+    return { x: 16, y: 90, w: this._topControlWidth(), h: 30 };
+  }
+
+  _topControlWidth() {
+    return 126;
+  }
+
+  _sortOptionRect(index) {
+    const button = this._sortButtonRect();
+    return {
+      x: button.x,
+      y: button.y + button.h + index * 28,
+      w: button.w,
+      h: 28,
+    };
+  }
+
+  _selectedSortLabel() {
+    return this.sortOptions.find(option => option.key === this.sortMode)?.label ?? '최신순';
+  }
+
+  _drawTutorialButton() {
+    const button = this._tutorialButtonRect();
+    const hovering = isHovered(button.x, button.y, button.w, button.h);
+
+    fill(hovering ? 235 : 248);
+    stroke(210);
+    strokeWeight(1);
+    rect(button.x, button.y, button.w, button.h, 5);
+
+    fill(85);
+    noStroke();
+    textSize(13);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    text('튜토리얼', button.x + button.w / 2, button.y + button.h / 2);
+
+    if (hovering && this._controlsCanHover()) cursor(HAND);
+  }
+
+  _drawSortDropdown() {
+    const button = this._sortButtonRect();
+    const hovering = isHovered(button.x, button.y, button.w, button.h);
+
+    fill(hovering || this.sortDropdownOpen ? 235 : 248);
+    stroke(210);
+    strokeWeight(1);
+    rect(button.x, button.y, button.w, button.h, 5);
+
+    fill(85);
+    noStroke();
+    textSize(12);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    text(`${this._selectedSortLabel()} ▾`, button.x + button.w / 2, button.y + button.h / 2);
+
+    if (hovering && this._controlsCanHover()) cursor(HAND);
+
+    if (!this.sortDropdownOpen) return;
+
+    for (let i = 0; i < this.sortOptions.length; i++) {
+      const option = this.sortOptions[i];
+      const rectValue = this._sortOptionRect(i);
+      const optionHover = isHovered(rectValue.x, rectValue.y, rectValue.w, rectValue.h);
+      const selected = option.key === this.sortMode;
+
+      fill(selected ? color(255, 232, 255) : optionHover ? 245 : 255);
+      stroke(selected ? color(220, 40, 180) : 220);
+      strokeWeight(1);
+      rect(rectValue.x, rectValue.y, rectValue.w, rectValue.h, i === this.sortOptions.length - 1 ? 5 : 0);
+
+      fill(selected ? color(220, 40, 180) : 70);
+      noStroke();
+      textSize(12);
+      textStyle(selected ? BOLD : NORMAL);
+      textAlign(CENTER, CENTER);
+      text(option.label, rectValue.x + rectValue.w / 2, rectValue.y + rectValue.h / 2);
+
+      if (optionHover && this._controlsCanHover()) cursor(HAND);
+    }
+  }
+
+  _controlsCanHover() {
+    return !potSetupUI.isVisible && !potDetailUI.isVisible;
+  }
+
+  _pointInRect(rectValue) {
+    return mouseX >= rectValue.x && mouseX <= rectValue.x + rectValue.w &&
+      mouseY >= rectValue.y && mouseY <= rectValue.y + rectValue.h;
+  }
+
+  isTopControlPoint(x, y) {
+    if (potSetupUI.isVisible || potDetailUI.isVisible) return false;
+    const contains = rectValue =>
+      x >= rectValue.x && x <= rectValue.x + rectValue.w &&
+      y >= rectValue.y && y <= rectValue.y + rectValue.h;
+
+    if (contains(this._tutorialButtonRect()) || contains(this._sortButtonRect())) {
+      return true;
+    }
+    if (!this.sortDropdownOpen) return false;
+
+    return this.sortOptions.some((_, index) => contains(this._sortOptionRect(index)));
+  }
+
+  _handleTopControlClick() {
+    if (potSetupUI.isVisible || potDetailUI.isVisible) return false;
+
+    const tutorialButton = this._tutorialButtonRect();
+    if (this._pointInRect(tutorialButton)) {
+      this.sortDropdownOpen = false;
+      prevState = GAME_STATE.GARDEN_LIST;
+      goTo(GAME_STATE.TUTORIAL);
+      return true;
+    }
+
+    const sortButton = this._sortButtonRect();
+    if (this._pointInRect(sortButton)) {
+      this.sortDropdownOpen = !this.sortDropdownOpen;
+      this.suppressNextReleaseClick = true;
+      return true;
+    }
+
+    if (!this.sortDropdownOpen) return false;
+
+    for (let i = 0; i < this.sortOptions.length; i++) {
+      const option = this.sortOptions[i];
+      if (!this._pointInRect(this._sortOptionRect(i))) continue;
+      this.sortMode = option.key;
+      this.sortDropdownOpen = false;
+      this.targetScrollX = 0;
+      this.scrollX = 0;
+      this.suppressNextReleaseClick = true;
+      return true;
+    }
+
+    this.sortDropdownOpen = false;
+    this.suppressNextReleaseClick = true;
+    return true;
+  }
+
   onMousePressed() {
+    if (this._handleTopControlClick()) {
+      this.isDragging = false;
+      return;
+    }
+
     const btnW = 320, btnH = 52;
     const btnX = width / 2 - btnW / 2;
     const btnY = height - 72;
@@ -495,6 +734,11 @@ class GardenUI {
   onMouseReleased() {
     if (potSetupUI.isVisible || potDetailUI.isVisible) {
       this.isDragging = false; return;
+    }
+    if (this.suppressNextReleaseClick) {
+      this.suppressNextReleaseClick = false;
+      this.isDragging = false;
+      return;
     }
     if (abs(mouseX - this.dragStartX) < 5) {
       const sortedPots = this._sortedPots();
