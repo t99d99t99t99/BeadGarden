@@ -2,8 +2,8 @@ class TutorialUI {
   constructor() {
     this.currentStep = 0;
     this._arrowY = 0;
-    this._arrowW = 52;
-    this._arrowH = 60;
+    this._arrowW = 260;
+    this._arrowH = 300;
 
     this.steps = [
       {
@@ -73,7 +73,7 @@ class TutorialUI {
 
     // < > 버튼 (draw()에서 계산된 arrowY 사용)
     if (isHovered(20, this._arrowY, this._arrowW, this._arrowH)) { this._prev(); return; }
-    if (isHovered(width - 72, this._arrowY, this._arrowW, this._arrowH)) { this._next(); return; }
+    if (isHovered(width - 20 - this._arrowW, this._arrowY, this._arrowW, this._arrowH)) { this._next(); return; }
   }
 
   draw() {
@@ -145,23 +145,25 @@ class TutorialUI {
     }
 
     // ── < > 화살표 ── (onMousePressed에서도 같은 값 사용)
-    this._arrowY = imgY + imgH / 2 - 30;
+    this._arrowY = imgY + imgH / 2 - this._arrowH / 2;
     const arrowY = this._arrowY;
     const arrowW = this._arrowW, arrowH = this._arrowH;
+    const leftArrowX = 20;
+    const rightArrowX = width - 20 - arrowW;
 
     if (this.currentStep > 0) {
-      const lHov = isHovered(20, arrowY, arrowW, arrowH);
+      const lHov = isHovered(leftArrowX, arrowY, arrowW, arrowH);
       fill(220, 40, 180); noStroke();
-      textSize(36); textStyle(NORMAL); textAlign(CENTER, CENTER);
-      text('‹', 20 + arrowW / 2, arrowY + arrowH / 2);
+      textSize(180); textStyle(NORMAL); textAlign(CENTER, CENTER);
+      text('‹', leftArrowX + arrowW / 2, arrowY + arrowH / 2);
       if (lHov) cursor(HAND);
     }
 
     if (this.currentStep < this.steps.length - 1) {
-      const rHov = isHovered(width - 72, arrowY, arrowW, arrowH);
+      const rHov = isHovered(rightArrowX, arrowY, arrowW, arrowH);
       fill(220, 40, 180); noStroke();
-      textSize(36); textStyle(NORMAL); textAlign(CENTER, CENTER);
-      text('›', width - 72 + arrowW / 2, arrowY + arrowH / 2);
+      textSize(180); textStyle(NORMAL); textAlign(CENTER, CENTER);
+      text('›', rightArrowX + arrowW / 2, arrowY + arrowH / 2);
       if (rHov) cursor(HAND);
     }
 
@@ -175,8 +177,8 @@ class TutorialUI {
       ellipse(dotStartX + i * dotSpacing + 8, dotY, i === this.currentStep ? 10 : 7);
     }
 
-    if (!isHovered(20, arrowY, arrowW, arrowH) &&
-      !isHovered(width - 72, arrowY, arrowW, arrowH) &&
+    if (!isHovered(leftArrowX, arrowY, arrowW, arrowH) &&
+      !isHovered(rightArrowX, arrowY, arrowW, arrowH) &&
       !skipHov) {
       cursor(ARROW);
     }
