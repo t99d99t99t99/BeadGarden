@@ -40,6 +40,16 @@ function goTo(state) {
   if (!Object.values(GAME_STATE).includes(state)) {
     throw new Error(`Unknown game state: ${state}`);
   }
+  const leavingStemCraftAudio =
+    (gameState === GAME_STATE.STEM_CRAFT_INTRO ||
+      gameState === GAME_STATE.STEM_BEAD_CRAFT ||
+      gameState === GAME_STATE.STEM_FINISH) &&
+    state !== GAME_STATE.STEM_CRAFT_INTRO &&
+    state !== GAME_STATE.STEM_BEAD_CRAFT &&
+    state !== GAME_STATE.STEM_FINISH;
+  if (leavingStemCraftAudio && stemBeadCraftUI?.stopStemCraftAudio) {
+    stemBeadCraftUI.stopStemCraftAudio();
+  }
   if (gameState === GAME_STATE.STEM_BEAD_CRAFT && state !== GAME_STATE.STEM_BEAD_CRAFT &&
     typeof handDetector !== 'undefined') {
     handDetector.stop();

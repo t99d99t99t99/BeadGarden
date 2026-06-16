@@ -7,6 +7,18 @@ class StemBeadCraftUI {
     this.previewBeadHitAreas = [];
     this.hoveredPreviewBeadIndex = null;
     this.playGraphics = {};
+    this.currentBgmTheme = null;
+    this.lastPiercedBeadCount = 0;
+    this.audioStarted = false;
+    this.sounds = {
+      bgm: {
+        [POT_THEMES.PLANT]: this.#loadAudioFile('assets/music/forest_bgm.mp3'),
+        [POT_THEMES.STAR]: this.#loadAudioFile('assets/music/star_bgm.mp3'),
+        [POT_THEMES.OCEAN]: this.#loadAudioFile('assets/music/ocean_bgm.mp3'),
+      },
+      beadPierced: this.#loadAudioFile('assets/music/bead_pierced.mp3'),
+      stemComplete: this.#loadAudioFile('assets/music/stem_complete.mp3'),
+    };
 
     // 테마별 배경 이미지 로드
     this.bgImgs = {};
@@ -46,9 +58,11 @@ class StemBeadCraftUI {
   }
 
   startThemedCraft() {
+    this.#ensureAudioStarted();
     if (typeof beadGame !== 'undefined') {
       beadGame.setTheme(normalizePotTheme(this.currentPot));
     }
+    this.lastPiercedBeadCount = this.getBeadCount();
   }
 
   // 꿰어진 비즈 수 읽기 (팀원 코드 연결 포인트)
@@ -462,7 +476,9 @@ class StemBeadCraftUI {
     this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH, !canDone);
 
     // 클릭 → STEM_FINISH
-    if (canDone && !this.isPinching() && isPressed) {
+    if (gameState === GAME_STATE.STEM_BEAD_CRAFT &&
+      canDone && !this.isPinching() && isPressed) {
+      this.#playStemCompleteSound();
       stemFinishUI.show();
       goTo(GAME_STATE.STEM_FINISH);
     }
@@ -585,6 +601,8 @@ class StemBeadCraftUI {
   }
 
   draw() {
+    this.#syncBgm();
+
     const theme = normalizePotTheme(this.currentPot);
     const bgImg = this.bgImgs[theme];
     if (bgImg) {
@@ -600,6 +618,7 @@ class StemBeadCraftUI {
         ? handDetector
         : null;
       beadGame.update(handInput);
+      this.#playBeadPiercedSounds();
       beadGame.draw();
       this.drawHoldPointHighlight();
       this.#resetIdleTimerOnPinchOrHold();
@@ -677,5 +696,116 @@ class StemBeadCraftUI {
     if (this.isPinching() || this.isHoldingWire()) {
       idleResetTimer.onInput();
     }
+  }
+
+  stopStemCraftAudio() {
+    this.#stopCurrentBgm();
+  }
+
+  #loadAudioFile(path) {
+    if (typeof loadSound !== 'function') {
+      return null;
+    }
+
+    return loadSound(path, undefined, () => {
+      console.warn(`[StemBeadCraftUI] failed to load sound: ${path}`);
+    });
+  }
+
+  #ensureAudioStarted() {
+    if (this.audioStarted || typeof userStartAudio !== 'function') {
+      return;
+    }
+
+    this.audioStarted = true;
+    userStartAudio();
+  }
+
+  #syncBgm() {
+    if (!this.#isStemCraftAudioState()) {
+      this.#stopCurrentBgm();
+      return;
+    }
+
+    const theme = this.#bgmTheme();
+    if (this.currentBgmTheme !== theme) {
+      this.#stopCurrentBgm();
+      this.currentBgmTheme = theme;
+    }
+
+    const bgm = this.sounds.bgm[theme];
+    if (!this.#isSoundReady(bgm) || bgm.isPlaying?.()) {
+      return;
+    }
+
+    this.#ensureAudioStarted();
+    bgm.setVolume?.(0.35);
+    bgm.setLoop?.(true);
+    bgm.loop?.();
+  }
+
+  #stopCurrentBgm() {
+    if (this.currentBgmTheme === null) {
+      return;
+    }
+
+    this.#stopSound(this.sounds.bgm[this.currentBgmTheme]);
+    this.currentBgmTheme = null;
+  }
+
+  #playBeadPiercedSounds() {
+    if (gameState !== GAME_STATE.STEM_BEAD_CRAFT) {
+      this.lastPiercedBeadCount = this.getBeadCount();
+      return;
+    }
+
+    const count = this.getBeadCount();
+    const newlyPierced = count - this.lastPiercedBeadCount;
+    for (let i = 0; i < newlyPierced; i++) {
+      this.#playOneShot(this.sounds.beadPierced, 0.8);
+    }
+    this.lastPiercedBeadCount = count;
+  }
+
+  #playStemCompleteSound() {
+    this.#playOneShot(this.sounds.stemComplete, 0.85);
+  }
+
+  #playOneShot(sound, volume = 1) {
+    if (!this.#isSoundReady(sound)) {
+      return;
+    }
+
+    this.#ensureAudioStarted();
+    sound.setVolume?.(volume);
+    sound.stop?.();
+    sound.play?.();
+  }
+
+  #stopSound(sound) {
+    if (!sound) {
+      return;
+    }
+
+    sound.stop?.();
+  }
+
+  #isSoundReady(sound) {
+    return !!sound && (typeof sound.isLoaded !== 'function' || sound.isLoaded());
+  }
+
+  #bgmTheme() {
+    const theme = normalizePotTheme(this.currentPot);
+    if (theme === POT_THEMES.OCEAN || theme === POT_THEMES.STAR) {
+      return theme;
+    }
+    return POT_THEMES.PLANT;
+  }
+
+  #isStemCraftAudioState() {
+    return typeof gameState !== 'undefined' &&
+      (gameState === GAME_STATE.STEM_CRAFT_INTRO ||
+        gameState === GAME_STATE.STEM_BEAD_CRAFT ||
+        gameState === GAME_STATE.STEM_FINISH);
   }
 }
