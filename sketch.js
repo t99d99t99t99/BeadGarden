@@ -130,6 +130,9 @@ function startStemCraftForPot(pot) {
 }
 
 function setup() {
+  if (typeof clearPotLikeCooldowns === 'function') {
+    clearPotLikeCooldowns();
+  }
   pixelDensity(targetCanvasPixelDensity());
   const canvasSize = largestCanvasSize();
   createCanvas(canvasSize.width, canvasSize.height);

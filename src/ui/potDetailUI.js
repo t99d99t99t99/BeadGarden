@@ -1,15 +1,25 @@
+const POT_DETAIL_LIKE_SUCCESS_MESSAGE_MS = 10000;
+
 class PotDetailUI {
   constructor() {
     this.isVisible = false;
     this.pot = null;
     this.imageDownloadPopup = this.#emptyImageDownloadPopup();
     this.imageDownloadRequestId = 0;
+    this.likeBusy = false;
+    this.likeMessage = '';
+    this.likeMessageUntil = 0;
+    this.likeMessageDurationMs = 0;
   }
 
   show(pot) {
     this.isVisible = true;
     this.imageDownloadRequestId++;
     this.imageDownloadPopup = this.#emptyImageDownloadPopup();
+    this.likeBusy = false;
+    this.likeMessage = '';
+    this.likeMessageUntil = 0;
+    this.likeMessageDurationMs = 0;
     this.pot = pot ?? {
       name: '내 첫 번째 화분',
       desc: '',
@@ -27,6 +37,10 @@ class PotDetailUI {
     this.pot = null;
     this.imageDownloadRequestId++;
     this.imageDownloadPopup = this.#emptyImageDownloadPopup();
+    this.likeBusy = false;
+    this.likeMessage = '';
+    this.likeMessageUntil = 0;
+    this.likeMessageDurationMs = 0;
   }
 
   drawPotPreview(x, y, w, h) {
@@ -77,6 +91,16 @@ class PotDetailUI {
     };
   }
 
+  #likeButtonRect(layout) {
+    const w = 124, h = 38;
+    return {
+      x: layout.panX + layout.panW - w,
+      y: layout.panY + 152,
+      w,
+      h,
+    };
+  }
+
   #imageDownloadPopupLayout(layout) {
     const w = 236, h = 302;
     const x = layout.panX + layout.panW - w;
@@ -99,6 +123,24 @@ class PotDetailUI {
   #formatPotDate(value) {
     if (typeof value === 'string') return value;
     return formatDate(value ?? '');
+  }
+
+  #likeCount() {
+    return typeof getPotLikeCount === 'function'
+      ? getPotLikeCount(this.pot)
+      : Math.max(0, Number(this.pot?.likeCount ?? 0) || 0);
+  }
+
+  #likeCooldownRemaining() {
+    return typeof getPotLikeCooldownRemaining === 'function'
+      ? getPotLikeCooldownRemaining(this.pot)
+      : 0;
+  }
+
+  #showLikeMessage(message, durationMs = 5000) {
+    this.likeMessage = message;
+    this.likeMessageDurationMs = durationMs;
+    this.likeMessageUntil = Date.now() + durationMs;
   }
 
   #isLocalDataMode() {
@@ -248,6 +290,106 @@ class PotDetailUI {
     return hovered;
   }
 
+  #drawLikeArea(layout) {
+    const button = this.#likeButtonRect(layout);
+    const remainingMs = this.#likeCooldownRemaining();
+    const cooldown = remainingMs > 0;
+    const disabled = this.likeBusy || cooldown;
+    const hovered = this.#containsRect(button);
+    const secondsLeft = Math.ceil(remainingMs / 1000);
+
+    noStroke();
+    fill(255, 98, 110);
+    textStyle(BOLD);
+    textSize(18);
+    textAlign(LEFT, CENTER);
+    const counterX = layout.panX;
+    const centerY = button.y + button.h / 2;
+    text(`♥ ${this.#likeCount()}`, counterX, centerY);
+
+    const activeLikeMessage = this.likeMessage && Date.now() < this.likeMessageUntil
+      ? this.likeMessage
+      : '';
+    if (activeLikeMessage) {
+      const remainingRatio = constrain(
+        (this.likeMessageUntil - Date.now()) / max(1, this.likeMessageDurationMs),
+        0,
+        1
+      );
+      fill(255, 98, 110, 255 * remainingRatio);
+      textStyle(BOLD);
+      textSize(12);
+      textAlign(LEFT, CENTER);
+      text(activeLikeMessage, counterX, button.y + button.h + 18);
+    }
+
+    if (disabled) {
+      fill(232);
+      stroke(205);
+      strokeWeight(1);
+    } else {
+      fill(hovered ? color(255, 76, 92) : color(255, 98, 110));
+      noStroke();
+    }
+    rect(button.x, button.y, button.w, button.h, 19);
+
+    noStroke();
+    fill(disabled ? 145 : 255);
+    textStyle(BOLD);
+    textSize(13);
+    textAlign(CENTER, CENTER);
+    text(
+      this.likeBusy ? '저장 중...' : '♥ 좋아요',
+      button.x + button.w / 2,
+      button.y + button.h / 2
+    );
+
+    if (cooldown) {
+      fill(145);
+      textStyle(NORMAL);
+      textSize(11);
+      textAlign(CENTER, CENTER);
+      text(`${secondsLeft}초 후 가능`, button.x + button.w / 2, button.y + button.h + 18);
+    }
+
+    return hovered && !disabled;
+  }
+
+  #startLike() {
+    if (!this.pot || this.likeBusy) return;
+
+    const remainingMs = this.#likeCooldownRemaining();
+    if (remainingMs > 0) {
+      return;
+    }
+    if (typeof likePot !== 'function') {
+      this.#showLikeMessage('좋아요 기능을 사용할 수 없어요.');
+      return;
+    }
+
+    const pot = this.pot;
+    this.likeBusy = true;
+    likePot(pot)
+      .then(result => {
+        if (this.pot !== pot) return;
+        if (result?.cooldown) {
+          return;
+        }
+        this.#showLikeMessage('좋아요를 눌렀어요.', POT_DETAIL_LIKE_SUCCESS_MESSAGE_MS);
+      })
+      .catch(err => {
+        console.error('[PotDetailUI] 좋아요 저장 실패:', err);
+        if (this.pot === pot) {
+          this.#showLikeMessage('좋아요 저장에 실패했어요.');
+        }
+      })
+      .finally(() => {
+        if (this.pot === pot) {
+          this.likeBusy = false;
+        }
+      });
+  }
+
   #drawImageDownloadPopup(layout) {
     if (!this.imageDownloadPopup.visible) return false;
 
@@ -359,6 +501,11 @@ class PotDetailUI {
       return;
     }
 
+    if (this.#containsRect(this.#likeButtonRect(layout))) {
+      this.#startLike();
+      return;
+    }
+
     if (!canEdit) return;
 
     // 새 비즈 줄기 만들기 버튼
@@ -462,6 +609,11 @@ class PotDetailUI {
     stroke(220); strokeWeight(1);
     line(panX, infoY + 70, panX + panW, infoY + 70);
 
+    const likeHov = this.#drawLikeArea(layout);
+
+    stroke(220); strokeWeight(1);
+    line(panX, infoY + 150, panX + panW, infoY + 150);
+
     // ── 버튼 영역 ──
     if (canEdit) {
       // 새 비즈 줄기 만들기
@@ -517,6 +669,7 @@ class PotDetailUI {
 
       // 커서
       const anyHov = btn1Hov || btn2Hov || xHov ||
+        likeHov ||
         downloadHov ||
         (hasStem && isHovered(lockBtnX, lockBtnY, lockBtnW, lockBtnH));
       const popupCloseHov = this.#drawImageDownloadPopup(layout);
@@ -538,7 +691,7 @@ class PotDetailUI {
       text('🔒 잠금됨', lockBtnX + lockBtnW / 2, lockSectionY + 4 + lockBtnH / 2);
 
       const popupCloseHov = this.#drawImageDownloadPopup(layout);
-      if (xHov || downloadHov || popupCloseHov) cursor(HAND); else cursor(ARROW);
+      if (xHov || downloadHov || likeHov || popupCloseHov) cursor(HAND); else cursor(ARROW);
     }
   }
 }

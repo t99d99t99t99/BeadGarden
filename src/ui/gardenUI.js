@@ -62,6 +62,21 @@ class GardenUI {
     return c;
   }
 
+  _likeCount(pot) {
+    return typeof getPotLikeCount === 'function'
+      ? getPotLikeCount(pot)
+      : Math.max(0, Number(pot?.likeCount ?? 0) || 0);
+  }
+
+  _drawLikeCount(cx, y, pot) {
+    noStroke();
+    fill(255, 98, 110);
+    textStyle(BOLD);
+    textSize(12);
+    textAlign(CENTER, CENTER);
+    text(`♥  ${this._likeCount(pot)}`, cx, y);
+  }
+
   // ── 화분 카드 (박스 없이 떠 있는 형태) ──────────────────────────────────────
   drawCard(pot, x) {
     const potBaseY = this._cardY(pot);
@@ -99,15 +114,18 @@ class GardenUI {
     textSize(13); textStyle(BOLD); textAlign(CENTER);
     text(pot.name + (pot.locked ? ' 🔒' : ''), cx, potBottom + 14);
 
+    // 좋아요 수
+    this._drawLikeCount(cx, potBottom + 32, pot);
+
     // 줄기 수 + 에디션
     fill(130); textStyle(NORMAL); textSize(11);
-    text(`줄기 ${(pot.stems ?? []).length}개 (${this._editionLabel(pot)})`, cx, potBottom + 30);
+    text(`줄기 ${(pot.stems ?? []).length}개 (${this._editionLabel(pot)})`, cx, potBottom + 52);
 
     // 호버 시 "클릭하여 열기→"
     if (isHov) {
       textSize(11);
-      text('클릭하여 열기→', cx, potBottom + 46);
-      stroke(130); strokeWeight(2); line(cx - 38, potBottom + 46, cx + 38, potBottom + 46);
+      text('클릭하여 열기→', cx, potBottom + 68);
+      stroke(130); strokeWeight(2); line(cx - 38, potBottom + 68, cx + 38, potBottom + 68);
     }
   }
 
@@ -329,7 +347,7 @@ class GardenUI {
       // 호버 감지: 줄기 위 ~ 텍스트 아래
       const cx = x + this.cardW / 2;
       if (mouseX > cx - 70 && mouseX < cx + 70 &&
-        mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
+        mouseY > potBaseY - 160 && mouseY < potBaseY + 152) {
         this.hoveredPot = pot;
         cursor(HAND);
       }
@@ -486,7 +504,7 @@ class GardenUI {
         const cx = x + this.cardW / 2;
         const potBaseY = this._cardY(pot);
         if (mouseX > cx - 70 && mouseX < cx + 70 &&
-          mouseY > potBaseY - 160 && mouseY < potBaseY + 130) {
+          mouseY > potBaseY - 160 && mouseY < potBaseY + 152) {
           potSetupUI.hide();
           potDetailUI.show(pot);
           goTo(GAME_STATE.POT_PREVIEW);

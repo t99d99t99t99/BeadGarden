@@ -4,6 +4,8 @@ const LOCAL_DATABASE_KEY = 'beadgarden_local_database_v1';
 const DATABASE_MODE_STORAGE_KEY = 'beadgarden_debug_database_mode';
 const DATABASE_CONNECT_TIMEOUT_MS = 5000;
 const STORAGE_UPLOAD_TIMEOUT_MS = 30000;
+const POT_LIKE_COOLDOWN_MS = 300 * 1000;
+const POT_LIKE_STORAGE_KEY = 'beadgarden_pot_like_timestamps_v1';
 
 let databaseMode = readStoredDatabaseMode();
 let databaseStatus = databaseMode === DATABASE_LOCAL ? 'Using local database' : 'Connecting to server';
@@ -74,9 +76,9 @@ const myDeviceId = (() => {
     id = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID()
       : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-          const r = Math.random() * 16 | 0;
-          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
     localStorage.setItem('beadgarden_device_id', id);
   }
   return id;
@@ -268,6 +270,7 @@ function normalizeStoredPot(pot) {
   return {
     ...pot,
     theme: normalizePotTheme(pot),
+    likeCount: getPotLikeCount(pot),
   };
 }
 
@@ -292,6 +295,7 @@ async function createPot(data) {
     bgIndex: 0,
     shapeIndex: 0,
     locked: false,
+    likeCount: 0,
     stems: [],
   };
 
@@ -351,6 +355,118 @@ async function lockPot(potId) {
 
 async function unlockPot(potId) {
   await updatePotWithFallback(potId, { locked: false });
+}
+
+function getPotLikeCount(pot) {
+  const count = Number(pot?.likeCount ?? pot?.likes ?? 0);
+  return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+}
+
+function getPotLikeCooldownRemaining(potOrId, now = Date.now()) {
+  const potId = potLikeStorageId(potOrId);
+  if (!potId) return 0;
+
+  const timestamps = readPotLikeTimestamps();
+  const likedAt = Number(timestamps[potId] ?? 0);
+  if (!Number.isFinite(likedAt) || likedAt <= 0) return 0;
+  return Math.max(0, POT_LIKE_COOLDOWN_MS - (now - likedAt));
+}
+
+function clearPotLikeCooldowns() {
+  try {
+    localStorage.removeItem(POT_LIKE_STORAGE_KEY);
+  } catch (err) {
+    console.warn('[Database] Failed to clear pot like cooldowns:', err);
+  }
+}
+
+async function likePot(pot) {
+  const potId = potLikeStorageId(pot);
+  if (!potId) {
+    throw new Error('MISSING_POT_ID');
+  }
+
+  const remainingMs = getPotLikeCooldownRemaining(potId);
+  if (remainingMs > 0) {
+    return {
+      ok: false,
+      cooldown: true,
+      remainingMs,
+      likeCount: getPotLikeCount(pot),
+    };
+  }
+
+  const likedAt = Date.now();
+
+  if (databaseMode === DATABASE_SERVER) {
+    try {
+      await ensureFirebaseReady();
+      await withDatabaseTimeout(db.collection('pots').doc(potId).update({
+        likeCount: firebase.firestore.FieldValue.increment(1),
+        likedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }));
+
+      const likeCount = getPotLikeCount(pot) + 1;
+      if (pot && typeof pot === 'object') {
+        pot.likeCount = likeCount;
+      }
+      updateLocalDatabase(data => {
+        const index = data.pots.findIndex(item => item.firestoreId === potId);
+        if (index >= 0) {
+          data.pots[index] = {
+            ...data.pots[index],
+            likeCount,
+          };
+        }
+      });
+      writePotLikeTimestamp(potId, likedAt);
+      return { ok: true, likeCount };
+    } catch (err) {
+      switchToLocalDatabase(err);
+    }
+  }
+
+  updateLocalPot(potId, current => ({
+    ...pot,
+    ...current,
+    likeCount: Math.max(getPotLikeCount(current), getPotLikeCount(pot)) + 1,
+    likedAt,
+  }));
+  const storedPot = readLocalDatabase().pots.find(item =>
+    item.firestoreId === potId || item.localId === potId
+  );
+  const likeCount = getPotLikeCount(storedPot);
+  if (pot && typeof pot === 'object') {
+    pot.likeCount = likeCount;
+  }
+  writePotLikeTimestamp(potId, likedAt);
+  emitLocalPots();
+  return { ok: true, likeCount };
+}
+
+function potLikeStorageId(potOrId) {
+  if (typeof potOrId === 'string') return potOrId;
+  return potOrId?.firestoreId ?? potOrId?.localId ?? potOrId?.id ?? '';
+}
+
+function readPotLikeTimestamps() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(POT_LIKE_STORAGE_KEY));
+    return stored && typeof stored === 'object' ? stored : {};
+  } catch (err) {
+    console.warn('[Database] Failed to read pot like timestamps:', err);
+    return {};
+  }
+}
+
+function writePotLikeTimestamp(potId, likedAt) {
+  try {
+    const timestamps = readPotLikeTimestamps();
+    timestamps[potId] = likedAt;
+    localStorage.setItem(POT_LIKE_STORAGE_KEY, JSON.stringify(timestamps));
+  } catch (err) {
+    console.warn('[Database] Failed to store pot like timestamp:', err);
+  }
 }
 
 async function uploadPotImageDownload(pot, imageBlob, imageHash) {

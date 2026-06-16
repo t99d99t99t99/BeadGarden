@@ -14,6 +14,9 @@ class IdleResetTimer {
     tryReset() {
         if (!this.enabled || !this.#isIdle()) return;
 
+        if (typeof clearPotLikeCooldowns === 'function') {
+            clearPotLikeCooldowns();
+        }
         this.onInput();
         goTo(GAME_STATE.INTRO);
     }
