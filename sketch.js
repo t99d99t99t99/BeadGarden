@@ -212,14 +212,16 @@ function draw() {
   }
 
   idleResetTimer.showTimer();
+  if (typeof debugAccessDrawStatus === 'function') {
+    debugAccessDrawStatus();
+  }
 }
 
 function keyPressed() {
   idleResetTimer.onInput();
 
-  console.log(keyCode);
-  if (keyCode == 220) { // 역슬래시 버튼으로 디버그 모드
-    debugLandingSceneSetup();
+  if (typeof debugAccessHandleKeyPressed === 'function' && debugAccessHandleKeyPressed()) {
+    return;
   }
   if (!isTextInputFocused() && (key === 's' || key === 'S')) { // S 키로 스크린샷
     if (gameState === GAME_STATE.STEM_BEAD_CRAFT && typeof stemBeadCraftUI !== 'undefined') {
@@ -240,6 +242,13 @@ function keyPressed() {
 
 function mousePressed() {
   idleResetTimer.onInput();
+
+  if (gameState !== GAME_STATE.DEBUG_MENU &&
+    gameState !== GAME_STATE.DEBUG &&
+    typeof debugAccessHandleMousePressed === 'function' &&
+    debugAccessHandleMousePressed()) {
+    return;
+  }
 
   switch (gameState) {
     case GAME_STATE.TUTORIAL:
