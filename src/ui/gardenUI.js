@@ -15,6 +15,14 @@ class GardenUI {
     this.resetSortOnNextGardenEntry = false;
     this.suppressNextReleaseClick = false;
     this.focusPotId = null;
+    this.arrowButtonW = 46;
+    this.arrowButtonH = 100;
+    this.arrowHitW = 120;
+    this.arrowHitH = 160;
+    this.arrowCenterXRatio = 0.044;
+    this.arrowCenterYRatio = 0.551;
+    this.leftButtonImg = null;
+    this.rightButtonImg = null;
     this.sortOptions = [
       { key: 'recent', label: '최신순' },
       { key: 'likes', label: '좋아요순' },
@@ -36,6 +44,8 @@ class GardenUI {
     // 배경 이미지
     this.bgImg = null;
     loadImage('assets/backgrounds/garden_bg.png', img => { this.bgImg = img; }, () => { });
+    loadImage('assets/ui/tutorial/left_button.png', img => { this.leftButtonImg = img; }, () => { });
+    loadImage('assets/ui/tutorial/right_button.png', img => { this.rightButtonImg = img; }, () => { });
 
   }
 
@@ -390,6 +400,37 @@ class GardenUI {
     pop();
   }
 
+  _scrollArrowCenter(direction) {
+    const x = width * this.arrowCenterXRatio;
+    return {
+      x: direction < 0 ? x : width - x,
+      y: height * this.arrowCenterYRatio,
+    };
+  }
+
+  _scrollArrowHitRect(direction) {
+    const center = this._scrollArrowCenter(direction);
+    return {
+      x: center.x - this.arrowHitW / 2,
+      y: center.y - this.arrowHitH / 2,
+      w: this.arrowHitW,
+      h: this.arrowHitH,
+    };
+  }
+
+  _drawScrollArrow(img, fallbackLabel, centerX, centerY) {
+    if (img) {
+      imageMode(CENTER);
+      image(img, centerX, centerY, this.arrowButtonW, this.arrowButtonH);
+      imageMode(CORNER);
+      return;
+    }
+
+    fill(220, 40, 180); noStroke();
+    textSize(80); textAlign(CENTER, CENTER); textStyle(NORMAL);
+    text(fallbackLabel, centerX, centerY);
+  }
+
   // ── 전체 draw ─────────────────────────────────────────────────────────────────
   draw() {
     // ── 배경 이미지 ──
@@ -448,26 +489,20 @@ class GardenUI {
 
     // ── 좌우 스크롤 화살표 ──
     const maxScroll = max(0, this.pots.length * (this.cardW + this.cardGap) - width + 120);
-    const arrowY = height / 2 - 26;
-    const arrowW = 44, arrowH = 52;
+    const leftArrow = this._scrollArrowHitRect(-1);
+    const rightArrow = this._scrollArrowHitRect(1);
+    const leftCenter = this._scrollArrowCenter(-1);
+    const rightCenter = this._scrollArrowCenter(1);
 
     if (this.targetScrollX > 0) {
-      const lx = 48;
-      const lHov = isHovered(lx, arrowY, arrowW, arrowH);
-      fill(lHov ? color(255, 255, 255, 220) : color(255, 255, 255, 140)); noStroke();
-      rect(lx, arrowY, arrowW, arrowH, 8);
-      fill(80); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
-      text('‹', lx + arrowW / 2, arrowY + arrowH / 2);
+      const lHov = isHovered(leftArrow.x, leftArrow.y, leftArrow.w, leftArrow.h);
+      this._drawScrollArrow(this.leftButtonImg, '‹', leftCenter.x, leftCenter.y);
       if (lHov) cursor(HAND);
     }
 
     if (this.targetScrollX < maxScroll) {
-      const rx = width - 92;
-      const rHov = isHovered(rx, arrowY, arrowW, arrowH);
-      fill(rHov ? color(255, 255, 255, 220) : color(255, 255, 255, 140)); noStroke();
-      rect(rx, arrowY, arrowW, arrowH, 8);
-      fill(80); textSize(22); textAlign(CENTER, CENTER); textStyle(NORMAL);
-      text('›', rx + arrowW / 2, arrowY + arrowH / 2);
+      const rHov = isHovered(rightArrow.x, rightArrow.y, rightArrow.w, rightArrow.h);
+      this._drawScrollArrow(this.rightButtonImg, '›', rightCenter.x, rightCenter.y);
       if (rHov) cursor(HAND);
     }
 
@@ -698,16 +733,19 @@ class GardenUI {
 
     // 화살표 버튼
     const maxScroll = max(0, this._sortedPots().length * (this.cardW + this.cardGap) - width + 120);
-    const arrowY = height / 2 - 26;
-    const arrowW = 44, arrowH = 52;
     const scrollStep = width - 120; // 페이지 단위 이동
+    const leftArrow = this._scrollArrowHitRect(-1);
+    const rightArrow = this._scrollArrowHitRect(1);
 
-    if (mouseX > 48 && mouseX < 48 + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
+    if (this.targetScrollX > 0 &&
+      mouseX > leftArrow.x && mouseX < leftArrow.x + leftArrow.w &&
+      mouseY > leftArrow.y && mouseY < leftArrow.y + leftArrow.h) {
       this.targetScrollX = constrain(this.targetScrollX - scrollStep, 0, maxScroll);
       return;
     }
-    const rx = width - 92;
-    if (mouseX > rx && mouseX < rx + arrowW && mouseY > arrowY && mouseY < arrowY + arrowH) {
+    if (this.targetScrollX < maxScroll &&
+      mouseX > rightArrow.x && mouseX < rightArrow.x + rightArrow.w &&
+      mouseY > rightArrow.y && mouseY < rightArrow.y + rightArrow.h) {
       this.targetScrollX = constrain(this.targetScrollX + scrollStep, 0, maxScroll);
       return;
     }

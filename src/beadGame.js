@@ -42,6 +42,7 @@ class BeadGame {
         /** @type {Wire | null} */
         this.heldWire = null;
         this.wireGrabDistance = 40;
+        this.wirePinchOffsetX = -32;
         this.paletteColors = [];
         this.theme = POT_THEMES.LEGACY;
         this.beadSpawnCount = 50;
@@ -58,7 +59,7 @@ class BeadGame {
         let heldPosition = this.#heldPositionFromInput(input);
 
         if (this.heldWire) {
-            let pointer = heldPosition || { x: mouseX, y: mouseY };
+            let pointer = heldPosition || this.#wirePinchPosition({ x: mouseX, y: mouseY });
             this.heldWire.setHeldEnd(pointer.x, pointer.y);
         }
 
@@ -293,13 +294,14 @@ class BeadGame {
             return;
         }
 
-        let wire = this.#wireNearPosition(position);
+        let pinchPosition = this.#wirePinchPosition(position);
+        let wire = this.#wireNearPosition(pinchPosition);
         if (!wire) {
             return;
         }
 
         this.heldWire = wire;
-        this.heldWire.setHeldEnd(position.x, position.y);
+        this.heldWire.setHeldEnd(pinchPosition.x, pinchPosition.y);
         this.heldWire.update();
     }
 
@@ -325,7 +327,7 @@ class BeadGame {
     }
 
     #wireNearMouse() {
-        return this.#wireNearPosition({ x: mouseX, y: mouseY });
+        return this.#wireNearPosition(this.#wirePinchPosition({ x: mouseX, y: mouseY }));
     }
 
     /**
@@ -339,7 +341,7 @@ class BeadGame {
                 if (!this.heldWire) {
                     this.tryHoldWireAt(position);
                 }
-                return position;
+                return this.#wirePinchPosition(position);
             }
 
             if (this.heldWire) {
@@ -348,7 +350,22 @@ class BeadGame {
             return null;
         }
 
-        return input || null;
+        return this.#wirePinchPosition(input) || null;
+    }
+
+    /**
+     * @param {Matter.Vector | null} position
+     * @returns {Matter.Vector | null}
+     */
+    #wirePinchPosition(position) {
+        if (!position) {
+            return null;
+        }
+
+        return {
+            x: position.x + this.wirePinchOffsetX,
+            y: position.y
+        };
     }
 
     #clearObjects() {

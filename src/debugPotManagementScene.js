@@ -326,17 +326,18 @@ function debugPotManagementSceneMaxScroll() {
 }
 
 function debugPotManagementSceneArrowAt(x, y) {
-  const arrowY = height / 2 - 26;
+  const leftArrow = gardenUI._scrollArrowHitRect(-1);
+  const rightArrow = gardenUI._scrollArrowHitRect(1);
   if (
-    x > 48 && x < 92 &&
-    y > arrowY && y < arrowY + 52 &&
+    x > leftArrow.x && x < leftArrow.x + leftArrow.w &&
+    y > leftArrow.y && y < leftArrow.y + leftArrow.h &&
     gardenUI.targetScrollX > 0
   ) {
     return -1;
   }
   if (
-    x > width - 92 && x < width - 48 &&
-    y > arrowY && y < arrowY + 52 &&
+    x > rightArrow.x && x < rightArrow.x + rightArrow.w &&
+    y > rightArrow.y && y < rightArrow.y + rightArrow.h &&
     gardenUI.targetScrollX < debugPotManagementSceneMaxScroll()
   ) {
     return 1;

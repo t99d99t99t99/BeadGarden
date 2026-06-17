@@ -101,6 +101,43 @@ class PotDetailUI {
     };
   }
 
+  #bottomControlsLayout(layout) {
+    const buttonH = 48;
+    const lockBtnW = 100, lockBtnH = 36;
+    const lockSectionY = layout.popY + layout.popH - 70;
+    const decorateButtonY = lockSectionY - 70;
+    const newStemButtonY = decorateButtonY - 60;
+    const lockBtnX = layout.panX + layout.panW - lockBtnW;
+
+    return {
+      newStemButton: {
+        x: layout.panX,
+        y: newStemButtonY,
+        w: layout.panW,
+        h: buttonH,
+      },
+      decorateButton: {
+        x: layout.panX,
+        y: decorateButtonY,
+        w: layout.panW,
+        h: buttonH,
+      },
+      lockSectionY,
+      lockButton: {
+        x: lockBtnX,
+        y: lockSectionY + 14,
+        w: lockBtnW,
+        h: lockBtnH,
+      },
+      lockedButton: {
+        x: lockBtnX,
+        y: lockSectionY + 4,
+        w: lockBtnW,
+        h: lockBtnH,
+      },
+    };
+  }
+
   #imageDownloadPopupLayout(layout) {
     const w = Math.min(520, width - 80);
     const qrSize = Math.max(240, Math.min(440, w - 64, height - 220));
@@ -473,7 +510,8 @@ class PotDetailUI {
     if (!this.isVisible || !this.pot) return;
 
     const layout = this.#layout();
-    const { popW, popH, popX, popY, panX, panY, panW } = layout;
+    const { popW, popH, popX, popY } = layout;
+    const bottomControls = this.#bottomControlsLayout(layout);
     const hasStem = (this.pot.stems ?? []).length > 0;
     const canEdit = !this.pot.locked;
 
@@ -514,9 +552,7 @@ class PotDetailUI {
     if (!canEdit) return;
 
     // 새 비즈 줄기 만들기 버튼
-    const btn1Y = panY + 290;
-    if (mouseX > panX && mouseX < panX + panW &&
-      mouseY > btn1Y && mouseY < btn1Y + 48) {
+    if (this.#containsRect(bottomControls.newStemButton)) {
       const pot = this.pot;
       this.hide();
       startStemCraftForPot(pot);
@@ -524,9 +560,7 @@ class PotDetailUI {
     }
 
     // 화분·줄기 꾸미기 버튼
-    const btn2Y = panY + 350;
-    if (mouseX > panX && mouseX < panX + panW &&
-      mouseY > btn2Y && mouseY < btn2Y + 48) {
+    if (this.#containsRect(bottomControls.decorateButton)) {
       const pot = this.pot;
       this.hide();
       potDecorateUI.show('edit', pot);
@@ -535,12 +569,8 @@ class PotDetailUI {
     }
 
     // 화분 잠그기 버튼
-    const lockBtnW = 100, lockBtnH = 36;
-    const lockBtnX = panX + panW - lockBtnW;
-    const lockBtnY = panY + 420 + 14;
     if (hasStem &&
-      mouseX > lockBtnX && mouseX < lockBtnX + lockBtnW &&
-      mouseY > lockBtnY && mouseY < lockBtnY + lockBtnH) {
+      this.#containsRect(bottomControls.lockButton)) {
       const pot = this.pot;
       this.hide();
       potLockUI.show(pot);
@@ -554,6 +584,7 @@ class PotDetailUI {
 
     const layout = this.#layout();
     const { popW, popH, popX, popY, preX, preY, preW, preH, panX, panY, panW } = layout;
+    const bottomControls = this.#bottomControlsLayout(layout);
     const hasStem = (this.pot.stems ?? []).length > 0;
     const isLocked = this.pot.locked;
     const canEdit = !isLocked;
@@ -622,25 +653,25 @@ class PotDetailUI {
     // ── 버튼 영역 ──
     if (canEdit) {
       // 새 비즈 줄기 만들기
-      const btn1Y = panY + 290;
-      const btn1Hov = isHovered(panX, btn1Y, panW, 48);
+      const newStemButton = bottomControls.newStemButton;
+      const btn1Hov = this.#containsRect(newStemButton);
       fill(btn1Hov ? color(180, 0, 180) : color(255, 0, 255)); noStroke();
-      rect(panX, btn1Y, panW, 48, 24);
+      rect(newStemButton.x, newStemButton.y, newStemButton.w, newStemButton.h, 24);
       fill(255); textSize(14); textStyle(BOLD);
       textAlign(CENTER, CENTER);
-      text('+ 새 비즈 줄기 만들기', panX + panW / 2, btn1Y + 24);
+      text('+ 새 비즈 줄기 만들기', newStemButton.x + newStemButton.w / 2, newStemButton.y + newStemButton.h / 2);
 
       // 화분·줄기 꾸미기
-      const btn2Y = panY + 350;
-      const btn2Hov = isHovered(panX, btn2Y, panW, 48);
+      const decorateButton = bottomControls.decorateButton;
+      const btn2Hov = this.#containsRect(decorateButton);
       fill(btn2Hov ? 185 : 200); noStroke();
-      rect(panX, btn2Y, panW, 48, 24);
+      rect(decorateButton.x, decorateButton.y, decorateButton.w, decorateButton.h, 24);
       fill(255); textSize(14); textStyle(NORMAL);
       textAlign(CENTER, CENTER);
-      text('화분·줄기 꾸미기', panX + panW / 2, btn2Y + 24);
+      text('화분·줄기 꾸미기', decorateButton.x + decorateButton.w / 2, decorateButton.y + decorateButton.h / 2);
 
       // 화분 잠금 섹션
-      const lockSectionY = panY + 420;
+      const lockSectionY = bottomControls.lockSectionY;
       stroke(220); strokeWeight(1);
       line(panX, lockSectionY - 8, panX + panW, lockSectionY - 8);
       noStroke(); fill(40); textSize(13); textStyle(BOLD); textAlign(LEFT);
@@ -654,10 +685,8 @@ class PotDetailUI {
         text('먼저 새 비즈 줄기를 만들어주세요.', panX, lockSectionY + 46);
       }
 
-      const lockBtnW = 100, lockBtnH = 36;
-      const lockBtnX = panX + panW - lockBtnW;
-      const lockBtnY = lockSectionY + 14;
-      const lockHov = hasStem && isHovered(lockBtnX, lockBtnY, lockBtnW, lockBtnH);
+      const lockButton = bottomControls.lockButton;
+      const lockHov = hasStem && this.#containsRect(lockButton);
       if (hasStem) {
         fill(lockHov ? 40 : 20);
         noStroke();
@@ -666,34 +695,33 @@ class PotDetailUI {
         stroke(205);
         strokeWeight(1);
       }
-      rect(lockBtnX, lockBtnY, lockBtnW, lockBtnH, 18);
+      rect(lockButton.x, lockButton.y, lockButton.w, lockButton.h, 18);
       noStroke();
       fill(hasStem ? 255 : 145); textSize(12); textStyle(NORMAL);
       textAlign(CENTER, CENTER);
-      text(hasStem ? '화분 잠그기' : '줄기 필요', lockBtnX + lockBtnW / 2, lockBtnY + lockBtnH / 2);
+      text(hasStem ? '화분 잠그기' : '줄기 필요', lockButton.x + lockButton.w / 2, lockButton.y + lockButton.h / 2);
 
       // 커서
       const anyHov = btn1Hov || btn2Hov || xHov ||
         likeHov ||
         downloadHov ||
-        (hasStem && isHovered(lockBtnX, lockBtnY, lockBtnW, lockBtnH));
+        (hasStem && this.#containsRect(lockButton));
       const popupCloseHov = this.#drawImageDownloadPopup(layout);
       if (anyHov || popupCloseHov) cursor(HAND); else cursor(ARROW);
     } else {
       // 잠금됨 표시
-      const lockSectionY = panY + 420;
+      const lockSectionY = bottomControls.lockSectionY;
       stroke(220); strokeWeight(1);
       line(panX, lockSectionY - 8, panX + panW, lockSectionY - 8);
       noStroke(); fill(40); textSize(13); textStyle(BOLD); textAlign(LEFT);
       text('화분 잠금', panX, lockSectionY + 12);
 
-      const lockBtnW = 100, lockBtnH = 36;
-      const lockBtnX = panX + panW - lockBtnW;
+      const lockedButton = bottomControls.lockedButton;
       fill(245); stroke(210); strokeWeight(1);
-      rect(lockBtnX, lockSectionY + 4, lockBtnW, lockBtnH, 18);
+      rect(lockedButton.x, lockedButton.y, lockedButton.w, lockedButton.h, 18);
       fill(130); noStroke(); textSize(12);
       textAlign(CENTER, CENTER);
-      text('🔒 잠금됨', lockBtnX + lockBtnW / 2, lockSectionY + 4 + lockBtnH / 2);
+      text('🔒 잠금됨', lockedButton.x + lockedButton.w / 2, lockedButton.y + lockedButton.h / 2);
 
       const popupCloseHov = this.#drawImageDownloadPopup(layout);
       if (xHov || downloadHov || likeHov || popupCloseHov) cursor(HAND); else cursor(ARROW);

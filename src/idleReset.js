@@ -37,7 +37,7 @@ class IdleResetTimer {
             this.warningAnimationPlayed = true;
         }
 
-        let textColor = (secondsLeft <= IDLE_RESET_WARNING_SECOND) ? color(255, 0, 0) : color(155);
+        let textColor = (secondsLeft <= IDLE_RESET_WARNING_SECOND) ? color(255, 0, 0) : color(210);
         textSize(this.#messageTextSize());
         textAlign(LEFT, BOTTOM); fill(textColor); noStroke();
         text(`${secondsLeft}초 간 입력이 없을 경우 게임이 재시작 됩니다`, 0, height);
@@ -84,7 +84,7 @@ class IdleResetTimer {
     }
 
     #messageTextSize() {
-        const baseSize = 15;
+        const baseSize = 8;
         if (this.warningAnimationStartedAt === null) {
             return baseSize;
         }
@@ -96,6 +96,6 @@ class IdleResetTimer {
         }
 
         const pulse = Math.abs(Math.sin(progress * Math.PI * 2));
-        return baseSize + pulse * 4;
+        return baseSize + pulse * 2;
     }
 }

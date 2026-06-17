@@ -1,9 +1,14 @@
 class TutorialUI {
   constructor() {
     this.currentStep = 0;
-    this._arrowY = 0;
-    this._arrowW = 260;
-    this._arrowH = 300;
+    this._arrowButtonW = 46;
+    this._arrowButtonH = 100;
+    this._arrowHitW = 160;
+    this._arrowHitH = 220;
+    this._arrowCenterXRatio = 0.044;
+    this._arrowCenterYRatio = 0.551;
+    this.leftButtonImg = null;
+    this.rightButtonImg = null;
 
     this.steps = [
       {
@@ -40,6 +45,13 @@ class TutorialUI {
         this.steps[i].img = img;
       }, () => { });
     }
+
+    loadImage('assets/ui/tutorial/left_button.png', img => {
+      this.leftButtonImg = img;
+    }, () => { });
+    loadImage('assets/ui/tutorial/right_button.png', img => {
+      this.rightButtonImg = img;
+    }, () => { });
   }
 
   enter() {
@@ -71,9 +83,18 @@ class TutorialUI {
     const skipX = width - 40 - skipBtnW, skipY = 32;
     if (isHovered(skipX, skipY, skipBtnW, 48)) { this._exit(); return; }
 
-    // < > 버튼 (draw()에서 계산된 arrowY 사용)
-    if (isHovered(20, this._arrowY, this._arrowW, this._arrowH)) { this._prev(); return; }
-    if (isHovered(width - 20 - this._arrowW, this._arrowY, this._arrowW, this._arrowH)) { this._next(); return; }
+    // < > 버튼
+    const leftArrow = this._arrowHitRect(-1);
+    const rightArrow = this._arrowHitRect(1);
+    if (this.currentStep > 0 && isHovered(leftArrow.x, leftArrow.y, leftArrow.w, leftArrow.h)) {
+      this._prev();
+      return;
+    }
+    if (this.currentStep < this.steps.length - 1 &&
+      isHovered(rightArrow.x, rightArrow.y, rightArrow.w, rightArrow.h)) {
+      this._next();
+      return;
+    }
   }
 
   draw() {
@@ -149,26 +170,21 @@ class TutorialUI {
       text(`assets/tutorial/tutorial_${this.currentStep + 1}.png`, width / 2, imgY + imgH / 2);
     }
 
-    // ── < > 화살표 ── (onMousePressed에서도 같은 값 사용)
-    this._arrowY = imgY + imgH / 2 - this._arrowH / 2;
-    const arrowY = this._arrowY;
-    const arrowW = this._arrowW, arrowH = this._arrowH;
-    const leftArrowX = 20;
-    const rightArrowX = width - 20 - arrowW;
+    // ── < > 화살표 ──
+    const leftArrow = this._arrowHitRect(-1);
+    const rightArrow = this._arrowHitRect(1);
+    const leftCenter = this._arrowCenter(-1);
+    const rightCenter = this._arrowCenter(1);
 
     if (this.currentStep > 0) {
-      const lHov = isHovered(leftArrowX, arrowY, arrowW, arrowH);
-      fill(220, 40, 180); noStroke();
-      textSize(180); textStyle(NORMAL); textAlign(CENTER, CENTER);
-      text('‹', leftArrowX + arrowW / 2, arrowY + arrowH / 2);
+      const lHov = isHovered(leftArrow.x, leftArrow.y, leftArrow.w, leftArrow.h);
+      this._drawArrowButton(this.leftButtonImg, '‹', leftCenter.x, leftCenter.y);
       if (lHov) cursor(HAND);
     }
 
     if (this.currentStep < this.steps.length - 1) {
-      const rHov = isHovered(rightArrowX, arrowY, arrowW, arrowH);
-      fill(220, 40, 180); noStroke();
-      textSize(180); textStyle(NORMAL); textAlign(CENTER, CENTER);
-      text('›', rightArrowX + arrowW / 2, arrowY + arrowH / 2);
+      const rHov = isHovered(rightArrow.x, rightArrow.y, rightArrow.w, rightArrow.h);
+      this._drawArrowButton(this.rightButtonImg, '›', rightCenter.x, rightCenter.y);
       if (rHov) cursor(HAND);
     }
 
@@ -182,10 +198,41 @@ class TutorialUI {
       ellipse(dotStartX + i * dotSpacing + 8, dotY, i === this.currentStep ? 10 : 7);
     }
 
-    if (!isHovered(leftArrowX, arrowY, arrowW, arrowH) &&
-      !isHovered(rightArrowX, arrowY, arrowW, arrowH) &&
+    if (!isHovered(leftArrow.x, leftArrow.y, leftArrow.w, leftArrow.h) &&
+      !isHovered(rightArrow.x, rightArrow.y, rightArrow.w, rightArrow.h) &&
       !skipHov) {
       cursor(ARROW);
     }
+  }
+
+  _arrowCenter(direction) {
+    const x = width * this._arrowCenterXRatio;
+    return {
+      x: direction < 0 ? x : width - x,
+      y: height * this._arrowCenterYRatio,
+    };
+  }
+
+  _arrowHitRect(direction) {
+    const center = this._arrowCenter(direction);
+    return {
+      x: center.x - this._arrowHitW / 2,
+      y: center.y - this._arrowHitH / 2,
+      w: this._arrowHitW,
+      h: this._arrowHitH,
+    };
+  }
+
+  _drawArrowButton(img, fallbackLabel, centerX, centerY) {
+    if (img) {
+      imageMode(CENTER);
+      image(img, centerX, centerY, this._arrowButtonW, this._arrowButtonH);
+      imageMode(CORNER);
+      return;
+    }
+
+    fill(220, 40, 180); noStroke();
+    textSize(100); textStyle(NORMAL); textAlign(CENTER, CENTER);
+    text(fallbackLabel, centerX, centerY);
   }
 }

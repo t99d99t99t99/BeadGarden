@@ -164,17 +164,22 @@ class StemBeadCraftUI {
       return;
     }
 
+    const offsetX = Number(beadGame.wirePinchOffsetX) || 0;
+    const markerPosition = {
+      x: position.x - offsetX,
+      y: position.y,
+    };
     let diameter = 168;
 
     push();
     imageMode(CENTER);
     if (this.playGraphics.markerWireEnd) {
-      image(this.playGraphics.markerWireEnd, position.x, position.y, diameter, diameter);
+      image(this.playGraphics.markerWireEnd, markerPosition.x, markerPosition.y, diameter, diameter);
     } else {
       noFill();
       stroke(235, 0, 255, 25);
       strokeWeight(12);
-      circle(position.x, position.y, diameter);
+      circle(markerPosition.x, markerPosition.y, diameter);
     }
 
     noStroke();
@@ -182,7 +187,7 @@ class StemBeadCraftUI {
     textSize(13);
     textStyle(BOLD);
     textAlign(CENTER, BASELINE);
-    text('여기를 잡으세요', position.x, position.y - 24);
+    text('여기를 잡으세요', markerPosition.x, markerPosition.y - 24);
     pop();
   }
 
