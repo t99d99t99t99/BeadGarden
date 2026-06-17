@@ -15,10 +15,10 @@ class GardenUI {
     this.resetSortOnNextGardenEntry = false;
     this.suppressNextReleaseClick = false;
     this.focusPotId = null;
-    this.arrowButtonW = 46;
-    this.arrowButtonH = 100;
-    this.arrowHitW = 120;
-    this.arrowHitH = 160;
+    this.arrowButtonW = 37; // 46 * 0.8
+    this.arrowButtonH = 80; // 100 * 0.8
+    this.arrowHitW = 96; // 120 * 0.8
+    this.arrowHitH = 128; // 160 * 0.8
     this.arrowCenterXRatio = 0.044;
     this.arrowCenterYRatio = 0.551;
     this.leftButtonImg = null;

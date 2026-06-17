@@ -2,10 +2,10 @@ class TutorialUI {
   constructor() {
     this.currentStep = 0;
     this.enteredFromState = GAME_STATE.INTRO;
-    this._arrowButtonW = 46;
-    this._arrowButtonH = 100;
-    this._arrowHitW = 160;
-    this._arrowHitH = 220;
+    this._arrowButtonW = 37; // 46 * 0.8
+    this._arrowButtonH = 80; // 100 * 0.8
+    this._arrowHitW = 128; // 160 * 0.8
+    this._arrowHitH = 176; // 220 * 0.8
     this._arrowCenterXRatio = 0.044;
     this._arrowCenterYRatio = 0.551;
     this.leftButtonImg = null;
