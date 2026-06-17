@@ -35,8 +35,10 @@ const POT_BACKGROUND_OPTIONS = Object.freeze(POT_BACKGROUND_FILES.map(option => 
   ...option,
   type: 'image',
   path: `assets/pot_backgrounds/${option.file}`,
+  buttonPath: `assets/pot_backgrounds/${option.file.replace('pot_bg_', 'button_')}`,
 })));
 const potBackgroundImages = {};
+const potBackgroundButtonImages = {};
 
 // 테마별 줄기 색상 팔레트 (potDetailUI, gardenUI 공용)
 const STEM_COLORS_BY_THEME = {
@@ -57,6 +59,9 @@ function preloadPotBackgroundImages() {
     potBackgroundImages[option.path] = loadImage(option.path, undefined, err => {
       console.warn('[PotBackground] 이미지 로드 실패:', option.path, err);
     });
+    potBackgroundButtonImages[option.buttonPath] = loadImage(option.buttonPath, undefined, err => {
+      console.warn('[PotBackground] 버튼 이미지 로드 실패:', option.buttonPath, err);
+    });
   }
 }
 
@@ -70,6 +75,10 @@ function getPotBackgroundOptions(theme = null) {
 
 function getPotBackgroundImage(path) {
   return path ? potBackgroundImages[path] : null;
+}
+
+function getPotBackgroundButtonImage(path) {
+  return path ? potBackgroundButtonImages[path] : null;
 }
 
 function drawPotBackground(pot, x, y, w, h, options = {}) {

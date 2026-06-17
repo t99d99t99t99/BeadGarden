@@ -7,6 +7,7 @@ class StemBeadCraftUI {
     this.previewBeadHitAreas = [];
     this.hoveredPreviewBeadIndex = null;
     this.playGraphics = {};
+    this.topButtonGraphics = {};
     this.currentBgmTheme = null;
     this.lastPiercedBeadCount = 0;
     this.audioStarted = false;
@@ -42,6 +43,15 @@ class StemBeadCraftUI {
     };
     for (const [key, filename] of Object.entries(graphicFiles)) {
       loadImage(graphicPath + filename, img => { this.playGraphics[key] = img; }, () => { });
+    }
+
+    const topButtonPath = 'assets/ui/garden-list/';
+    const topButtonFiles = {
+      buttonTutorial: 'button_tutorial.png',
+      buttonTutorialPressed: 'button_tutorial_pressed.png',
+    };
+    for (const [key, filename] of Object.entries(topButtonFiles)) {
+      loadImage(topButtonPath + filename, img => { this.topButtonGraphics[key] = img; }, () => { });
     }
   }
 
@@ -504,6 +514,34 @@ class StemBeadCraftUI {
     pop();
   }
 
+  #topExitButtonRect() {
+    return { x: 24, y: 14, w: 104, h: 38 };
+  }
+
+  #topTutorialButtonRect() {
+    return { x: width - 128, y: 14, w: 104, h: 38 };
+  }
+
+  #drawTopButton(graphic, rectValue, label, hovering, pressed = false) {
+    push();
+    if (graphic) {
+      imageMode(CORNER);
+      image(graphic, rectValue.x, rectValue.y, rectValue.w, rectValue.h);
+      pop();
+      return;
+    }
+
+    fill(pressed ? 224 : hovering ? 235 : 239);
+    noStroke();
+    rect(rectValue.x, rectValue.y, rectValue.w, rectValue.h, 8);
+    fill(150);
+    textSize(13);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    text(label, rectValue.x + rectValue.w / 2, rectValue.y + rectValue.h / 2);
+    pop();
+  }
+
   drawHandMarkers() {
     if (!this.#usesHandInput() || typeof handDetector === 'undefined') {
       return;
@@ -639,12 +677,11 @@ class StemBeadCraftUI {
     line(0, 56, width, 56);
 
     // 뒤로가기
-    fill(248); stroke(210); strokeWeight(1);
-    rect(24, 14, 86, 28, 4);
-    fill(60); noStroke(); textSize(13); textStyle(NORMAL);
-    textAlign(CENTER, CENTER);
-    text('← 나가기', 67, 28);
-    if (isClicked(24, 14, 86, 28)) {
+    const exitButton = this.#topExitButtonRect();
+    const exitHov = isHovered(exitButton.x, exitButton.y, exitButton.w, exitButton.h);
+    const exitPressed = isClicked(exitButton.x, exitButton.y, exitButton.w, exitButton.h);
+    this.#drawTopButton(null, exitButton, '나가기', exitHov, exitPressed);
+    if (exitPressed) {
       potDetailUI.show(this.currentPot);
       goTo(GAME_STATE.POT_PREVIEW);
     }
@@ -654,16 +691,18 @@ class StemBeadCraftUI {
     text('비즈 줄기 꿰기', width / 2, 28);
 
     // 튜토리얼 버튼
-    let tutHov = isHovered(width - 108, 14, 84, 28);
-    fill(tutHov ? 235 : 248); stroke(210); strokeWeight(1);
-    rect(width - 108, 14, 84, 28, 4);
-    fill(150); noStroke(); textSize(13); textStyle(NORMAL);
-    textAlign(CENTER, CENTER);
-    text('튜토리얼', width - 66, 28);
-    if (isClicked(width - 108, 14, 84, 28)) {
+    const tutorialButton = this.#topTutorialButtonRect();
+    const tutHov = isHovered(tutorialButton.x, tutorialButton.y, tutorialButton.w, tutorialButton.h);
+    const tutPressed = isClicked(tutorialButton.x, tutorialButton.y, tutorialButton.w, tutorialButton.h);
+    const tutorialGraphic = tutPressed
+      ? this.topButtonGraphics.buttonTutorialPressed
+      : this.topButtonGraphics.buttonTutorial;
+    this.#drawTopButton(tutorialGraphic, tutorialButton, '튜토리얼', tutHov, tutPressed);
+    if (tutPressed) {
       prevState = GAME_STATE.STEM_BEAD_CRAFT;
       goTo(GAME_STATE.TUTORIAL);
     }
+    if (exitHov || tutHov) cursor(HAND);
 
     // 카운터
     this.drawCounter();

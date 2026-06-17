@@ -23,6 +23,7 @@ class GardenUI {
     this.arrowCenterYRatio = 0.551;
     this.leftButtonImg = null;
     this.rightButtonImg = null;
+    this.gardenListGraphics = {};
     this.sortOptions = [
       { key: 'recent', label: '최신순' },
       { key: 'likes', label: '좋아요순' },
@@ -46,6 +47,16 @@ class GardenUI {
     loadImage('assets/backgrounds/garden_bg.png', img => { this.bgImg = img; }, () => { });
     loadImage('assets/ui/tutorial/left_button.png', img => { this.leftButtonImg = img; }, () => { });
     loadImage('assets/ui/tutorial/right_button.png', img => { this.rightButtonImg = img; }, () => { });
+    const gardenListGraphicPath = 'assets/ui/garden-list/';
+    const gardenListGraphicFiles = {
+      buttonNewPot: 'button_new_pot.png',
+      buttonNewPotPressed: 'button_new_pot_pressed.png',
+      buttonTutorial: 'button_tutorial.png',
+      buttonTutorialPressed: 'button_tutorial_pressed.png',
+    };
+    for (const [key, filename] of Object.entries(gardenListGraphicFiles)) {
+      loadImage(gardenListGraphicPath + filename, img => { this.gardenListGraphics[key] = img; }, () => { });
+    }
 
   }
 
@@ -431,6 +442,23 @@ class GardenUI {
     text(fallbackLabel, centerX, centerY);
   }
 
+  _drawGardenListButton(graphic, x, y, w, h, fallbackLabel, fallbackStyle = {}) {
+    if (graphic) {
+      imageMode(CORNER);
+      image(graphic, x, y, w, h);
+      return;
+    }
+
+    fill(fallbackStyle.fill ?? color(220, 30, 220));
+    noStroke();
+    rect(x, y, w, h, fallbackStyle.radius ?? h / 2);
+    fill(fallbackStyle.textFill ?? 255);
+    textSize(fallbackStyle.textSize ?? 16);
+    textStyle(fallbackStyle.textStyle ?? BOLD);
+    textAlign(CENTER, CENTER);
+    text(fallbackLabel, x + w / 2, y + h / 2);
+  }
+
   // ── 전체 draw ─────────────────────────────────────────────────────────────────
   draw() {
     // ── 배경 이미지 ──
@@ -526,14 +554,21 @@ class GardenUI {
     }
 
     // ── 새 화분 만들기 버튼 ──
-    const btnW = 320, btnH = 52;
-    const btnX = width / 2 - btnW / 2;
-    const btnY = height - 72;
-    const btnHov = isHovered(btnX, btnY, btnW, btnH);
-    fill(btnHov ? color(200, 0, 200) : color(220, 30, 220)); noStroke();
-    rect(btnX, btnY, btnW, btnH, 26);
-    fill(255); textSize(16); textStyle(BOLD); textAlign(CENTER, CENTER);
-    text('+ 새 화분 만들기', btnX + btnW / 2, btnY + btnH / 2);
+    const newPotButton = this._newPotButtonRect();
+    const btnHov = isHovered(newPotButton.x, newPotButton.y, newPotButton.w, newPotButton.h);
+    const btnPressed = isClicked(newPotButton.x, newPotButton.y, newPotButton.w, newPotButton.h);
+    const newPotGraphic = btnPressed
+      ? this.gardenListGraphics.buttonNewPotPressed
+      : this.gardenListGraphics.buttonNewPot;
+    this._drawGardenListButton(
+      newPotGraphic,
+      newPotButton.x,
+      newPotButton.y,
+      newPotButton.w,
+      newPotButton.h,
+      '+ 새 화분 만들기',
+      { fill: btnHov ? color(200, 0, 200) : color(220, 30, 220), radius: newPotButton.h / 2 }
+    );
     if (btnHov) cursor(HAND);
   }
 
@@ -569,15 +604,29 @@ class GardenUI {
   }
 
   _tutorialButtonRect() {
-    return { x: 16, y: 52, w: this._topControlWidth(), h: 30 };
+    return { x: 16, y: 52, w: 104, h: 38 };
   }
 
   _sortButtonRect() {
-    return { x: 16, y: 90, w: this._topControlWidth(), h: 30 };
+    const tutorialButton = this._tutorialButtonRect();
+    return { x: 16, y: tutorialButton.y + tutorialButton.h + 8, w: this._topControlWidth(), h: tutorialButton.h };
   }
 
   _topControlWidth() {
-    return 126;
+    return 104;
+  }
+
+  _newPotButtonRect() {
+    const maxW = 377;
+    const maxH = 60;
+    const w = min(maxW, width - 40);
+    const h = w * maxH / maxW;
+    return {
+      x: width / 2 - w / 2,
+      y: height - h - 20,
+      w,
+      h,
+    };
   }
 
   _sortOptionRect(index) {
@@ -597,18 +646,26 @@ class GardenUI {
   _drawTutorialButton() {
     const button = this._tutorialButtonRect();
     const hovering = isHovered(button.x, button.y, button.w, button.h);
+    const pressed = isClicked(button.x, button.y, button.w, button.h);
+    const graphic = pressed
+      ? this.gardenListGraphics.buttonTutorialPressed
+      : this.gardenListGraphics.buttonTutorial;
 
-    fill(hovering ? 235 : 248);
-    stroke(210);
-    strokeWeight(1);
-    rect(button.x, button.y, button.w, button.h, 5);
-
-    fill(85);
-    noStroke();
-    textSize(13);
-    textStyle(NORMAL);
-    textAlign(CENTER, CENTER);
-    text('튜토리얼', button.x + button.w / 2, button.y + button.h / 2);
+    this._drawGardenListButton(
+      graphic,
+      button.x,
+      button.y,
+      button.w,
+      button.h,
+      '튜토리얼',
+      {
+        fill: hovering ? 235 : 248,
+        textFill: 85,
+        textSize: 13,
+        textStyle: NORMAL,
+        radius: 5,
+      }
+    );
 
     if (hovering && this._controlsCanHover()) cursor(HAND);
   }
@@ -720,11 +777,9 @@ class GardenUI {
       return;
     }
 
-    const btnW = 320, btnH = 52;
-    const btnX = width / 2 - btnW / 2;
-    const btnY = height - 72;
-    if (mouseX > btnX && mouseX < btnX + btnW &&
-      mouseY > btnY && mouseY < btnY + btnH) {
+    const newPotButton = this._newPotButtonRect();
+    if (mouseX > newPotButton.x && mouseX < newPotButton.x + newPotButton.w &&
+      mouseY > newPotButton.y && mouseY < newPotButton.y + newPotButton.h) {
       potSetupUI.show();
       goTo(GAME_STATE.NEW_POT);
       return;

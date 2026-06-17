@@ -724,6 +724,7 @@ class PotDecorateUI {
   _drawBackgroundPalette(label, x, y) {
     const options = this.#backgroundOptions();
     const { cols, cellSize, gap, labelHeight } = this.#backgroundGridConfig();
+    const buttonDiameter = cellSize - 6;
 
     fill(30); noStroke();
     textSize(14); textStyle(BOLD); textAlign(LEFT);
@@ -736,36 +737,68 @@ class PotDecorateUI {
       const sx = x + col * (cellSize + gap);
       const sy = y + labelHeight + row * (cellSize + gap);
       const selected = this.#isBackgroundOptionSelected(option);
+      const cx = sx + cellSize / 2;
+      const cy = sy + cellSize / 2;
 
-      fill(selected ? color(255, 230, 255) : 248);
-      stroke(selected ? color(255, 0, 255) : 210);
-      strokeWeight(selected ? 2.5 : 1);
-      rect(sx, sy, cellSize, cellSize, 7);
+      fill(248);
+      noStroke();
+      circle(cx, cy, buttonDiameter);
 
       if (option.type === 'color') {
         fill(option.color);
-        stroke(220);
-        strokeWeight(1);
-        rect(sx + 8, sy + 8, cellSize - 16, cellSize - 16, 6);
+        noStroke();
+        circle(cx, cy, buttonDiameter);
       } else {
-        const img = getPotBackgroundImage(option.path);
-        if (!drawRoundedImageCover(img, sx + 5, sy + 5, cellSize - 10, cellSize - 10, 5)) {
+        const img = typeof getPotBackgroundButtonImage === 'function'
+          ? getPotBackgroundButtonImage(option.buttonPath)
+          : null;
+        if (img) {
+          imageMode(CENTER);
+          image(img, cx, cy, buttonDiameter - 2, buttonDiameter - 2);
+          imageMode(CORNER);
+        } else if (!this.#drawCircularImageCover(getPotBackgroundImage(option.path), cx, cy, buttonDiameter - 8)) {
           fill(232); noStroke();
-          rect(sx + 5, sy + 5, cellSize - 10, cellSize - 10, 5);
+          circle(cx, cy, buttonDiameter);
         }
       }
 
+      noFill();
+      stroke(selected ? color(255, 0, 255) : 210);
+      strokeWeight(selected ? 2.5 : 1);
+      circle(cx, cy, buttonDiameter);
+
       if (selected) {
         fill(255, 0, 255); noStroke();
-        rect(sx + cellSize - 18, sy + 4, 14, 14, 3);
+        circle(sx + cellSize - 12, sy + 12, 16);
         fill(255); textSize(9); textAlign(CENTER, CENTER);
-        text('✓', sx + cellSize - 11, sy + 11);
+        text('✓', sx + cellSize - 12, sy + 12);
       }
 
       if (this.#consumeOptionClick(sx, sy, cellSize, cellSize)) {
         this.#selectBackgroundOption(option);
       }
     }
+  }
+
+  #drawCircularImageCover(img, cx, cy, diameter) {
+    if (!img || !img.width || !img.height) return false;
+
+    const x = cx - diameter / 2;
+    const y = cy - diameter / 2;
+    const scale = Math.max(diameter / img.width, diameter / img.height);
+    const sourceW = diameter / scale;
+    const sourceH = diameter / scale;
+    const sourceX = Math.max(0, (img.width - sourceW) / 2);
+    const sourceY = Math.max(0, (img.height - sourceH) / 2);
+
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.arc(cx, cy, diameter / 2, 0, Math.PI * 2);
+    drawingContext.clip();
+    imageMode(CORNER);
+    image(img, x, y, diameter, diameter, sourceX, sourceY, sourceW, sourceH);
+    drawingContext.restore();
+    return true;
   }
 
   _drawStemSlider(
