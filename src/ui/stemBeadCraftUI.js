@@ -32,6 +32,7 @@ class StemBeadCraftUI {
       boxMessage: 'box_message.png',
       boxPreview: 'box_preview.png',
       buttonComplete: 'button_complete.png',
+      buttonCompleteActive: 'button_complete_black.png',
       buttonNewBead: 'button_new_bead.png',
       markerFingerGreen: 'marker_finger_green.png',
       markerFingerPink: 'marker_finger_pink.png',
@@ -476,7 +477,9 @@ class StemBeadCraftUI {
     let btnY = height - 64;
     let isPressed = canDone && isClicked(btnX, btnY, btnW, btnH);
     let buttonHovered = canDone && isHovered(btnX, btnY, btnW, btnH);
-    let graphic = this.playGraphics.buttonComplete;
+    let graphic = canDone && this.playGraphics.buttonCompleteActive
+      ? this.playGraphics.buttonCompleteActive
+      : this.playGraphics.buttonComplete;
     this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH, !canDone, buttonHovered, '완성하기');
 
     // 클릭 → STEM_FINISH
