@@ -5,6 +5,7 @@ const DEBUG_INPUT_HAND = 1;
 const DEBUG_TEST_BEAD_CRAFT = 0;
 const DEBUG_TEST_POT_DECORATE = 1;
 const DEBUG_TEST_POT_MANAGEMENT = 2;
+const DEBUG_TEST_QR_CODE = 3;
 const DEBUG_MODE_BUTTON = { x: 18, y: 66, w: 176, h: 36 };
 const DEBUG_MENU_BUTTON = { x: 18, y: 18, w: 176, h: 36, label: "Back to debug menu" };
 const DEBUG_EXIT_BUTTON = { x: 1208, y: 18, w: 214, h: 36, label: "Exit debugging" };
@@ -12,6 +13,8 @@ let debugInputMode = DEBUG_INPUT_MOUSE;
 let debugTestMode = null;
 let debugWasPinching = false;
 let debugPotDecoratePot = null;
+let debugQrMatrix = null;
+let debugQrError = '';
 
 /**
  * @param {Number} mode
@@ -25,7 +28,7 @@ function debugInProgressSceneStart(mode) {
         debugInProgressSceneSetupBeadCraftTest();
     } else if (mode === DEBUG_TEST_POT_DECORATE) {
         debugInProgressSceneEnsurePotDecorateTest();
-    } else {
+    } else if (mode === DEBUG_TEST_POT_MANAGEMENT) {
         debugPotManagementSceneSetup();
     }
 
@@ -37,6 +40,8 @@ function debugInProgressSceneDraw() {
         debugPotManagementSceneDraw();
     } else if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
         debugInProgressSceneDrawPotDecorateTest();
+    } else if (debugTestMode === DEBUG_TEST_QR_CODE) {
+        debugInProgressSceneDrawQrCodeTest();
     } else {
         debugInProgressSceneDrawBeadCraftTest();
     }
@@ -94,6 +99,11 @@ function debugInProgressSceneMousePressed() {
 
     if (debugTestMode === DEBUG_TEST_POT_DECORATE) {
         debugInProgressSceneForwardPotDecorateMousePressed();
+        return;
+    }
+
+    if (debugTestMode === DEBUG_TEST_QR_CODE) {
+        debugInProgressSceneQrCodeMousePressed();
         return;
     }
 
@@ -174,6 +184,8 @@ function debugInProgressSceneReset() {
     debugInputMode = DEBUG_INPUT_MOUSE;
     debugTestMode = null;
     debugWasPinching = false;
+    debugQrMatrix = null;
+    debugQrError = '';
 }
 
 /**
@@ -252,6 +264,138 @@ function debugInProgressSceneForwardPotDecorateMousePressed() {
     potDecorateUI.onMousePressed();
     goTo(GAME_STATE.DEBUG);
     debugInProgressSceneEnsurePotDecorateTest();
+}
+
+function debugInProgressSceneDrawQrCodeTest() {
+    debugInProgressSceneEnsureQrCodeTest();
+
+    push();
+    background(232);
+    fill(0, 0, 0, 100);
+    noStroke();
+    rect(0, 0, width, height);
+
+    const popup = debugInProgressSceneQrPopupLayout();
+    debugInProgressSceneDrawQrPopup(popup);
+    pop();
+}
+
+function debugInProgressSceneEnsureQrCodeTest() {
+    if (debugQrMatrix || debugQrError) return;
+
+    try {
+        debugQrMatrix = createQrCodeMatrix(debugInProgressSceneLongQrText());
+    } catch (err) {
+        debugQrError = err?.message ?? String(err);
+    }
+}
+
+function debugInProgressSceneLongQrText() {
+    const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/beadgarden-debug.appspot.com/o/pot-images%2Fdebug-device-1234567890%2Fvery-long-image-hash-';
+    const token = '12345678-90ab-cdef-1234-567890abcdef';
+    const payload = [
+        'debug-long-qr-code',
+        'potName=' + encodeURIComponent('디버그 QR 화분'),
+        'createdAt=2026-06-17T12:00:00.000Z',
+        'theme=plant',
+        'decor=potBrown-bg-plant1-stems-5',
+        'notes=' + encodeURIComponent('This is intentionally long text for camera recognition testing.'),
+        'repeat=' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.repeat(6),
+    ].join('&');
+    return `${baseUrl}${'abcdef1234567890'.repeat(8)}.png?alt=media&token=${token}&${payload}`;
+}
+
+function debugInProgressSceneQrPopupLayout() {
+    const w = Math.min(520, width - 80);
+    const qrSize = Math.max(240, Math.min(440, w - 64, height - 220));
+    const h = qrSize + 150;
+    const x = width / 2 - w / 2;
+    const y = height / 2 - h / 2;
+    return {
+        x,
+        y,
+        w,
+        h,
+        close: { x: x + w - 33, y: y + 12, w: 22, h: 22 },
+        qr: { x: x + (w - qrSize) / 2, y: y + 58, size: qrSize },
+    };
+}
+
+function debugInProgressSceneDrawQrPopup(popup) {
+    const closeHovered = debugInProgressSceneMouseInRect(popup.close);
+
+    drawingContext.save();
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(0,0,0,0.18)';
+    fill(255);
+    noStroke();
+    rect(popup.x, popup.y, popup.w, popup.h, 12);
+    drawingContext.restore();
+
+    fill(closeHovered ? 70 : 120);
+    noStroke();
+    textSize(26);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    text('×', popup.close.x + popup.close.w / 2, popup.close.y + popup.close.h / 2 - 1);
+
+    if (debugQrMatrix) {
+        debugInProgressSceneDrawQrMatrix(debugQrMatrix, popup.qr.x, popup.qr.y, popup.qr.size);
+    } else {
+        fill(216);
+        noStroke();
+        rect(popup.qr.x, popup.qr.y, popup.qr.size, popup.qr.size, 1);
+        fill(255, 84, 94);
+        textSize(13);
+        textStyle(BOLD);
+        textAlign(CENTER, CENTER);
+        text(debugQrError || 'QR 생성 실패', popup.qr.x + popup.qr.size / 2, popup.qr.y + popup.qr.size / 2);
+    }
+
+    fill(80);
+    textSize(12);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    const matrixText = debugQrMatrix ? `Matrix ${debugQrMatrix.length} x ${debugQrMatrix.length}` : 'Matrix unavailable';
+    text(
+        `Long text QR scan test\n${debugInProgressSceneLongQrText().length} chars / ${matrixText}`,
+        popup.x + popup.w / 2,
+        popup.y + popup.h - 42
+    );
+
+    if (closeHovered) cursor(HAND);
+}
+
+function debugInProgressSceneDrawQrMatrix(matrix, x, y, size) {
+    const quietZone = 4;
+    const totalModules = matrix.length + quietZone * 2;
+    const moduleSize = max(1, floor(size / totalModules));
+    const qrPixelSize = moduleSize * totalModules;
+    const drawX = floor(x + (size - qrPixelSize) / 2);
+    const drawY = floor(y + (size - qrPixelSize) / 2);
+
+    fill(255);
+    noStroke();
+    rect(x, y, size, size);
+
+    fill(0);
+    for (let row = 0; row < matrix.length; row++) {
+        for (let col = 0; col < matrix.length; col++) {
+            if (!matrix[row][col]) continue;
+            rect(
+                drawX + (col + quietZone) * moduleSize,
+                drawY + (row + quietZone) * moduleSize,
+                moduleSize,
+                moduleSize
+            );
+        }
+    }
+}
+
+function debugInProgressSceneQrCodeMousePressed() {
+    if (debugInProgressSceneMouseInRect(debugInProgressSceneQrPopupLayout().close)) {
+        debugLandingSceneSetup();
+    }
 }
 
 function debugInProgressSceneDrawButton(button) {

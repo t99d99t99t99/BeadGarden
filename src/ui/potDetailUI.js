@@ -102,16 +102,18 @@ class PotDetailUI {
   }
 
   #imageDownloadPopupLayout(layout) {
-    const w = 330, h = 420;
-    const x = layout.panX + layout.panW - w;
-    const y = layout.panY + 124;
+    const w = Math.min(520, width - 80);
+    const qrSize = Math.max(240, Math.min(440, w - 64, height - 220));
+    const h = qrSize + 150;
+    const x = width / 2 - w / 2;
+    const y = height / 2 - h / 2;
     return {
       x,
       y,
       w,
       h,
       close: { x: x + w - 33, y: y + 12, w: 22, h: 22 },
-      qr: { x: x + 32, y: y + 58, size: 266 },
+      qr: { x: x + (w - qrSize) / 2, y: y + 58, size: qrSize },
     };
   }
 

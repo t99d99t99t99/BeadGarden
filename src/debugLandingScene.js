@@ -113,6 +113,10 @@ function debugLandingSceneTestButtons() {
         {
             label: "Pot management",
             action: () => debugInProgressSceneStart(DEBUG_TEST_POT_MANAGEMENT)
+        },
+        {
+            label: "Long QR code test",
+            action: () => debugInProgressSceneStart(DEBUG_TEST_QR_CODE)
         }
     ]);
 }
