@@ -103,6 +103,18 @@ class TutorialUI {
           ],
         ],
         imagePath: 'assets/tutorial/tutorial_7.png',
+        mouseOverlay: [
+          {
+            targetXRatio: 0.632,
+            targetYRatio: 0.156,
+            heightRatio: 0.13,
+          },
+          {
+            targetXRatio: 0.326,
+            targetYRatio: 0.953,
+            heightRatio: 0.14,
+          },
+        ],
       },
       {
         marker: '비즈 게임: 줄기 완성하기',
@@ -684,6 +696,13 @@ class TutorialUI {
 
   _drawMouseOverlay(imageRect, overlay = true) {
     if (!this.mouseImg) return;
+    if (Array.isArray(overlay)) {
+      for (const item of overlay) {
+        this._drawMouseOverlay(imageRect, item);
+      }
+      return;
+    }
+
     const config = overlay === true ? {} : overlay;
     const mouseH = imageRect.h * (config.heightRatio ?? 0.19);
     const mouseW = mouseH * (this.mouseImg.width / this.mouseImg.height);
