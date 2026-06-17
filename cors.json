@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://t99d99t99t99.github.io"],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Disposition"],
+    "maxAgeSeconds": 3600
+  }
+]
