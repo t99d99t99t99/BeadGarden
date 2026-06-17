@@ -1,6 +1,7 @@
 class TutorialUI {
   constructor() {
     this.currentStep = 0;
+    this.enteredFromState = GAME_STATE.INTRO;
     this._arrowButtonW = 46;
     this._arrowButtonH = 100;
     this._arrowHitW = 160;
@@ -9,43 +10,135 @@ class TutorialUI {
     this._arrowCenterYRatio = 0.551;
     this.leftButtonImg = null;
     this.rightButtonImg = null;
+    this.starBgImg = null;
+    this.mouseImg = null;
 
     this.steps = [
       {
-        label: 'Step 1 화분 상세 팝업',
-        desc: '화분을 클릭하여\n+ 새 비즈 줄기 만들기 를 클릭해 게임을 시작해요.',
-        img: null,
+        marker: '비즈가든',
+        lines: [
+          [{ text: '비즈 가든에는' }],
+          [{ text: '모두가 만든 비즈 식물들이 심어져 있어요.' }],
+        ],
+        tip: '마우스로 스크롤하여 다양한 화분을 살펴봐요.',
       },
       {
-        label: 'Step 2 철사 잡기',
-        desc: '철사 앞 부분에 손을 뻗고\n엄지와 검지를 모으면👌\n철사를 잡을 수 있어요.',
-        img: null,
+        marker: '비즈가든',
+        lines: [
+          [
+            { text: '새 화분 만들기', pill: 'pink' },
+            { text: ' 버튼을 클릭하여' },
+          ],
+          [{ text: '새로운 화분을 만들 수 있어요.' }],
+        ],
       },
       {
-        label: 'Step 3 비즈 꿰기',
-        desc: '철사 끝을 비즈 중앙에 통과시켜\n비즈를 꿰어요.',
-        img: null,
+        marker: '비즈가든',
+        lines: [
+          [{ text: '나 또는 다른 사람의 식물을 클릭하여' }],
+          [{ text: '비즈 식물을 구경할 수 있어요.' }],
+        ],
       },
       {
-        label: 'Step 4 비즈 삭제',
-        desc: '프리뷰에 있는 비즈를 클릭하여\n삭제할 수 있어요.',
-        img: null,
+        marker: '비즈가든',
+        lines: [
+          [
+            { text: '새 비즈 줄기 만들기', pill: 'pink' },
+            { text: ' 버튼을 눌러' },
+          ],
+          [{ text: '비즈를 꿰어 줄기를 만드는 게임을 시작해요.' }],
+        ],
+        imagePath: 'assets/tutorial/tutorial_4.png',
+        tip: '다른 사람의 화분에도 줄기를 만들 수 있어요!',
       },
       {
-        label: 'Step 5 비즈 완성',
-        desc: '최소 10개 이상 비즈를 꿰고,\n완성하기 를 클릭해요.',
-        img: null,
+        marker: '비즈 게임: 철사 잡기',
+        useStarBackground: true,
+        lines: [
+          [{ text: '웹 카메라가 당신의 손을 인식해요.', underline: true }],
+          [
+            { text: '손을 움직여, 철사 앞부분에서 ' },
+            { text: '엄지와 검지를 모아👌', underline: true },
+            { text: ' 철사를 잡아보세요.' },
+          ],
+        ],
+        imagePath: 'assets/tutorial/tutorial_5.png',
+        tip: '카메라에서 조금 40cm정도 떨어진 측면 손이 인식이 잘 돼요!',
+      },
+      {
+        marker: '비즈 게임: 비즈 꿰기',
+        useStarBackground: true,
+        lines: [
+          [{ text: '철사를 잡고 왼쪽으로 움직여' }],
+          [
+            { text: '비즈 중앙의 구멍', underline: true },
+            { text: '을 통과시키세요.' },
+          ],
+        ],
+        imagePath: 'assets/tutorial/tutorial_6.png',
+        tip: '한 번 철사에 끼워진 비즈는 빠지지 않아요.',
+      },
+      {
+        marker: '비즈 게임: 추가 기능',
+        useStarBackground: true,
+        lines: [
+          [{ text: '프리뷰에 있는 비즈를 클릭하여 삭제할 수 있어요.' }],
+          [
+            { text: '비즈 다시 뿌리기', pill: 'gray' },
+            { text: ' 버튼을 누르면 화면에 새로운 비즈가 세팅돼요.' },
+          ],
+        ],
+        imagePath: 'assets/tutorial/tutorial_7.png',
+      },
+      {
+        marker: '비즈 게임: 줄기 완성하기',
+        useStarBackground: true,
+        lines: [
+          [{ text: '비즈를 최소 10개 이상 꿴 뒤' }],
+          [
+            { text: '완성하기', pill: 'black' },
+            { text: ' 버튼을 클릭하세요.' },
+          ],
+        ],
+        imagePath: 'assets/tutorial/tutorial_8.png',
+        mouseOverlay: true,
+      },
+      {
+        marker: '비즈 게임: 줄기 꾸미기',
+        useStarBackground: true,
+        lines: [
+          [{ text: '내가 만든 줄기를 원하는 위치와 형태로 변경하여' }],
+          [{ text: '화분을 꾸며보세요.' }],
+        ],
+      },
+      {
+        marker: '비즈가든',
+        lines: [
+          [
+            { text: '여러 개의 줄기를', underline: true },
+            { text: ' 만들어 풍성한 비즈 식물을 완성해보세요.' },
+          ],
+          [{ text: '다른 사람의 식물도 가꿀 수 있어요.' }],
+        ],
+      },
+      {
+        marker: '비즈가든',
+        lines: [
+          [{ text: '식물을 다시 꾸미거나' }],
+          [{ text: '이후에 수정을 못하도록 잠글 수 있어요.' }],
+        ],
+        finalPanel: true,
       },
     ];
 
-    // 이미지 로드 (없으면 플레이스홀더)
-    for (let i = 0; i < this.steps.length; i++) {
-      const path = `assets/tutorial/tutorial_${i + 1}.png`;
-      loadImage(path, img => {
-        this.steps[i].img = img;
-      }, () => { });
-    }
+    this._loadStepImages();
 
+    loadImage('assets/backgrounds/stemBeadCraft_star_bg.png', img => {
+      this.starBgImg = img;
+    }, () => { });
+    loadImage('assets/tutorial/mouse.png', img => {
+      this.mouseImg = img;
+    }, () => { });
     loadImage('assets/ui/tutorial/left_button.png', img => {
       this.leftButtonImg = img;
     }, () => { });
@@ -54,8 +147,19 @@ class TutorialUI {
     }, () => { });
   }
 
+  _loadStepImages() {
+    for (let i = 0; i < this.steps.length; i++) {
+      const step = this.steps[i];
+      step.imagePath = step.imagePath || `assets/tutorial/tutorial_${i + 1}.png`;
+      loadImage(step.imagePath, img => {
+        step.img = img;
+      }, () => { });
+    }
+  }
+
   enter() {
     this.currentStep = 0;
+    this.enteredFromState = gameState;
   }
 
   _prev() {
@@ -66,8 +170,17 @@ class TutorialUI {
     if (this.currentStep < this.steps.length - 1) this.currentStep++;
   }
 
+  _sourceState() {
+    return this.enteredFromState || prevState || GAME_STATE.INTRO;
+  }
+
+  _isIntroFinalStep() {
+    return this._sourceState() === GAME_STATE.INTRO &&
+      this.currentStep === this.steps.length - 1;
+  }
+
   _exit() {
-    if (prevState === GAME_STATE.STEM_BEAD_CRAFT) {
+    if (this._sourceState() === GAME_STATE.STEM_BEAD_CRAFT) {
       goTo(GAME_STATE.STEM_BEAD_CRAFT);
     } else {
       goTo(GAME_STATE.GARDEN_LIST);
@@ -77,13 +190,18 @@ class TutorialUI {
   onMousePressed() {
     if (gameState !== GAME_STATE.TUTORIAL) return;
 
-    // 건너뛰기 / 가든 입장하기 버튼
-    const isLastStep = this.currentStep === this.steps.length - 1;
-    const skipBtnW = (prevState !== GAME_STATE.STEM_BEAD_CRAFT && isLastStep) ? 160 : 140;
-    const skipX = width - 40 - skipBtnW, skipY = 32;
-    if (isHovered(skipX, skipY, skipBtnW, 48)) { this._exit(); return; }
+    const skipButton = this._skipButtonRect();
+    if (skipButton && isHovered(skipButton.x, skipButton.y, skipButton.w, skipButton.h)) {
+      this._exit();
+      return;
+    }
 
-    // < > 버튼
+    const ctaButton = this._finalCtaRect();
+    if (ctaButton && isHovered(ctaButton.x, ctaButton.y, ctaButton.w, ctaButton.h)) {
+      this._exit();
+      return;
+    }
+
     const leftArrow = this._arrowHitRect(-1);
     const rightArrow = this._arrowHitRect(1);
     if (this.currentStep > 0 && isHovered(leftArrow.x, leftArrow.y, leftArrow.w, leftArrow.h)) {
@@ -93,116 +211,433 @@ class TutorialUI {
     if (this.currentStep < this.steps.length - 1 &&
       isHovered(rightArrow.x, rightArrow.y, rightArrow.w, rightArrow.h)) {
       this._next();
-      return;
     }
   }
 
   draw() {
-    background(237, 242, 226);
-
     const step = this.steps[this.currentStep];
-    const pad = 40;
+    this._drawBackground(step);
 
-    // ── 타이틀 ──
-    noStroke();
-    fill(160, 80, 200);
-    textStyle(NORMAL); textSize(22); textAlign(LEFT, CENTER);
-    text('Tutorial', pad + 10, 70);
+    this._drawTopTitle();
+    const skipHov = this._drawSkipButton();
+    this._drawMarkerAndMessage(step);
 
-    // ── 건너뛰기 버튼 ──
-    const skipX = width - pad - 140, skipY = 32;
-    const skipHov = isHovered(skipX, skipY, 140, 48);
-    const isLastStep = this.currentStep === this.steps.length - 1;
-    let skipLabel, skipBtnW = 140;
-    if (prevState === GAME_STATE.STEM_BEAD_CRAFT) {
-      skipLabel = '돌아가기';
-      fill(skipHov ? 100 : 130);
-    } else if (isLastStep) {
-      skipLabel = '가든 입장하기';
-      skipBtnW = 160;
-      fill(skipHov ? color(180, 0, 180) : color(255, 0, 255));
+    if (step.finalPanel) {
+      this._drawFinalPanel();
     } else {
-      skipLabel = '건너뛰기';
-      fill(skipHov ? 100 : 130);
+      this._drawRegularImageStep(step);
     }
+
+    this._drawArrows(skipHov);
+  }
+
+  _drawBackground(step) {
+    if (step.useStarBackground && this.starBgImg) {
+      this._drawImageCover(this.starBgImg, 0, 0, width, height);
+      return;
+    }
+    background(237, 242, 226);
+  }
+
+  _drawTopTitle() {
     noStroke();
-    rect(skipX, skipY, skipBtnW, 48, 10);
-    fill(255); textStyle(NORMAL); textSize(15); textAlign(CENTER, CENTER);
-    text(skipLabel, skipX + skipBtnW / 2, skipY + 24);
+    fill(220, 0, 235);
+    textStyle(NORMAL);
+    textSize(this._responsiveSize(31, 22, 42));
+    textAlign(CENTER, CENTER);
+    text('Tutorial', width / 2, height * 0.05);
+  }
 
-    // ── Step 배지 ──
-    const badgeY = 50;
-    textSize(14); textStyle(NORMAL);
-    const badgeW = textWidth(step.label) + 32;
-    fill(255, 120, 210); noStroke();
-    rect(width / 2 - badgeW / 2, badgeY, badgeW, 30, 15);
-    fill(255); textAlign(CENTER, CENTER);
-    text(step.label, width / 2, badgeY + 15);
+  _drawSkipButton() {
+    const rectValue = this._skipButtonRect();
+    if (!rectValue) return false;
 
-    // ── 설명 텍스트 ──
-    fill(40); textSize(22); textStyle(BOLD); textAlign(CENTER, TOP);
-    text(step.desc, width / 2, badgeY + 46);
+    const skipHov = isHovered(rectValue.x, rectValue.y, rectValue.w, rectValue.h);
+    noStroke();
+    fill(skipHov ? 160 : 188);
+    rect(rectValue.x, rectValue.y, rectValue.w, rectValue.h, rectValue.h * 0.12);
 
-    // ── 이미지 영역 ──
-    const imgY = 190;
-    const imgW = min(width - 200, 900);
-    const imgH = min(height - imgY - 56, imgW * 0.75);
-    const imgX = width / 2 - imgW / 2;
+    fill(255);
+    textStyle(BOLD);
+    textSize(this._responsiveSize(19, 13, 24));
+    textAlign(CENTER, CENTER);
+    text(this._skipButtonLabel(), rectValue.x + rectValue.w / 2, rectValue.y + rectValue.h / 2);
+    return skipHov;
+  }
 
-    noFill(); noStroke();
+  _skipButtonRect() {
+    if (this._isIntroFinalStep()) return null;
+    const label = this._skipButtonLabel();
+    textStyle(BOLD);
+    textSize(this._responsiveSize(19, 13, 24));
+    const buttonW = Math.max(width * 0.1, textWidth(label) + width * 0.05);
+    const buttonH = Math.max(48, height * 0.052);
+    return {
+      x: width - width * 0.052 - buttonW,
+      y: height * 0.052,
+      w: buttonW,
+      h: buttonH,
+    };
+  }
 
+  _skipButtonLabel() {
+    if (this._sourceState() === GAME_STATE.STEM_BEAD_CRAFT) return '돌아가기';
+    return '건너뛰기';
+  }
+
+  _drawMarkerAndMessage(step) {
+    const markerY = height * 0.1;
+    const lineSize = this._responsiveSize(24, 18, 30);
+    const lineGap = lineSize * 1.45;
+    const messageY = markerY + height * 0.052;
+
+    this._drawMarker(step.marker, markerY, step.useStarBackground);
+    this._drawRichLines(step.lines, width / 2, messageY, lineSize, lineGap);
+
+    return {
+      markerY,
+      messageY,
+      contentTop: messageY + step.lines.length * lineGap + height * 0.035,
+    };
+  }
+
+  _drawMarker(label, centerY, useStarBackground) {
+    textStyle(BOLD);
+    textSize(this._responsiveSize(14, 12, 18));
+    const markerW = textWidth(label) + width * 0.037;
+    const markerH = Math.max(28, height * 0.032);
+    noStroke();
+    fill(useStarBackground ? color(255, 255, 255, 238) : color(246, 203, 250));
+    rect(width / 2 - markerW / 2, centerY - markerH / 2, markerW, markerH, markerH / 2);
+    fill(220, 0, 235);
+    textAlign(CENTER, CENTER);
+    text(label, width / 2, centerY);
+  }
+
+  _drawRichLines(lines, centerX, startY, size, lineGap) {
+    for (let i = 0; i < lines.length; i++) {
+      this._drawRichLine(lines[i], centerX, startY + i * lineGap, size);
+    }
+  }
+
+  _drawRichLine(spans, centerX, centerY, size) {
+    const metrics = spans.map(span => this._spanMetrics(span, size));
+    const totalW = metrics.reduce((sum, metric) => sum + metric.w, 0);
+    let x = centerX - totalW / 2;
+
+    for (let i = 0; i < spans.length; i++) {
+      const span = spans[i];
+      const metric = metrics[i];
+      const pillPadX = metric.pillPadX;
+
+      if (span.pill) {
+        noStroke();
+        fill(this._pillFill(span.pill));
+        rect(x, centerY - metric.h / 2, metric.w, metric.h, metric.h * 0.24);
+      }
+
+      fill(this._spanTextFill(span));
+      noStroke();
+      textStyle(BOLD);
+      textSize(size);
+      textAlign(LEFT, CENTER);
+      text(span.text, x + pillPadX, centerY);
+
+      if (span.underline) {
+        stroke(20);
+        strokeWeight(Math.max(2, size * 0.07));
+        const y = centerY + size * 0.45;
+        line(x + pillPadX, y, x + pillPadX + metric.textW, y);
+        noStroke();
+      }
+
+      x += metric.w;
+    }
+  }
+
+  _spanMetrics(span, size) {
+    textStyle(BOLD);
+    textSize(size);
+    const textW = textWidth(span.text);
+    const pillPadX = span.pill ? size * 0.55 : 0;
+    const h = span.pill ? size * 1.32 : size;
+    return {
+      textW,
+      pillPadX,
+      w: textW + pillPadX * 2,
+      h,
+    };
+  }
+
+  _pillFill(kind) {
+    if (kind === 'gray') return color(207, 207, 207);
+    if (kind === 'black') return color(0);
+    return color(230, 0, 235);
+  }
+
+  _spanTextFill(span) {
+    if (span.pill === 'pink' || span.pill === 'black') return color(255);
+    return color(20);
+  }
+
+  _drawRegularImageStep(step) {
+    const imageRect = this._tutorialImageRect(null, this._stepImageRatio(step));
+    let visibleImageRect = imageRect;
     if (step.img) {
-      push();
-      drawingContext.save();
-      drawingContext.beginPath();
-      drawingContext.rect(imgX, imgY, imgW, imgH);
-      drawingContext.clip();
-      imageMode(CORNER);
-      const imgRatio = step.img.width / step.img.height;
-      const boxRatio = imgW / imgH;
-      const drawW = imgRatio > boxRatio ? imgH * imgRatio : imgW;
-      const drawH = imgRatio > boxRatio ? imgH : imgW / imgRatio;
-      image(step.img, imgX + (imgW - drawW) / 2, imgY + (imgH - drawH) / 2, drawW, drawH);
-      drawingContext.restore();
-      pop();
+      visibleImageRect = this._drawImageContain(step.img, imageRect);
     } else {
-      fill(160); textSize(14); textStyle(NORMAL); textAlign(CENTER, CENTER);
-      text(`assets/tutorial/tutorial_${this.currentStep + 1}.png`, width / 2, imgY + imgH / 2);
+      this._drawImageFallback(step, imageRect);
     }
 
-    // ── < > 화살표 ──
+    if (step.mouseOverlay) {
+      this._drawMouseOverlay(visibleImageRect);
+    }
+
+    if (step.tip) {
+      this._drawTipAtTop(step.tip, this._finalCtaTop());
+    }
+  }
+
+  _tutorialImageRect(x = null, imageRatio = this._fallbackImageRatio()) {
+    const size = this._tutorialPhotoSize(imageRatio);
+    return {
+      x: x ?? width / 2 - size.w / 2,
+      y: this._tutorialImageTop(),
+      w: size.w,
+      h: size.h,
+      r: Math.max(10, Math.min(width, height) * 0.017),
+    };
+  }
+
+  _tutorialPhotoSize(imageRatio = this._fallbackImageRatio()) {
+    const targetH = this._tutorialImageHeight();
+    return {
+      w: targetH * imageRatio,
+      h: targetH,
+    };
+  }
+
+  _tutorialImageTop() {
+    const maxLineCount = this.steps.reduce((maxLines, step) => {
+      return Math.max(maxLines, step.lines?.length || 0);
+    }, 0);
+    const lineSize = this._responsiveSize(24, 18, 30);
+    const lineGap = lineSize * 1.45;
+    const markerY = height * 0.1;
+    const messageY = markerY + height * 0.052;
+    const messageBottom = messageY + Math.max(0, maxLineCount - 1) * lineGap + lineSize * 0.68;
+    return messageBottom + height * 0.025;
+  }
+
+  _tutorialImageHeight() {
+    const imageTop = this._tutorialImageTop();
+    const imageBottom = this._finalCtaTop() - height * 0.025;
+    return Math.max(height * 0.3, imageBottom - imageTop);
+  }
+
+  _stepImageRatio(step) {
+    if (step?.img?.width && step?.img?.height) {
+      return step.img.width / step.img.height;
+    }
+    return this._fallbackImageRatio();
+  }
+
+  _fallbackImageRatio() {
+    return 1.37;
+  }
+
+  _drawFinalPanel() {
+    const step = this.steps[this.currentStep];
+    const panelRect = this._tutorialImageRect(null, 16 / 9);
+    const panelW = panelRect.w;
+    const panelH = panelRect.h;
+    const panelX = panelRect.x;
+    const panelY = panelRect.y;
+    const innerGap = panelW * 0.018;
+    const panelRadius = Math.max(12, Math.min(width, height) * 0.018);
+
+    noStroke();
+    fill(255);
+    rect(panelX, panelY, panelW, panelH, panelRadius);
+
+    const imageRect = {
+      x: panelX + innerGap,
+      y: panelY + innerGap,
+      w: panelW * 0.7,
+      h: panelH - innerGap * 2,
+      r: Math.max(10, panelRadius * 0.8),
+    };
+    if (step.img) {
+      this._drawImageContain(step.img, imageRect);
+    } else {
+      this._drawImageFallback(step, imageRect);
+    }
+
+    const textX = imageRect.x + imageRect.w + panelW * 0.03;
+    const textMaxW = panelX + panelW - textX - innerGap;
+    const topTextY = panelY + panelH * 0.13;
+    const lowerTextY = panelY + panelH * 0.68;
+    fill(220, 0, 235);
+    textStyle(BOLD);
+    textSize(this._responsiveSize(16, 11, 20));
+    textAlign(LEFT, TOP);
+    text('줄기 및 화분을 꾸미는 기능', textX, topTextY, textMaxW, panelH * 0.18);
+
+    text('새로운 줄기 생성과 꾸미기를\n제한하는 잠금 기능', textX, lowerTextY, textMaxW, panelH * 0.16);
+    this._drawFinalPanelTip('한번 잠그면 수정은 불가해요.', textX, lowerTextY + panelH * 0.11, textMaxW);
+
+    const cta = this._finalCtaRect();
+    if (cta) {
+      const ctaHov = isHovered(cta.x, cta.y, cta.w, cta.h);
+      noStroke();
+      fill(ctaHov ? color(190, 0, 205) : color(230, 0, 235));
+      rect(cta.x, cta.y, cta.w, cta.h, cta.h * 0.12);
+      fill(255);
+      textStyle(BOLD);
+      textSize(this._responsiveSize(25, 19, 34));
+      textAlign(CENTER, CENTER);
+      text('비즈 가든 입장하기', cta.x + cta.w / 2, cta.y + cta.h / 2);
+    }
+  }
+
+  _finalCtaRect() {
+    if (!this._isIntroFinalStep()) return null;
+    const w = width * 0.36;
+    const h = Math.max(54, height * 0.063);
+    return {
+      x: width / 2 - w / 2,
+      y: this._finalCtaTop(),
+      w,
+      h,
+    };
+  }
+
+  _finalCtaTop() {
+    return height * 0.875;
+  }
+
+  _drawTip(message, x, y, alignMode = CENTER) {
+    const size = this._responsiveSize(17, 12, 23);
+    const badge = 'Tip';
+    textStyle(BOLD);
+    textSize(size);
+    const badgeW = textWidth(badge) + size * 1.05;
+    const badgeH = size * 1.5;
+    const gap = size * 0.65;
+    const messageW = textWidth(message);
+    const totalW = badgeW + gap + messageW;
+    const startX = alignMode === LEFT ? x : width / 2 - totalW / 2;
+
+    noStroke();
+    fill(225);
+    rect(startX, y - badgeH / 2, badgeW, badgeH, badgeH * 0.22);
+    fill(220, 0, 235);
+    textAlign(CENTER, CENTER);
+    text(badge, startX + badgeW / 2, y);
+    textAlign(LEFT, CENTER);
+    text(message, startX + badgeW + gap, y);
+  }
+
+  _drawTipAtTop(message, top, alignMode = CENTER) {
+    this._drawTip(message, width / 2, top + this._tipBadgeHeight() / 2, alignMode);
+  }
+
+  _tipBadgeHeight() {
+    return this._responsiveSize(17, 12, 23) * 1.5;
+  }
+
+  _drawFinalPanelTip(message, x, y, maxW) {
+    const size = this._responsiveSize(12, 9, 14);
+    const badge = 'Tip';
+    textStyle(BOLD);
+    textSize(size);
+    const badgeW = textWidth(badge) + size * 1.05;
+    const badgeH = size * 1.5;
+    const gap = size * 0.65;
+    const textMaxW = Math.max(20, maxW - badgeW - gap);
+    const top = y - badgeH / 2;
+
+    noStroke();
+    fill(225);
+    rect(x, top, badgeW, badgeH, badgeH * 0.22);
+    fill(220, 0, 235);
+    textAlign(CENTER, CENTER);
+    text(badge, x + badgeW / 2, y);
+    textAlign(LEFT, TOP);
+    text(message, x + badgeW + gap, top, textMaxW, badgeH);
+  }
+
+  _drawMouseOverlay(imageRect) {
+    if (!this.mouseImg) return;
+    const mouseH = imageRect.h * 0.19;
+    const mouseW = mouseH * (this.mouseImg.width / this.mouseImg.height);
+    const x = imageRect.x + imageRect.w * 0.66;
+    const y = imageRect.y + imageRect.h - mouseH * 0.34;
+    imageMode(CORNER);
+    image(this.mouseImg, x, y, mouseW, mouseH);
+  }
+
+  _drawImageFallback(step, imageRect) {
+    fill(160);
+    noStroke();
+    textSize(14);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
+    text(step.imagePath, imageRect.x + imageRect.w / 2, imageRect.y + imageRect.h / 2);
+  }
+
+  _drawImageContain(img, imageRect) {
+    if (!img || !img.width || !img.height) return imageRect;
+
+    const scale = Math.min(imageRect.w / img.width, imageRect.h / img.height);
+    const drawW = img.width * scale;
+    const drawH = img.height * scale;
+    const drawX = imageRect.x + (imageRect.w - drawW) / 2;
+    const drawY = imageRect.y + (imageRect.h - drawH) / 2;
+    imageMode(CORNER);
+    image(img, drawX, drawY, drawW, drawH);
+
+    return {
+      x: drawX,
+      y: drawY,
+      w: drawW,
+      h: drawH,
+      r: imageRect.r,
+    };
+  }
+
+  _drawImageCover(img, x, y, w, h) {
+    if (!img || !img.width || !img.height) return;
+    const scale = Math.max(w / img.width, h / img.height);
+    const drawW = img.width * scale;
+    const drawH = img.height * scale;
+    imageMode(CORNER);
+    image(img, x + (w - drawW) / 2, y + (h - drawH) / 2, drawW, drawH);
+  }
+
+  _drawArrows(skipHov) {
     const leftArrow = this._arrowHitRect(-1);
     const rightArrow = this._arrowHitRect(1);
     const leftCenter = this._arrowCenter(-1);
     const rightCenter = this._arrowCenter(1);
+    let hoverHandled = skipHov;
 
     if (this.currentStep > 0) {
       const lHov = isHovered(leftArrow.x, leftArrow.y, leftArrow.w, leftArrow.h);
       this._drawArrowButton(this.leftButtonImg, '‹', leftCenter.x, leftCenter.y);
-      if (lHov) cursor(HAND);
+      hoverHandled = hoverHandled || lHov;
     }
 
     if (this.currentStep < this.steps.length - 1) {
       const rHov = isHovered(rightArrow.x, rightArrow.y, rightArrow.w, rightArrow.h);
       this._drawArrowButton(this.rightButtonImg, '›', rightCenter.x, rightCenter.y);
-      if (rHov) cursor(HAND);
+      hoverHandled = hoverHandled || rHov;
     }
 
-    // ── 점 인디케이터 ──
-    const dotY = height - 20;
-    const dotSpacing = 16;
-    const dotStartX = width / 2 - (this.steps.length * dotSpacing) / 2;
-    for (let i = 0; i < this.steps.length; i++) {
-      fill(i === this.currentStep ? color(220, 40, 180) : color(210, 180, 210));
-      noStroke();
-      ellipse(dotStartX + i * dotSpacing + 8, dotY, i === this.currentStep ? 10 : 7);
-    }
+    const cta = this._finalCtaRect();
+    if (cta) hoverHandled = hoverHandled || isHovered(cta.x, cta.y, cta.w, cta.h);
 
-    if (!isHovered(leftArrow.x, leftArrow.y, leftArrow.w, leftArrow.h) &&
-      !isHovered(rightArrow.x, rightArrow.y, rightArrow.w, rightArrow.h) &&
-      !skipHov) {
-      cursor(ARROW);
-    }
+    cursor(hoverHandled ? HAND : ARROW);
   }
 
   _arrowCenter(direction) {
@@ -231,8 +666,15 @@ class TutorialUI {
       return;
     }
 
-    fill(220, 40, 180); noStroke();
-    textSize(100); textStyle(NORMAL); textAlign(CENTER, CENTER);
+    fill(220, 40, 180);
+    noStroke();
+    textSize(100);
+    textStyle(NORMAL);
+    textAlign(CENTER, CENTER);
     text(fallbackLabel, centerX, centerY);
+  }
+
+  _responsiveSize(base, minSize, maxSize) {
+    return Math.max(minSize, Math.min(maxSize, base * (height / 900)));
   }
 }
