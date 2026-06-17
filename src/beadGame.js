@@ -42,7 +42,7 @@ class BeadGame {
         /** @type {Wire | null} */
         this.heldWire = null;
         this.wireGrabDistance = 40;
-        this.wirePinchOffsetX = -32;
+        this.wirePinchOffsetX = -52; // 손으로 잡을 때 와이어를 손 쪽으로 20px 더 왼쪽으로 이동
         this.paletteColors = [];
         this.theme = POT_THEMES.LEGACY;
         this.beadSpawnCount = 50;
