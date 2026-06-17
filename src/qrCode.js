@@ -159,15 +159,21 @@ function createQrErrorCorrection(data, degree) {
 }
 
 function createQrGeneratorPolynomial(degree) {
-  const result = [1];
+  const result = new Array(degree).fill(0);
+  result[degree - 1] = 1;
+  let root = 1;
+
   for (let i = 0; i < degree; i++) {
-    result.push(0);
-    for (let j = 0; j < result.length - 1; j++) {
-      result[j] = qrGfMultiply(result[j], QR_GF_EXP[i]);
-      result[j] ^= result[j + 1];
+    for (let j = 0; j < degree; j++) {
+      result[j] = qrGfMultiply(result[j], root);
+      if (j + 1 < degree) {
+        result[j] ^= result[j + 1];
+      }
     }
+    root = qrGfMultiply(root, 0x02);
   }
-  return result.slice(0, degree);
+
+  return result;
 }
 
 function qrGfMultiply(x, y) {
