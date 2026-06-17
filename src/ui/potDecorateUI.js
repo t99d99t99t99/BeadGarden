@@ -1033,7 +1033,7 @@ class PotDecorateUI {
 
       // ── 형태별 슬라이더 ──
       if (this.selectedStemShape === 1) {
-        this._drawStemSlider('모서리', 'curveSharpness', 0, 100, 1, panX, secY, 330, 0,
+        this._drawStemSlider('모양', 'curveSharpness', 0, 100, 1, panX, secY, 330, 0,
           { start: '둥글게', end: '각지게' });
         secY += 76;
         this._drawStemSlider('휘어짐', 'curveDepth', -100, 100, 1, panX, secY, 330, 0,
