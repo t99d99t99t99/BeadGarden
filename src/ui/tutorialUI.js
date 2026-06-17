@@ -31,6 +31,12 @@ class TutorialUI {
           ],
           [{ text: '새로운 화분을 만들 수 있어요.' }],
         ],
+        imagePath: 'assets/tutorial/tutorial_1.png',
+        mouseOverlay: {
+          targetXRatio: 0.5,
+          targetYRatio: 0.925,
+          heightRatio: 0.16,
+        },
       },
       {
         marker: '비즈가든',
@@ -38,6 +44,12 @@ class TutorialUI {
           [{ text: '나 또는 다른 사람의 식물을 클릭하여' }],
           [{ text: '비즈 식물을 구경할 수 있어요.' }],
         ],
+        imagePath: 'assets/tutorial/tutorial_1.png',
+        mouseOverlay: {
+          targetXRatio: 0.5,
+          targetYRatio: 0.62,
+          heightRatio: 0.15,
+        },
       },
       {
         marker: '비즈가든',
@@ -101,7 +113,11 @@ class TutorialUI {
           ],
         ],
         imagePath: 'assets/tutorial/tutorial_8.png',
-        mouseOverlay: true,
+        mouseOverlay: {
+          targetXRatio: 0.62,
+          targetYRatio: 0.955,
+          heightRatio: 0.14,
+        },
       },
       {
         marker: '비즈 게임: 줄기 꾸미기',
@@ -390,7 +406,7 @@ class TutorialUI {
     }
 
     if (step.mouseOverlay) {
-      this._drawMouseOverlay(visibleImageRect);
+      this._drawMouseOverlay(visibleImageRect, step.mouseOverlay);
     }
 
     if (step.tip) {
@@ -467,24 +483,40 @@ class TutorialUI {
       h: panelH - innerGap * 2,
       r: Math.max(10, panelRadius * 0.8),
     };
+    let visibleImageRect = imageRect;
     if (step.img) {
-      this._drawImageContain(step.img, imageRect);
+      visibleImageRect = this._drawImageContain(step.img, imageRect);
     } else {
       this._drawImageFallback(step, imageRect);
     }
 
     const textX = imageRect.x + imageRect.w + panelW * 0.03;
     const textMaxW = panelX + panelW - textX - innerGap;
-    const topTextY = panelY + panelH * 0.13;
-    const lowerTextY = panelY + panelH * 0.68;
+    const topTextY = visibleImageRect.y + visibleImageRect.h * 0.76;
+    const lowerTextY = visibleImageRect.y + visibleImageRect.h * 0.88;
+    const labelSize = this._responsiveSize(16, 11, 20);
+    const arrowStartX = textX - panelW * 0.012;
+    this._drawFinalPanelArrow(
+      arrowStartX,
+      topTextY + labelSize * 0.65,
+      visibleImageRect.x + visibleImageRect.w * 0.75,
+      visibleImageRect.y + visibleImageRect.h * 0.8
+    );
+    this._drawFinalPanelArrow(
+      arrowStartX,
+      lowerTextY + labelSize * 0.9,
+      visibleImageRect.x + visibleImageRect.w * 0.925,
+      visibleImageRect.y + visibleImageRect.h * 0.94
+    );
+
     fill(220, 0, 235);
     textStyle(BOLD);
-    textSize(this._responsiveSize(16, 11, 20));
+    textSize(labelSize);
     textAlign(LEFT, TOP);
     text('줄기 및 화분을 꾸미는 기능', textX, topTextY, textMaxW, panelH * 0.18);
 
     text('새로운 줄기 생성과 꾸미기를\n제한하는 잠금 기능', textX, lowerTextY, textMaxW, panelH * 0.16);
-    this._drawFinalPanelTip('한번 잠그면 수정은 불가해요.', textX, lowerTextY + panelH * 0.11, textMaxW);
+    this._drawFinalPanelTip('한번 잠그면 수정은 불가해요.', textX, lowerTextY + panelH * 0.085, textMaxW);
 
     const cta = this._finalCtaRect();
     if (cta) {
@@ -567,12 +599,42 @@ class TutorialUI {
     text(message, x + badgeW + gap, top, textMaxW, badgeH);
   }
 
-  _drawMouseOverlay(imageRect) {
+  _drawFinalPanelArrow(startX, startY, endX, endY) {
+    const angle = Math.atan2(endY - startY, endX - startX);
+    const headLen = Math.max(8, height * 0.013);
+    const headW = headLen * 0.72;
+    const baseX = endX - Math.cos(angle) * headLen;
+    const baseY = endY - Math.sin(angle) * headLen;
+    const perpX = Math.cos(angle + HALF_PI) * headW;
+    const perpY = Math.sin(angle + HALF_PI) * headW;
+
+    stroke(220, 0, 235);
+    strokeWeight(Math.max(2, height * 0.003));
+    strokeCap(ROUND);
+    line(startX, startY, endX, endY);
+    noStroke();
+    fill(220, 0, 235);
+    triangle(endX, endY, baseX + perpX, baseY + perpY, baseX - perpX, baseY - perpY);
+  }
+
+  _drawMouseOverlay(imageRect, overlay = true) {
     if (!this.mouseImg) return;
-    const mouseH = imageRect.h * 0.19;
+    const config = overlay === true ? {} : overlay;
+    const mouseH = imageRect.h * (config.heightRatio ?? 0.19);
     const mouseW = mouseH * (this.mouseImg.width / this.mouseImg.height);
-    const x = imageRect.x + imageRect.w * 0.66;
-    const y = imageRect.y + imageRect.h - mouseH * 0.34;
+    let x;
+    let y;
+
+    if (typeof config.targetXRatio === 'number' && typeof config.targetYRatio === 'number') {
+      const anchorXRatio = config.anchorXRatio ?? 0.36;
+      const anchorYRatio = config.anchorYRatio ?? 0.37;
+      x = imageRect.x + imageRect.w * config.targetXRatio - mouseW * anchorXRatio;
+      y = imageRect.y + imageRect.h * config.targetYRatio - mouseH * anchorYRatio;
+    } else {
+      x = imageRect.x + imageRect.w * (config.xRatio ?? 0.66);
+      y = imageRect.y + imageRect.h - mouseH * (config.bottomOverlapRatio ?? 0.34);
+    }
+
     imageMode(CORNER);
     image(this.mouseImg, x, y, mouseW, mouseH);
   }
