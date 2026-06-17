@@ -36,12 +36,16 @@ class PotDecorateUI {
     // 임시 저장 (건너뛰기용)
     this._savedState = null;
     this.currentPot = null;
+    this.entrySource = null;
+    this.isSaving = false;
   }
 
-  show(mode = 'new', pot = null) {
+  show(mode = 'new', pot = null, options = {}) {
     this.isVisible = true;
     this.mode = mode;
     this.currentPot = pot;
+    this.entrySource = options.entrySource ?? null;
+    this.isSaving = false;
     this.scrollY = 0;
     this.targetScrollY = 0;
     this.maxScrollY = 0;
@@ -911,11 +915,11 @@ class PotDecorateUI {
     text('화분의 디자인은 언제든지 수정할 수 있어요.', saveX + 140, saveY - 10);
 
     // 저장하기
-    let saveHov = isHovered(saveX, saveY, 140, 44);
-    fill(saveHov ? 55 : 30); noStroke();
+    let saveHov = !this.isSaving && isHovered(saveX, saveY, 140, 44);
+    fill(this.isSaving ? 120 : saveHov ? 55 : 30); noStroke();
     rect(saveX, saveY, 140, 44, 22);
     fill(255); textSize(14); textAlign(CENTER, CENTER);
-    text('저장하기', saveX + 70, saveY + 22);
+    text(this.isSaving ? '저장 중...' : '저장하기', saveX + 70, saveY + 22);
 
     if (this.pendingStemDeletion) {
       this.#drawStemDeleteConfirmation();
@@ -934,6 +938,7 @@ class PotDecorateUI {
   // 마우스 클릭으로 줄기 선택
   onMousePressed() {
     if (!this.isVisible) return;
+    if (this.isSaving) return;
 
     let popW = 1060, popH = 700;
     let popX = width / 2 - popW / 2;
@@ -981,6 +986,10 @@ class PotDecorateUI {
     if (mouseX > skipX && mouseX < skipX + 140 &&
       mouseY > skipY && mouseY < skipY + 44) {
       this.#restoreSavedState();
+      if (this.entrySource === 'pot-setup') {
+        this.#returnToPotSetup();
+        return;
+      }
       this.hide();
       goTo(GAME_STATE.GARDEN_LIST);
       return;
@@ -1088,16 +1097,32 @@ class PotDecorateUI {
     this.currentPot.bgIndex = data.bgIndex;
     this.currentPot.stems = data.stems;
 
-    return this.currentPot.firestoreId
-      ? updatePotDecor(this.currentPot.firestoreId, data)
-      : Promise.resolve();
+    if (this.currentPot.firestoreId) {
+      return updatePotDecor(this.currentPot.firestoreId, data);
+    }
+
+    if (this.mode !== 'new') {
+      return Promise.resolve();
+    }
+
+    return createPot({ ...this.currentPot, ...data })
+      .then(potId => {
+        this.currentPot.firestoreId = potId;
+        this.currentPot.createdBy = this.currentPot.createdBy ?? myDeviceId;
+        this.currentPot.createdAt = this.currentPot.createdAt ?? Date.now();
+        this.mode = 'edit';
+      });
   }
 
   async #saveAndReturn() {
+    if (this.isSaving) return;
+
+    this.isSaving = true;
     try {
       await this.#applyCurrentData();
       this.#returnToPotDetail();
     } catch (err) {
+      this.isSaving = false;
       console.error('[Firestore] 꾸미기 저장 오류:', err);
     }
   }
@@ -1106,6 +1131,13 @@ class PotDecorateUI {
     this.hide();
     potDetailUI.show(this.currentPot);
     goTo(GAME_STATE.POT_PREVIEW);
+  }
+
+  #returnToPotSetup() {
+    const draftPot = this.currentPot;
+    this.hide();
+    potSetupUI.show(draftPot);
+    goTo(GAME_STATE.NEW_POT);
   }
 
   #potTheme() {

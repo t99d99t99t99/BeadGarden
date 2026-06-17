@@ -190,7 +190,7 @@ class GardenUI {
     // 화분 이름 (화분 아래)
     noStroke();
     fill(isHov ? color(60, 60, 200) : color(50));
-    textSize(13); textStyle(BOLD); textAlign(CENTER);
+    textSize(13); textStyle(BOLD); textAlign(CENTER, BASELINE);
     text(pot.name + (pot.locked ? ' 🔒' : ''), cx, potBottom + 14);
 
     // 좋아요 수
@@ -198,6 +198,7 @@ class GardenUI {
 
     // 줄기 수 + 에디션
     fill(130); textStyle(NORMAL); textSize(11);
+    textAlign(CENTER, BASELINE);
     text(`줄기 ${(pot.stems ?? []).length}개 (${this._editionLabel(pot)})`, cx, potBottom + 52);
 
     // 호버 시 "클릭하여 열기→"
@@ -205,6 +206,7 @@ class GardenUI {
       textSize(11);
       const openY = potBottom + 68;
       const openLabel = '클릭하여 열기→';
+      textAlign(CENTER, BASELINE);
       text(openLabel, cx, openY);
       const underlineW = textWidth(openLabel);
       stroke(130); strokeWeight(2);

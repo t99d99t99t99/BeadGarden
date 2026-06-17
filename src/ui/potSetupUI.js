@@ -19,13 +19,13 @@ class PotSetupUI {
     });
   }
 
-  show() {
+  show(prefill = null) {
     if (this.nameInput) { this.nameInput.remove(); this.nameInput = null; }
     this.isVisible = true;
-    this.selectedConcept = -1;
+    this.selectedConcept = this.#conceptIndexForPrefill(prefill);
 
     // 화분 이름 input
-    this.nameInput = createInput('');
+    this.nameInput = createInput(prefill?.name ?? '');
     this.nameInput.attribute('placeholder', '예) 쑥쑥이');
     this.nameInput.attribute('maxlength', '20');
     this.nameInput.style('position', 'absolute');
@@ -48,11 +48,12 @@ class PotSetupUI {
   }
 
   getData() {
+    const concept = this.concepts[this.selectedConcept] ?? {};
     return {
       name: this.nameInput ? this.nameInput.value().trim() : '',
       desc: '',
-      concept: this.concepts[this.selectedConcept].label,
-      theme: this.concepts[this.selectedConcept].theme,
+      concept: concept.label ?? '',
+      theme: concept.theme ?? POT_THEMES.LEGACY,
     };
   }
 
@@ -92,29 +93,24 @@ class PotSetupUI {
     if (data.name.length > 0 && this.selectedConcept !== -1 &&
       mouseX > confirmX && mouseX < confirmX + 296 &&
       mouseY > confirmY && mouseY < confirmY + 48) {
-      // Firestore에 화분 생성 후 꾸미기 화면으로 이동
+      // 저장은 꾸미기 완료 후 PotDecorateUI에서 처리한다.
       let cardY = random(height * 0.15, height * 0.45);
-      createPot({ name: data.name, desc: data.desc, concept: data.concept, theme: data.theme, cardY })
-        .then(potId => {
-          const newPot = {
-            firestoreId: potId,
-            createdBy: myDeviceId,
-            name: data.name,
-            desc: data.desc,
-            concept: data.concept,
-            theme: data.theme,
-            cardY,
-            colorIndex: 0,
-            bgIndex: 0,
-            shapeIndex: 0,
-            locked: false,
-            stems: [],
-          };
-          this.hide();
-          potDecorateUI.show('new', newPot);
-          goTo(GAME_STATE.POT_DECORATE);
-        })
-        .catch(err => console.error('[Firestore] 화분 생성 오류:', err));
+      const newPot = {
+        createdBy: myDeviceId,
+        name: data.name,
+        desc: data.desc,
+        concept: data.concept,
+        theme: data.theme,
+        cardY,
+        colorIndex: 0,
+        bgIndex: 0,
+        shapeIndex: 0,
+        locked: false,
+        stems: [],
+      };
+      this.hide();
+      potDecorateUI.show('new', newPot, { entrySource: 'pot-setup' });
+      goTo(GAME_STATE.POT_DECORATE);
       return;
     }
   }
@@ -262,5 +258,15 @@ class PotSetupUI {
     );
     input.style('transform-origin', 'top left');
     input.style('transform', `scale(${scale})`);
+  }
+
+  #conceptIndexForPrefill(prefill) {
+    if (!prefill) return -1;
+
+    const theme = normalizePotTheme(prefill.theme);
+    const themeIndex = this.concepts.findIndex(concept => concept.theme === theme);
+    if (themeIndex >= 0) return themeIndex;
+
+    return this.concepts.findIndex(concept => concept.label === prefill.concept);
   }
 }

@@ -291,12 +291,14 @@ async function createPot(data) {
     concept: data.concept ?? '',
     theme: normalizePotTheme(data.theme),
     cardY: data.cardY,
-    colorIndex: 0,
-    bgIndex: 0,
-    shapeIndex: 0,
+    potAssetIndex: data.potAssetIndex ?? 0,
+    potAssetName: data.potAssetName ?? '',
+    colorIndex: data.colorIndex ?? 0,
+    bgIndex: data.bgIndex ?? 0,
+    shapeIndex: data.shapeIndex ?? 0,
     locked: false,
     likeCount: 0,
-    stems: [],
+    stems: data.stems ?? [],
   };
 
   if (databaseMode === DATABASE_SERVER) {
