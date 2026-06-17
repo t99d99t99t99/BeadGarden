@@ -9,11 +9,13 @@ class PotDecorateUI {
 
     // 화분 설정
     this.potColors = POT_COLORS;
-    this.bgColors = ['#EEEEF5', '#E8F4F8', '#F0F8F0', '#FDFDE6', '#F5EEF8', '#F8F8F8', '#BABABA', '#1C1C1C'];
+    this.bgColors = BG_COLORS;
     this.availablePots = [];
     this.selectedPotAsset = 0;
     this.selectedPotColor = 0;
+    this.selectedBgType = 'color';
     this.selectedBgColor = 0;
+    this.selectedBgImagePath = '';
 
     // 줄기 세부 설정
     this.selectedStemIndex = -1; // -1 = 선택 안 됨
@@ -38,6 +40,10 @@ class PotDecorateUI {
     this.currentPot = null;
     this.entrySource = null;
     this.isSaving = false;
+    this.optionsScrollBarAlpha = 0;
+    this.optionsScrollBarHoldFrames = 0;
+    this.optionsContentHeight = null;
+    this.optionsVisibleHeight = null;
   }
 
   show(mode = 'new', pot = null, options = {}) {
@@ -46,6 +52,10 @@ class PotDecorateUI {
     this.currentPot = pot;
     this.entrySource = options.entrySource ?? null;
     this.isSaving = false;
+    this.optionsScrollBarAlpha = 0;
+    this.optionsScrollBarHoldFrames = 0;
+    this.optionsContentHeight = null;
+    this.optionsVisibleHeight = null;
     this.scrollY = 0;
     this.targetScrollY = 0;
     this.maxScrollY = 0;
@@ -81,19 +91,30 @@ class PotDecorateUI {
     if (mode === 'new') {
       this.selectedPotAsset = 0;
       this.selectedPotColor = 0;
+      this.selectedBgType = 'color';
       this.selectedBgColor = floor(random(this.bgColors.length));
+      this.selectedBgImagePath = '';
     } else {
       let savedAssetIndex = this.availablePots.indexOf(pot?.potAssetName);
       this.selectedPotAsset = savedAssetIndex >= 0 ? savedAssetIndex : pot?.potAssetIndex ?? 0;
       this.selectedPotAsset = constrain(this.selectedPotAsset, 0, Math.max(0, this.availablePots.length - 1));
       this.selectedPotColor = pot?.colorIndex ?? 0;
-      this.selectedBgColor = pot?.bgIndex ?? 0;
+      this.selectedBgColor = constrain(pot?.bgIndex ?? 0, 0, this.bgColors.length - 1);
+      const savedBgImagePath = pot?.bgImagePath ?? '';
+      const savedBgImageAllowed = getPotBackgroundOptions(theme)
+        .some(option => option.path === savedBgImagePath);
+      this.selectedBgType = (pot?.bgType === 'image' || savedBgImagePath) && savedBgImageAllowed
+        ? 'image'
+        : 'color';
+      this.selectedBgImagePath = this.selectedBgType === 'image' ? savedBgImagePath : '';
     }
 
     this._savedState = {
       potAsset: this.selectedPotAsset,
       potColor: this.selectedPotColor,
+      bgType: this.selectedBgType,
       bgColor: this.selectedBgColor,
+      bgImagePath: this.selectedBgImagePath,
       stems: this.workingStems.map((stem) => this.#cloneStem(stem)),
     };
   }
@@ -117,8 +138,10 @@ class PotDecorateUI {
       potAssetIndex: this.selectedPotAsset,
       potAssetName: this.availablePots?.[this.selectedPotAsset] ?? '',
       colorIndex: this.selectedPotColor,
+      bgType: this.selectedBgType,
       bgIndex: this.selectedBgColor,
       bgColor: this.bgColors[this.selectedBgColor],
+      bgImagePath: this.selectedBgType === 'image' ? this.selectedBgImagePath : '',
       stems: this.workingStems.map((stem) => this.#cloneStem(stem)),
     };
   }
@@ -130,7 +153,9 @@ class PotDecorateUI {
       potAssetName: this.availablePots?.[this.selectedPotAsset],
       potAssetIndex: this.selectedPotAsset,
       colorIndex: this.selectedPotColor,
+      bgType: this.selectedBgType,
       bgIndex: this.selectedBgColor,
+      bgImagePath: this.selectedBgImagePath,
       stems: this.workingStems,
     }, x, y, w, h, {
       selectedStemIndex: this.selectedStemIndex,
@@ -398,7 +423,114 @@ class PotDecorateUI {
     const potGridRows = Math.ceil(pots.length / 4);
     const potGridBottom = panY + 34 + potGridRows * (90 + 18 + 16);
     const nextOptionY = potGridBottom + 16;
-    return nextOptionY + 100;
+    return nextOptionY + this.#backgroundPaletteHeight() + 18;
+  }
+
+  #backgroundGridConfig() {
+    return { cols: 8, cellSize: 48, gap: 10, labelHeight: 22 };
+  }
+
+  #backgroundOptions() {
+    return [
+      ...this.bgColors.map((colorValue, index) => ({
+        type: 'color',
+        color: colorValue,
+        colorIndex: index,
+        label: `Color ${index + 1}`,
+      })),
+      ...getPotBackgroundOptions(this.#potTheme()).map(option => ({ ...option })),
+    ];
+  }
+
+  #backgroundPaletteHeight() {
+    const { cols, cellSize, gap, labelHeight } = this.#backgroundGridConfig();
+    const rows = Math.ceil(this.#backgroundOptions().length / cols);
+    return labelHeight + rows * cellSize + Math.max(0, rows - 1) * gap;
+  }
+
+  #isBackgroundOptionSelected(option) {
+    if (option.type === 'color') {
+      return this.selectedBgType === 'color' && this.selectedBgColor === option.colorIndex;
+    }
+    return this.selectedBgType === 'image' && this.selectedBgImagePath === option.path;
+  }
+
+  #selectBackgroundOption(option) {
+    if (option.type === 'color') {
+      this.selectedBgType = 'color';
+      this.selectedBgColor = option.colorIndex;
+      this.selectedBgImagePath = '';
+      return;
+    }
+
+    this.selectedBgType = 'image';
+    this.selectedBgImagePath = option.path;
+  }
+
+  #revealOptionsScrollBar(holdFrames = 45) {
+    this.optionsScrollBarHoldFrames = max(this.optionsScrollBarHoldFrames, holdFrames);
+  }
+
+  #isNearOptionsScrollBar(controlsClip) {
+    const hoverW = 76;
+    return mouseX >= controlsClip.x + controlsClip.w - hoverW &&
+      mouseX <= controlsClip.x + controlsClip.w + 8 &&
+      mouseY >= controlsClip.y &&
+      mouseY <= controlsClip.y + controlsClip.h;
+  }
+
+  #updateOptionsScrollBarState(controlsClip, contentHeight, visibleHeight) {
+    const hasOverflow = this.maxScrollY > 1;
+    const heightChanged = this.optionsContentHeight !== null &&
+      (
+        Math.abs(contentHeight - this.optionsContentHeight) > 1 ||
+        Math.abs(visibleHeight - this.optionsVisibleHeight) > 1
+      );
+
+    this.optionsContentHeight = contentHeight;
+    this.optionsVisibleHeight = visibleHeight;
+
+    if (!hasOverflow) {
+      this.optionsScrollBarHoldFrames = 0;
+      this.optionsScrollBarAlpha = lerp(this.optionsScrollBarAlpha, 0, 0.12);
+      return;
+    }
+
+    const isHovering = this.#isNearOptionsScrollBar(controlsClip);
+    if (heightChanged) {
+      this.#revealOptionsScrollBar(55);
+    }
+
+    const isActive = isHovering || this.optionsScrollBarHoldFrames > 0;
+    this.optionsScrollBarAlpha = lerp(
+      this.optionsScrollBarAlpha,
+      isActive ? 1 : 0,
+      isActive ? 0.32 : 0.055
+    );
+
+    if (!isHovering && this.optionsScrollBarHoldFrames > 0) {
+      this.optionsScrollBarHoldFrames -= 1;
+    }
+  }
+
+  #drawOptionsScrollBar(controlsClip, contentHeight, visibleHeight) {
+    if (this.maxScrollY <= 1 || this.optionsScrollBarAlpha < 0.01) return;
+
+    const padY = 8;
+    const trackW = 8;
+    const trackX = controlsClip.x + controlsClip.w - 16;
+    const trackY = controlsClip.y + padY;
+    const trackH = controlsClip.h - padY * 2;
+    const thumbH = constrain(trackH * visibleHeight / max(contentHeight, visibleHeight), 36, trackH);
+    const scrollRatio = constrain(this.scrollY / this.maxScrollY, 0, 1);
+    const thumbY = trackY + (trackH - thumbH) * scrollRatio;
+    const alpha = this.optionsScrollBarAlpha;
+
+    noStroke();
+    fill(120, 120, 120, 42 * alpha);
+    rect(trackX, trackY, trackW, trackH, trackW / 2);
+    fill(100, 100, 100, 155 * alpha);
+    rect(trackX, thumbY, trackW, thumbH, trackW / 2);
   }
 
   #stemButtonBounds(index, x, y) {
@@ -586,6 +718,53 @@ class PotDecorateUI {
       let cx = x + i * 58;
       let cy = y + 12;
       if (this.#consumeOptionClick(cx + 2, cy + 2, 40, 40)) onSelect(i);
+    }
+  }
+
+  _drawBackgroundPalette(label, x, y) {
+    const options = this.#backgroundOptions();
+    const { cols, cellSize, gap, labelHeight } = this.#backgroundGridConfig();
+
+    fill(30); noStroke();
+    textSize(14); textStyle(BOLD); textAlign(LEFT);
+    text(label, x, y);
+
+    for (let i = 0; i < options.length; i++) {
+      const option = options[i];
+      const col = i % cols;
+      const row = floor(i / cols);
+      const sx = x + col * (cellSize + gap);
+      const sy = y + labelHeight + row * (cellSize + gap);
+      const selected = this.#isBackgroundOptionSelected(option);
+
+      fill(selected ? color(255, 230, 255) : 248);
+      stroke(selected ? color(255, 0, 255) : 210);
+      strokeWeight(selected ? 2.5 : 1);
+      rect(sx, sy, cellSize, cellSize, 7);
+
+      if (option.type === 'color') {
+        fill(option.color);
+        stroke(220);
+        strokeWeight(1);
+        rect(sx + 8, sy + 8, cellSize - 16, cellSize - 16, 6);
+      } else {
+        const img = getPotBackgroundImage(option.path);
+        if (!drawRoundedImageCover(img, sx + 5, sy + 5, cellSize - 10, cellSize - 10, 5)) {
+          fill(232); noStroke();
+          rect(sx + 5, sy + 5, cellSize - 10, cellSize - 10, 5);
+        }
+      }
+
+      if (selected) {
+        fill(255, 0, 255); noStroke();
+        rect(sx + cellSize - 18, sy + 4, 14, 14, 3);
+        fill(255); textSize(9); textAlign(CENTER, CENTER);
+        text('✓', sx + cellSize - 11, sy + 11);
+      }
+
+      if (this.#consumeOptionClick(sx, sy, cellSize, cellSize)) {
+        this.#selectBackgroundOption(option);
+      }
     }
   }
 
@@ -787,12 +966,8 @@ class PotDecorateUI {
     const potGridBottom = panY + 34 + potGridRows * (cellH + rowGap + 16);
     let nextOptionY = potGridBottom + 16;
 
-    // 배경 색상
-    this._drawColorPalette(
-      '배경 색상', this.bgColors, this.selectedBgColor,
-      panX, nextOptionY,
-      (i) => { this.selectedBgColor = i; }
-    );
+    // 배경 선택
+    this._drawBackgroundPalette('배경 선택', panX, nextOptionY);
 
     // 줄기 세부 설정
     let stemSecY = this.#stemSectionY(panY);
@@ -896,9 +1071,11 @@ class PotDecorateUI {
     let visibleContentH = popH - 132;
     this.maxScrollY = max(0, contentBottomOffset - visibleContentH);
     this.targetScrollY = constrain(this.targetScrollY, 0, this.maxScrollY);
+    this.#updateOptionsScrollBarState(controlsClip, contentBottomOffset, visibleContentH);
 
     drawingContext.restore();
     this.pendingOptionClick = null;
+    this.#drawOptionsScrollBar(controlsClip, contentBottomOffset, visibleContentH);
 
     // ── 하단 버튼 ──
     // 이전으로
@@ -1049,6 +1226,9 @@ class PotDecorateUI {
 
   onMouseWheel(delta) {
     if (!this.isVisible || this.pendingStemDeletion) return;
+    if (delta !== 0) {
+      this.#revealOptionsScrollBar(45);
+    }
     this.targetScrollY = constrain(this.targetScrollY + delta, 0, this.maxScrollY);
   }
 
@@ -1081,7 +1261,9 @@ class PotDecorateUI {
     if (!this._savedState) return;
     this.selectedPotAsset = this._savedState.potAsset;
     this.selectedPotColor = this._savedState.potColor;
+    this.selectedBgType = this._savedState.bgType;
     this.selectedBgColor = this._savedState.bgColor;
+    this.selectedBgImagePath = this._savedState.bgImagePath;
     this.workingStems = this._savedState.stems.map((stem) => this.#cloneStem(stem));
   }
 
@@ -1094,7 +1276,10 @@ class PotDecorateUI {
     this.currentPot.potAssetIndex = data.potAssetIndex;
     this.currentPot.potAssetName = data.potAssetName;
     this.currentPot.colorIndex = data.colorIndex;
+    this.currentPot.bgType = data.bgType;
     this.currentPot.bgIndex = data.bgIndex;
+    this.currentPot.bgColor = data.bgColor;
+    this.currentPot.bgImagePath = data.bgImagePath;
     this.currentPot.stems = data.stems;
 
     if (this.currentPot.firestoreId) {

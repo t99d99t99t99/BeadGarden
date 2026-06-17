@@ -160,7 +160,7 @@ class GardenUI {
   drawCard(pot, x) {
     const potBaseY = this._cardY(pot);
     const cx = x + this.cardW / 2;
-    const isHov = (this.hoveredPot === pot);
+    const isHov = (this.hoveredPot === pot) && (gameState === GAME_STATE.GARDEN_LIST);
 
     const potW = this.cardW * 0.5;
     const asset = getPotAssetForPot(pot);

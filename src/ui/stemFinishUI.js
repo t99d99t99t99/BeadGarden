@@ -73,8 +73,7 @@ class StemFinishUI {
     const prevStems = pot?.stems ?? [];
 
     // 배경
-    fill(BG_COLORS[pot?.bgIndex ?? 0]); noStroke();
-    rect(x, y, w, h, 8);
+    drawPotBackground(pot, x, y, w, h, { cornerRadius: 8 });
 
     // 미리보기 영역 클리핑 — 줄기가 박스 밖으로 나오지 않도록
     drawingContext.save();

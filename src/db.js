@@ -294,7 +294,10 @@ async function createPot(data) {
     potAssetIndex: data.potAssetIndex ?? 0,
     potAssetName: data.potAssetName ?? '',
     colorIndex: data.colorIndex ?? 0,
+    bgType: data.bgType ?? 'color',
     bgIndex: data.bgIndex ?? 0,
+    bgColor: data.bgColor ?? '',
+    bgImagePath: data.bgImagePath ?? '',
     shapeIndex: data.shapeIndex ?? 0,
     locked: false,
     likeCount: 0,
@@ -325,7 +328,10 @@ async function updatePotDecor(potId, decorData) {
     potAssetIndex: decorData.potAssetIndex,
     potAssetName: decorData.potAssetName,
     colorIndex: decorData.colorIndex,
+    bgType: decorData.bgType,
     bgIndex: decorData.bgIndex,
+    bgColor: decorData.bgColor,
+    bgImagePath: decorData.bgImagePath,
     stems: decorData.stems,
   };
   await updatePotWithFallback(potId, changes);

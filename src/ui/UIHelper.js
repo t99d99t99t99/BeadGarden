@@ -17,6 +17,26 @@ function isHovered(x, y, w, h) {
 const POT_COLORS = ['#F4A7B9', '#89C4E1', '#90E0AE', '#D4A8E8', '#F5F5F5', '#CCCCCC', '#888888', '#333333'];
 const BG_COLORS = ['#EEEEF5', '#E8F4F8', '#F0F8F0', '#FDFDE6', '#F5EEF8', '#F8F8F8', '#BABABA', '#1C1C1C'];
 const STEM_COLORS = ['#222222', '#FFFFFF', '#1A7A1A', '#66FF44', '#AAAAAA'];
+const POT_BACKGROUND_FILES = Object.freeze([
+  { theme: POT_THEMES.PLANT, file: 'pot_bg_plant1.png', label: 'Plant 1' },
+  { theme: POT_THEMES.PLANT, file: 'pot_bg_plant2.png', label: 'Plant 2' },
+  { theme: POT_THEMES.PLANT, file: 'pot_bg_plant3.png', label: 'Plant 3' },
+  { theme: POT_THEMES.PLANT, file: 'pot_bg_plant4.png', label: 'Plant 4' },
+  { theme: POT_THEMES.STAR, file: 'pot_bg_star1.png', label: 'Star 1' },
+  { theme: POT_THEMES.STAR, file: 'pot_bg_star2.png', label: 'Star 2' },
+  { theme: POT_THEMES.STAR, file: 'pot_bg_star3.png', label: 'Star 3' },
+  { theme: POT_THEMES.STAR, file: 'pot_bg_star4.png', label: 'Star 4' },
+  { theme: POT_THEMES.OCEAN, file: 'pot_bg_ocean1.png', label: 'Ocean 1' },
+  { theme: POT_THEMES.OCEAN, file: 'pot_bg_ocean2.png', label: 'Ocean 2' },
+  { theme: POT_THEMES.OCEAN, file: 'pot_bg_ocean3.png', label: 'Ocean 3' },
+  { theme: POT_THEMES.OCEAN, file: 'pot_bg_ocean4.png', label: 'Ocean 4' },
+]);
+const POT_BACKGROUND_OPTIONS = Object.freeze(POT_BACKGROUND_FILES.map(option => Object.freeze({
+  ...option,
+  type: 'image',
+  path: `assets/pot_backgrounds/${option.file}`,
+})));
+const potBackgroundImages = {};
 
 // 테마별 줄기 색상 팔레트 (potDetailUI, gardenUI 공용)
 const STEM_COLORS_BY_THEME = {
@@ -30,6 +50,65 @@ function getStemColor(pot, colorIndex) {
   const theme = (typeof normalizePotTheme === 'function') ? normalizePotTheme(pot) : 'plant';
   const palette = STEM_COLORS_BY_THEME[theme] ?? STEM_COLORS;
   return palette[colorIndex] ?? '#AAAAAA';
+}
+
+function preloadPotBackgroundImages() {
+  for (const option of POT_BACKGROUND_OPTIONS) {
+    potBackgroundImages[option.path] = loadImage(option.path, undefined, err => {
+      console.warn('[PotBackground] 이미지 로드 실패:', option.path, err);
+    });
+  }
+}
+
+function getPotBackgroundOptions(theme = null) {
+  const normalizedTheme = theme ? normalizePotTheme(theme) : null;
+  if (!normalizedTheme || normalizedTheme === POT_THEMES.LEGACY) {
+    return POT_BACKGROUND_OPTIONS;
+  }
+  return POT_BACKGROUND_OPTIONS.filter(option => option.theme === normalizedTheme);
+}
+
+function getPotBackgroundImage(path) {
+  return path ? potBackgroundImages[path] : null;
+}
+
+function drawPotBackground(pot, x, y, w, h, options = {}) {
+  const cornerRadius = options.cornerRadius ?? 8;
+  const imagePath = options.backgroundImagePath ?? pot?.bgImagePath ?? '';
+  const imageAsset = options.backgroundImage ?? getPotBackgroundImage(imagePath);
+
+  if ((options.backgroundType === 'image' || pot?.bgType === 'image' || imagePath) &&
+    drawRoundedImageCover(imageAsset, x, y, w, h, cornerRadius)) {
+    return;
+  }
+
+  const fallbackColor = (options.backgroundColor ?? pot?.bgColor) ||
+    BG_COLORS[pot?.bgIndex ?? 0] ||
+    BG_COLORS[0];
+  fill(fallbackColor);
+  noStroke();
+  rect(x, y, w, h, cornerRadius);
+}
+
+function drawRoundedImageCover(img, x, y, w, h, cornerRadius = 8) {
+  if (!img || !img.width || !img.height) return false;
+
+  const scale = Math.max(w / img.width, h / img.height);
+  const sourceW = w / scale;
+  const sourceH = h / scale;
+  const sourceX = Math.max(0, (img.width - sourceW) / 2);
+  const sourceY = Math.max(0, (img.height - sourceH) / 2);
+
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.roundRect(x, y, w, h, cornerRadius);
+  drawingContext.clip();
+  push();
+  imageMode(CORNER);
+  image(img, x, y, w, h, sourceX, sourceY, sourceW, sourceH);
+  pop();
+  drawingContext.restore();
+  return true;
 }
 
 function beadPathPlacements(
@@ -452,9 +531,7 @@ function drawPotComposition(pot, x, y, w, h, options = {}) {
   };
 
   if (options.background !== false) {
-    fill(options.backgroundColor ?? BG_COLORS[pot?.bgIndex ?? 0]);
-    noStroke();
-    rect(x, y, w, h, options.cornerRadius ?? 8);
+    drawPotBackground(pot, x, y, w, h, options);
   }
 
   if (!drawPotAsset(

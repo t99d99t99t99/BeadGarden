@@ -125,6 +125,7 @@ function isTextInputFocused() {
 function preload() {
   preloadBeadSpriteSheets();
   preloadPotImages();
+  preloadPotBackgroundImages();
   preloadWireAssets();
 }
 
