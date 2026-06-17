@@ -50,9 +50,9 @@ class GardenUI {
     const gardenListGraphicPath = 'assets/ui/garden-list/';
     const gardenListGraphicFiles = {
       buttonNewPot: 'button_new_pot.png',
-      buttonNewPotPressed: 'button_new_pot_pressed.png',
+      buttonNewPotHovered: 'button_new_pot_hovered.png',
       buttonTutorial: 'button_tutorial.png',
-      buttonTutorialPressed: 'button_tutorial_pressed.png',
+      buttonTutorialHovered: 'button_tutorial_hovered.png',
     };
     for (const [key, filename] of Object.entries(gardenListGraphicFiles)) {
       loadImage(gardenListGraphicPath + filename, img => { this.gardenListGraphics[key] = img; }, () => { });
@@ -556,9 +556,8 @@ class GardenUI {
     // ── 새 화분 만들기 버튼 ──
     const newPotButton = this._newPotButtonRect();
     const btnHov = isHovered(newPotButton.x, newPotButton.y, newPotButton.w, newPotButton.h);
-    const btnPressed = isClicked(newPotButton.x, newPotButton.y, newPotButton.w, newPotButton.h);
-    const newPotGraphic = btnPressed
-      ? this.gardenListGraphics.buttonNewPotPressed
+    const newPotGraphic = btnHov
+      ? this.gardenListGraphics.buttonNewPotHovered
       : this.gardenListGraphics.buttonNewPot;
     this._drawGardenListButton(
       newPotGraphic,
@@ -646,9 +645,8 @@ class GardenUI {
   _drawTutorialButton() {
     const button = this._tutorialButtonRect();
     const hovering = isHovered(button.x, button.y, button.w, button.h);
-    const pressed = isClicked(button.x, button.y, button.w, button.h);
-    const graphic = pressed
-      ? this.gardenListGraphics.buttonTutorialPressed
+    const graphic = hovering
+      ? this.gardenListGraphics.buttonTutorialHovered
       : this.gardenListGraphics.buttonTutorial;
 
     this._drawGardenListButton(

@@ -32,9 +32,7 @@ class StemBeadCraftUI {
       boxMessage: 'box_message.png',
       boxPreview: 'box_preview.png',
       buttonComplete: 'button_complete.png',
-      buttonCompletePressed: 'button_complete_pressed.png',
       buttonNewBead: 'button_new_bead.png',
-      buttonNewBeadPressed: 'button_new_bead_pressed.png',
       markerFingerGreen: 'marker_finger_green.png',
       markerFingerPink: 'marker_finger_pink.png',
       markerFingertipGreen: 'marker_fingertip_green.png',
@@ -48,7 +46,7 @@ class StemBeadCraftUI {
     const topButtonPath = 'assets/ui/garden-list/';
     const topButtonFiles = {
       buttonTutorial: 'button_tutorial.png',
-      buttonTutorialPressed: 'button_tutorial_pressed.png',
+      buttonTutorialHovered: 'button_tutorial_hovered.png',
     };
     for (const [key, filename] of Object.entries(topButtonFiles)) {
       loadImage(topButtonPath + filename, img => { this.topButtonGraphics[key] = img; }, () => { });
@@ -458,17 +456,9 @@ class StemBeadCraftUI {
     let btnX = width / 2 - 348;
     let btnY = height - 64;
     let isButtonPressed = isClicked(btnX, btnY, btnW, btnH);
-    let graphic = isButtonPressed
-      ? this.playGraphics.buttonNewBeadPressed
-      : this.playGraphics.buttonNewBead;
-    this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH);
-
-    fill(100);
-    noStroke();
-    textSize(13);
-    textStyle(BOLD);
-    textAlign(CENTER, CENTER);
-    text('비즈 다시 뿌리기', btnX + btnW / 2, btnY + btnH / 2);
+    let buttonHovered = isHovered(btnX, btnY, btnW, btnH);
+    let graphic = this.playGraphics.buttonNewBead;
+    this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH, false, buttonHovered, '비즈 다시 뿌리기');
 
     if (isButtonPressed && !this.newBeadButtonWasPressed &&
       typeof beadGame !== 'undefined' && typeof beadGame.regenerateUnpiercedBeads === 'function') {
@@ -485,10 +475,9 @@ class StemBeadCraftUI {
     let btnX = width / 2 - 119;
     let btnY = height - 64;
     let isPressed = canDone && isClicked(btnX, btnY, btnW, btnH);
-    let graphic = isPressed
-      ? this.playGraphics.buttonCompletePressed
-      : this.playGraphics.buttonComplete;
-    this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH, !canDone);
+    let buttonHovered = canDone && isHovered(btnX, btnY, btnW, btnH);
+    let graphic = this.playGraphics.buttonComplete;
+    this.#drawGraphicButton(graphic, btnX, btnY, btnW, btnH, !canDone, buttonHovered, '완성하기');
 
     // 클릭 → STEM_FINISH
     if (gameState === GAME_STATE.STEM_BEAD_CRAFT &&
@@ -499,16 +488,27 @@ class StemBeadCraftUI {
     }
   }
 
-  #drawGraphicButton(graphic, x, y, w, h, disabled = false) {
+  #drawGraphicButton(graphic, x, y, w, h, disabled = false, hovered = false, fallbackLabel = '') {
     push();
-    if (disabled) tint(255, 110);
+    if (disabled) {
+      tint(255, 110);
+    } else if (hovered) {
+      tint(215);
+    }
     if (graphic) {
       imageMode(CORNER);
       image(graphic, x, y, w, h);
     } else {
-      fill(disabled ? 180 : 30);
+      fill(disabled ? 180 : hovered ? 20 : 30);
       noStroke();
       rect(x, y, w, h, 24);
+      if (fallbackLabel) {
+        fill(disabled ? 120 : 100);
+        textSize(13);
+        textStyle(BOLD);
+        textAlign(CENTER, CENTER);
+        text(fallbackLabel, x + w / 2, y + h / 2);
+      }
     }
     noTint();
     pop();
@@ -694,8 +694,8 @@ class StemBeadCraftUI {
     const tutorialButton = this.#topTutorialButtonRect();
     const tutHov = isHovered(tutorialButton.x, tutorialButton.y, tutorialButton.w, tutorialButton.h);
     const tutPressed = isClicked(tutorialButton.x, tutorialButton.y, tutorialButton.w, tutorialButton.h);
-    const tutorialGraphic = tutPressed
-      ? this.topButtonGraphics.buttonTutorialPressed
+    const tutorialGraphic = tutHov
+      ? this.topButtonGraphics.buttonTutorialHovered
       : this.topButtonGraphics.buttonTutorial;
     this.#drawTopButton(tutorialGraphic, tutorialButton, '튜토리얼', tutHov, tutPressed);
     if (tutPressed) {

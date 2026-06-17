@@ -10,6 +10,22 @@ class PotDetailUI {
     this.likeMessage = '';
     this.likeMessageUntil = 0;
     this.likeMessageDurationMs = 0;
+    this.buttonGraphics = {};
+
+    const buttonPath = 'assets/ui/pot-detail/';
+    const buttonFiles = {
+      download: 'button_download.png',
+      downloadHovered: 'button_download_hovered.png',
+      newStem: 'button_new_stem.png',
+      newStemHovered: 'button_new_stem_hovered.png',
+      decorate: 'button_decorate.png',
+      decorateHovered: 'buttom_decorate_hovered.png',
+      lock: 'button_lock.png',
+      lockHovered: 'button_lock_hovered.png',
+    };
+    for (const [key, filename] of Object.entries(buttonFiles)) {
+      loadImage(buttonPath + filename, img => { this.buttonGraphics[key] = img; }, () => { });
+    }
   }
 
   show(pot) {
@@ -157,6 +173,31 @@ class PotDetailUI {
   #containsRect(bounds) {
     return mouseX >= bounds.x && mouseX <= bounds.x + bounds.w &&
       mouseY >= bounds.y && mouseY <= bounds.y + bounds.h;
+  }
+
+  #drawImageButton(graphic, bounds, fallbackLabel, fallbackOptions = {}) {
+    if (graphic) {
+      imageMode(CORNER);
+      image(graphic, bounds.x, bounds.y, bounds.w, bounds.h);
+      return;
+    }
+
+    const disabled = fallbackOptions.disabled ?? false;
+    fill(fallbackOptions.fill ?? (disabled ? 232 : 200));
+    if (fallbackOptions.stroke) {
+      stroke(fallbackOptions.stroke);
+      strokeWeight(1);
+    } else {
+      noStroke();
+    }
+    rect(bounds.x, bounds.y, bounds.w, bounds.h, fallbackOptions.radius ?? bounds.h / 2);
+
+    noStroke();
+    fill(fallbackOptions.textFill ?? (disabled ? 145 : 255));
+    textSize(fallbackOptions.textSize ?? 13);
+    textStyle(fallbackOptions.textStyle ?? BOLD);
+    textAlign(CENTER, CENTER);
+    text(fallbackLabel, bounds.x + bounds.w / 2, bounds.y + bounds.h / 2);
   }
 
   #formatPotDate(value) {
@@ -318,14 +359,15 @@ class PotDetailUI {
   #drawDownloadButton(layout) {
     const bounds = this.#downloadButtonRect(layout);
     const hovered = this.#containsRect(bounds);
-    fill(hovered ? 175 : 190);
-    noStroke();
-    rect(bounds.x, bounds.y, bounds.w, bounds.h, 9);
-    fill(255);
-    textSize(12);
-    textStyle(BOLD);
-    textAlign(CENTER, CENTER);
-    text('화분 이미지 다운로드', bounds.x + bounds.w / 2, bounds.y + bounds.h / 2);
+    const graphic = hovered
+      ? this.buttonGraphics.downloadHovered
+      : this.buttonGraphics.download;
+    this.#drawImageButton(graphic, bounds, '화분 이미지 다운로드', {
+      fill: hovered ? 175 : 190,
+      radius: 9,
+      textSize: 12,
+      textStyle: BOLD,
+    });
     return hovered;
   }
 
@@ -655,20 +697,28 @@ class PotDetailUI {
       // 새 비즈 줄기 만들기
       const newStemButton = bottomControls.newStemButton;
       const btn1Hov = this.#containsRect(newStemButton);
-      fill(btn1Hov ? color(180, 0, 180) : color(255, 0, 255)); noStroke();
-      rect(newStemButton.x, newStemButton.y, newStemButton.w, newStemButton.h, 24);
-      fill(255); textSize(14); textStyle(BOLD);
-      textAlign(CENTER, CENTER);
-      text('+ 새 비즈 줄기 만들기', newStemButton.x + newStemButton.w / 2, newStemButton.y + newStemButton.h / 2);
+      const newStemGraphic = btn1Hov
+        ? this.buttonGraphics.newStemHovered
+        : this.buttonGraphics.newStem;
+      this.#drawImageButton(newStemGraphic, newStemButton, '+ 새 비즈 줄기 만들기', {
+        fill: btn1Hov ? color(180, 0, 180) : color(255, 0, 255),
+        radius: 24,
+        textSize: 14,
+        textStyle: BOLD,
+      });
 
       // 화분·줄기 꾸미기
       const decorateButton = bottomControls.decorateButton;
       const btn2Hov = this.#containsRect(decorateButton);
-      fill(btn2Hov ? 185 : 200); noStroke();
-      rect(decorateButton.x, decorateButton.y, decorateButton.w, decorateButton.h, 24);
-      fill(255); textSize(14); textStyle(NORMAL);
-      textAlign(CENTER, CENTER);
-      text('화분·줄기 꾸미기', decorateButton.x + decorateButton.w / 2, decorateButton.y + decorateButton.h / 2);
+      const decorateGraphic = btn2Hov
+        ? this.buttonGraphics.decorateHovered
+        : this.buttonGraphics.decorate;
+      this.#drawImageButton(decorateGraphic, decorateButton, '화분·줄기 꾸미기', {
+        fill: btn2Hov ? 185 : 200,
+        radius: 24,
+        textSize: 14,
+        textStyle: NORMAL,
+      });
 
       // 화분 잠금 섹션
       const lockSectionY = bottomControls.lockSectionY;
@@ -688,18 +738,25 @@ class PotDetailUI {
       const lockButton = bottomControls.lockButton;
       const lockHov = hasStem && this.#containsRect(lockButton);
       if (hasStem) {
-        fill(lockHov ? 40 : 20);
-        noStroke();
+        const lockGraphic = lockHov
+          ? this.buttonGraphics.lockHovered
+          : this.buttonGraphics.lock;
+        this.#drawImageButton(lockGraphic, lockButton, '화분 잠그기', {
+          fill: lockHov ? 40 : 20,
+          radius: 18,
+          textSize: 12,
+          textStyle: NORMAL,
+        });
       } else {
-        fill(232);
-        stroke(205);
-        strokeWeight(1);
+        this.#drawImageButton(null, lockButton, '줄기 필요', {
+          disabled: true,
+          fill: 232,
+          stroke: 205,
+          radius: 18,
+          textSize: 12,
+          textStyle: NORMAL,
+        });
       }
-      rect(lockButton.x, lockButton.y, lockButton.w, lockButton.h, 18);
-      noStroke();
-      fill(hasStem ? 255 : 145); textSize(12); textStyle(NORMAL);
-      textAlign(CENTER, CENTER);
-      text(hasStem ? '화분 잠그기' : '줄기 필요', lockButton.x + lockButton.w / 2, lockButton.y + lockButton.h / 2);
 
       // 커서
       const anyHov = btn1Hov || btn2Hov || xHov ||
