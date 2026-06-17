@@ -75,6 +75,7 @@ class TutorialUI {
           ],
         ],
         imagePath: 'assets/tutorial/tutorial_5.png',
+        videoPath: 'assets/tutorial/tutorial_5_video.mp4',
         tip: '카메라에서 조금 40cm정도 떨어진 측면 손이 인식이 잘 돼요!',
       },
       {
@@ -88,6 +89,7 @@ class TutorialUI {
           ],
         ],
         imagePath: 'assets/tutorial/tutorial_6.png',
+        videoPath: 'assets/tutorial/tutorial_6_video.mp4',
         tip: '한 번 철사에 끼워진 비즈는 빠지지 않아요.',
       },
       {
@@ -148,6 +150,7 @@ class TutorialUI {
     ];
 
     this._loadStepImages();
+    this._loadStepVideos();
 
     loadImage('assets/backgrounds/stemBeadCraft_star_bg.png', img => {
       this.starBgImg = img;
@@ -173,17 +176,69 @@ class TutorialUI {
     }
   }
 
+  _loadStepVideos() {
+    for (const step of this.steps) {
+      if (!step.videoPath) continue;
+
+      const video = createVideo([step.videoPath], () => {
+        step.videoReady = true;
+        this._syncStepVideos();
+      });
+      video.hide();
+      video.volume(0);
+      if (video.elt) {
+        video.elt.muted = true;
+        video.elt.loop = true;
+        video.elt.playsInline = true;
+        video.elt.setAttribute('playsinline', '');
+        video.elt.addEventListener('loadedmetadata', () => {
+          step.videoAspect = video.elt.videoWidth / video.elt.videoHeight;
+        });
+      }
+      step.video = video;
+    }
+  }
+
+  _syncStepVideos(tutorialActive = gameState === GAME_STATE.TUTORIAL) {
+    const activeStep = tutorialActive ? this.steps[this.currentStep] : null;
+    for (const step of this.steps) {
+      if (!step.video) continue;
+
+      if (step === activeStep && step.videoReady) {
+        if (step.video.elt?.paused) {
+          const playResult = step.video.elt.play();
+          if (playResult?.catch) playResult.catch(() => { });
+        }
+      } else if (!step.video.elt?.paused) {
+        step.video.pause();
+      }
+    }
+  }
+
+  _pauseStepVideos() {
+    for (const step of this.steps) {
+      if (step.video) step.video.pause();
+    }
+  }
+
   enter() {
     this.currentStep = 0;
     this.enteredFromState = gameState;
+    this._syncStepVideos(true);
   }
 
   _prev() {
-    if (this.currentStep > 0) this.currentStep--;
+    if (this.currentStep > 0) {
+      this.currentStep--;
+      this._syncStepVideos();
+    }
   }
 
   _next() {
-    if (this.currentStep < this.steps.length - 1) this.currentStep++;
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+      this._syncStepVideos();
+    }
   }
 
   _sourceState() {
@@ -196,6 +251,7 @@ class TutorialUI {
   }
 
   _exit() {
+    this._pauseStepVideos();
     if (this._sourceState() === GAME_STATE.STEM_BEAD_CRAFT) {
       goTo(GAME_STATE.STEM_BEAD_CRAFT);
     } else {
@@ -232,6 +288,7 @@ class TutorialUI {
 
   draw() {
     const step = this.steps[this.currentStep];
+    this._syncStepVideos(true);
     this._drawBackground(step);
 
     this._drawTopTitle();
@@ -399,7 +456,9 @@ class TutorialUI {
   _drawRegularImageStep(step) {
     const imageRect = this._tutorialImageRect(null, this._stepImageRatio(step));
     let visibleImageRect = imageRect;
-    if (step.img) {
+    if (step.videoReady && step.video) {
+      visibleImageRect = this._drawMediaContain(step.video, imageRect, this._stepImageRatio(step));
+    } else if (step.img) {
       visibleImageRect = this._drawImageContain(step.img, imageRect);
     } else {
       this._drawImageFallback(step, imageRect);
@@ -452,6 +511,12 @@ class TutorialUI {
   }
 
   _stepImageRatio(step) {
+    if (step?.videoAspect) {
+      return step.videoAspect;
+    }
+    if (step?.video?.elt?.videoWidth && step?.video?.elt?.videoHeight) {
+      return step.video.elt.videoWidth / step.video.elt.videoHeight;
+    }
     if (step?.img?.width && step?.img?.height) {
       return step.img.width / step.img.height;
     }
@@ -646,6 +711,38 @@ class TutorialUI {
     textStyle(NORMAL);
     textAlign(CENTER, CENTER);
     text(step.imagePath, imageRect.x + imageRect.w / 2, imageRect.y + imageRect.h / 2);
+  }
+
+  _drawMediaContain(media, imageRect, aspectRatio = null) {
+    if (!media) return imageRect;
+
+    const mediaAspect = aspectRatio || this._mediaAspect(media);
+    if (!mediaAspect) return imageRect;
+
+    const drawH = Math.min(imageRect.h, imageRect.w / mediaAspect);
+    const drawW = drawH * mediaAspect;
+    const drawX = imageRect.x + (imageRect.w - drawW) / 2;
+    const drawY = imageRect.y + (imageRect.h - drawH) / 2;
+    imageMode(CORNER);
+    image(media, drawX, drawY, drawW, drawH);
+
+    return {
+      x: drawX,
+      y: drawY,
+      w: drawW,
+      h: drawH,
+      r: imageRect.r,
+    };
+  }
+
+  _mediaAspect(media) {
+    if (media?.elt?.videoWidth && media?.elt?.videoHeight) {
+      return media.elt.videoWidth / media.elt.videoHeight;
+    }
+    if (media?.width && media?.height) {
+      return media.width / media.height;
+    }
+    return null;
   }
 
   _drawImageContain(img, imageRect) {
