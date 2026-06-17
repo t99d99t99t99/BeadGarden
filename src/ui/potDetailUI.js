@@ -102,7 +102,7 @@ class PotDetailUI {
   }
 
   #imageDownloadPopupLayout(layout) {
-    const w = 236, h = 302;
+    const w = 330, h = 420;
     const x = layout.panX + layout.panW - w;
     const y = layout.panY + 124;
     return {
@@ -111,7 +111,7 @@ class PotDetailUI {
       w,
       h,
       close: { x: x + w - 33, y: y + 12, w: 22, h: 22 },
-      qr: { x: x + 34, y: y + 55, size: 168 },
+      qr: { x: x + 32, y: y + 58, size: 266 },
     };
   }
 
@@ -444,21 +444,24 @@ class PotDetailUI {
   #drawQrMatrix(matrix, x, y, size) {
     const quietZone = 4;
     const totalModules = matrix.length + quietZone * 2;
-    const moduleSize = size / totalModules;
+    const moduleSize = max(1, floor(size / totalModules));
+    const qrPixelSize = moduleSize * totalModules;
+    const drawX = floor(x + (size - qrPixelSize) / 2);
+    const drawY = floor(y + (size - qrPixelSize) / 2);
 
     fill(255);
     noStroke();
     rect(x, y, size, size);
 
-    fill(30);
+    fill(0);
     for (let row = 0; row < matrix.length; row++) {
       for (let col = 0; col < matrix.length; col++) {
         if (!matrix[row][col]) continue;
         rect(
-          x + (col + quietZone) * moduleSize,
-          y + (row + quietZone) * moduleSize,
-          Math.ceil(moduleSize),
-          Math.ceil(moduleSize)
+          drawX + (col + quietZone) * moduleSize,
+          drawY + (row + quietZone) * moduleSize,
+          moduleSize,
+          moduleSize
         );
       }
     }
