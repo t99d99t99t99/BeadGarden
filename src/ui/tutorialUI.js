@@ -61,6 +61,11 @@ class TutorialUI {
           [{ text: '비즈를 꿰어 줄기를 만드는 게임을 시작해요.' }],
         ],
         imagePath: 'assets/tutorial/tutorial_4.png',
+        mouseOverlay: {
+          targetXRatio: 0.648,
+          targetYRatio: 0.643,
+          heightRatio: 0.14,
+        },
         tip: '다른 사람의 화분에도 줄기를 만들 수 있어요!',
       },
       {
